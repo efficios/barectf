@@ -104,6 +104,17 @@ def _validate_struct(struct):
             _validate_struct(ftype)
 
 
+def _validate_context_field(struct):
+    if type(struct) is not pytsdl.tsdl.Struct:
+        raise RuntimeError('expecting a struct')
+
+    for name, ftype in struct.fields.items():
+        if type(ftype) is pytsdl.tsdl.Variant:
+            raise RuntimeError('field "{}" is a variant (unsupported)'.format(name))
+        elif type(ftype) is pytsdl.tsdl.Struct:
+            _validate_struct(ftype)
+
+
 def _validate_integer(integer, size=None, align=None, signed=None):
     if type(integer) is not pytsdl.tsdl.Integer:
         raise RuntimeError('expected integer')
@@ -283,6 +294,19 @@ def _validate_event_header(doc, stream):
         _perror('stream {}: "timestamp": integer must be mapped to an existing clock'.format(sid))
 
 
+def _validate_stream_event_context(doc, stream):
+    stream_event_context = stream.event_context
+    sid = stream.id
+
+    if stream_event_context is None:
+        return
+
+    try:
+        _validate_context_field(stream_event_context)
+    except RuntimeError as e:
+        _perror('stream {}: event context: {}'.format(sid, e))
+
+
 def _validate_headers_contexts(doc):
     # packet header
     _validate_packet_header(doc.trace.packet_header)
@@ -291,6 +315,7 @@ def _validate_headers_contexts(doc):
     for stream_id, stream in doc.streams.items():
         _validate_event_header(doc, stream)
         _validate_packet_context(doc, stream)
+        _validate_stream_event_context(doc, stream)
 
 
 def _validate_metadata(doc):
