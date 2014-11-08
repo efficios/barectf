@@ -404,6 +404,7 @@ def _get_integer_size(integer):
 
 
 _obj_size_cb = {
+    pytsdl.tsdl.Struct: _get_struct_size,
     pytsdl.tsdl.Integer: _get_integer_size,
     pytsdl.tsdl.Enum: _get_enum_size,
     pytsdl.tsdl.FloatingPoint: _get_floating_point_size,
