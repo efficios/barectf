@@ -457,7 +457,8 @@ _CTX_AT = 'ctx->at'
 _CTX_BUF = 'ctx->buf'
 _CTX_BUF_AT = '{}[{} >> 3]'.format(_CTX_BUF, _CTX_AT)
 _CTX_BUF_AT_ADDR = '&{}'.format(_CTX_BUF_AT)
-_UPDATE_OFFSET = 'UPDATE_OFFSET'
+_ALIGN_OFFSET = 'ALIGN_OFFSET'
+
 
 def _field_name_to_param_name(fname):
     return '_param_{}'.format(fname)
@@ -585,7 +586,7 @@ def _write_field_array(doc, fname, array):
     lines.append(_CLine(line))
     for_block = _CBlock()
     element_align = _get_obj_alignment(array.element)
-    line = '{}({}, {});'.format(_UPDATE_OFFSET, _CTX_AT, element_align)
+    line = '{}({}, {});'.format(_ALIGN_OFFSET, _CTX_AT, element_align)
     for_block.append(_CLine(line))
     for_block += _write_field_obj(doc, fname, array.element)
     lines.append(for_block)
@@ -639,8 +640,22 @@ def _struct_to_c_lines(doc, struct):
     for fname, ftype in struct.fields.items():
         pname = _field_name_to_param_name(fname)
         align = _get_obj_alignment(ftype)
-        line = '{}({}, {});'.format(_UPDATE_OFFSET, _CTX_AT, align)
+        line = '{}({}, {});'.format(_ALIGN_OFFSET, _CTX_AT, align)
         lines.append(line)
+
+        # offset variables
+        if type(ftype) is pytsdl.tsdl.Struct:
+            offset_vars_tree = collections.OrderedDict()
+            _get_struct_size(ftype, offset_vars_tree)
+            offset_vars = _offset_vars_tree_to_vars(offset_vars_tree)
+
+            for lname, offset in offset_vars.items():
+                line = 'uint32_t off_{}_{}'.format(fname, lname, _CTX_AT);
+                lines.append(_CLine(line))
+        else:
+            line = 'uint32_t off_{} = {};'.format(fname, _CTX_AT)
+            lines.append(_CLine(line))
+
         lines += _write_field_obj(doc, fname, ftype)
 
     return lines
