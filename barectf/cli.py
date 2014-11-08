@@ -370,7 +370,10 @@ def _get_struct_size(struct, offset_vars_tree=collections.OrderedDict(),
             sz = _get_struct_size(ftype, offset_vars_tree[fname],
                                   base_offset + offset)
         else:
-            offset_vars_tree[fname] = base_offset + offset
+            # only integers may act as sequence lengths
+            if type(ftype) is pytsdl.tsdl.Integer:
+                offset_vars_tree[fname] = base_offset + offset
+
             sz = _get_obj_size(ftype)
 
         offset += sz
