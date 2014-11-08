@@ -693,10 +693,11 @@ def _write_field_obj(doc, fname, ftype):
     return _write_field_obj_cb[type(ftype)](doc, fname, ftype)
 
 
-def _struct_to_c_lines(doc, struct):
-    lines = []
+def _struct_to_clines(doc, struct):
+    line_groups = []
 
     for fname, ftype in struct.fields.items():
+        lines = []
         pname = _field_name_to_param_name(fname)
         align = _get_obj_alignment(ftype)
 
@@ -716,14 +717,43 @@ def _struct_to_c_lines(doc, struct):
                 fmt = 'uint32_t off_{}_{} = {} + {};'
                 line = fmt.format(fname, lname, _CTX_AT, offset);
                 lines.append(_CLine(line))
-        else:
+        elif type(ftype) is pytsdl.tsdl.Integer:
             # offset of this simple field is the current bit index
             line = 'uint32_t off_{} = {};'.format(fname, _CTX_AT)
             lines.append(_CLine(line))
 
         lines += _write_field_obj(doc, fname, ftype)
+        line_groups.append(lines)
 
-    return lines
+    if not line_groups:
+        return line_groups
+
+    output_lines = line_groups[0]
+
+    for lines in line_groups[1:]:
+        output_lines.append('')
+        output_lines += lines
+
+    return output_lines
+
+
+def _cblock_to_source_lines(cblock, indent=1):
+    src = []
+    indentstr = '\t' * indent
+
+    for line in cblock:
+        if type(line) is _CBlock:
+            src += _cblock_to_source_lines(line, indent + 1)
+        else:
+            src.append(indentstr + line)
+
+    return src
+
+
+def _cblock_to_source(cblock, indent=1):
+    lines = _cblock_to_source_lines(cblock, indent)
+
+    return '\n'.join(lines)
 
 
 def gen_barectf(metadata, output, prefix, static_inline, manual_clock):
@@ -747,9 +777,8 @@ def gen_barectf(metadata, output, prefix, static_inline, manual_clock):
 
     import json
 
-    lines = _struct_to_c_lines(doc, doc.streams[0].get_event(0).fields)
-
-    print(json.dumps(lines, indent=4))
+    clines = _struct_to_clines(doc, doc.streams[0].get_event(0).fields)
+    print(_cblock_to_source(_CBlock(clines)))
 
 
 def run():
