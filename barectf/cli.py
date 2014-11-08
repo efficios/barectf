@@ -198,7 +198,7 @@ class BarectfCodeGenerator:
                 if self._get_obj_size(ftype) > 64:
                     raise RuntimeError('enum field "{}" larger than 64-bit'.format(fname))
 
-    def _validate_context_field(self, struct):
+    def _validate_context_fields(self, struct):
         if type(struct) is not pytsdl.tsdl.Struct:
             raise RuntimeError('expecting a struct')
 
@@ -371,7 +371,7 @@ class BarectfCodeGenerator:
             return
 
         try:
-            self._validate_context_field(stream_event_context)
+            self._validate_context_fields(stream_event_context)
         except RuntimeError as e:
             _perror('stream {}: event context: {}'.format(sid, e))
 
@@ -384,7 +384,7 @@ class BarectfCodeGenerator:
             return
 
         try:
-            self._validate_context_field(event_context)
+            self._validate_context_fields(event_context)
         except RuntimeError as e:
             _perror('stream {}: event {}: context: {}'.format(sid, eid, e))
 
@@ -394,7 +394,7 @@ class BarectfCodeGenerator:
         eid = event.id
 
         try:
-            self._validate_context_field(event_fields)
+            self._validate_context_fields(event_fields)
         except RuntimeError as e:
             _perror('stream {}: event {}: fields: {}'.format(sid, eid, e))
 
