@@ -697,7 +697,8 @@ def _struct_to_c_lines(doc, struct):
             # as many offset as there are child fields because a future
             # sequence could refer to any of those fields
             for lname, offset in offset_vars.items():
-                line = 'uint32_t off_{}_{}'.format(fname, lname, _CTX_AT);
+                fmt = 'uint32_t off_{}_{} = {} + {};'
+                line = fmt.format(fname, lname, _CTX_AT, offset);
                 lines.append(_CLine(line))
         else:
             # offset of this simple field is the current bit index
