@@ -738,7 +738,6 @@ class BarectfCodeGenerator:
             # as many offset as there are child fields because a future
             # sequence could refer to any of those fields
             for lname, offset in off_vars.items():
-                print(fname, lname)
                 offvar = self._get_offvar_name('_'.join([fname, lname]))
                 fmt = 'uint32_t {} = {} + {};'
                 line = fmt.format(offvar, self._CTX_AT, offset);
