@@ -467,9 +467,12 @@ def _get_obj_alignment(obj):
 
 _CTX_AT = 'ctx->at'
 _CTX_BUF = 'ctx->buf'
+_CTX_BUF_SIZE = 'ctx->buf_size'
 _CTX_BUF_AT = '{}[{} >> 3]'.format(_CTX_BUF, _CTX_AT)
 _CTX_BUF_AT_ADDR = '&{}'.format(_CTX_BUF_AT)
 _ALIGN_OFFSET = 'ALIGN_OFFSET'
+_CHECK_OFFSET_OVERFLOW_FMT = \
+    'CHECK_OFFSET_OVERFLOW({}, {}, {{}});'.format(_CTX_AT, _CTX_BUF_SIZE)
 
 
 def _field_name_to_param_name(fname):
@@ -543,6 +546,10 @@ class _CLine(str):
     pass
 
 
+def _get_check_offset_overflow_cline(size):
+    return _CLine(_CHECK_OFFSET_OVERFLOW_FMT.format(size))
+
+
 def _write_field_struct(doc, fname, struct):
     size = _get_struct_size(struct)
     size_bytes = _get_alignment(size, 8) // 8
@@ -553,6 +560,7 @@ def _write_field_struct(doc, fname, struct):
     return [
         # memcpy() is safe since barectf requires inner structures
         # to be byte-aligned
+        _get_check_offset_overflow_cline(size),
         _CLine('memcpy({}, {}, {});'.format(dst, src, size_bytes)),
         _CLine('{} += {};'.format(_CTX_AT, size)),
     ]
@@ -574,6 +582,7 @@ def _write_field_integer(doc, fname, integer):
     fmt = 'barectf_bitfield_write_{}({}, {}, {}, {}, {});'
 
     return [
+        _get_check_offset_overflow_cline(length),
         _CLine(fmt.format(bo, ptr, t, start, length, value)),
         _CLine('{} += {};'.format(_CTX_AT, length))
     ]
@@ -593,6 +602,7 @@ def _write_field_floating_point(doc, fname, floating_point):
     fmt = 'barectf_bitfield_write_{}({}, {}, {}, {}, {});'
 
     return [
+        _get_check_offset_overflow_cline(length),
         _CLine(fmt.format(bo, ptr, t, start, length, value)),
         _CLine('{} += {};'.format(_CTX_AT, length))
     ]
@@ -649,6 +659,9 @@ def _write_field_string(doc, fname, string):
 
     # for loop statements
     for_block = _CBlock()
+
+    # check offset overflow
+    for_block.append(_get_check_offset_overflow_cline(8))
 
     # write byte to the buffer
     line = '{} = {}[{}]'.format(_CTX_BUF_AT, src, iv)
