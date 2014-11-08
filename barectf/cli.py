@@ -150,31 +150,31 @@ class BarectfCodeGenerator:
             raise RuntimeError('inner struct must be at least byte-aligned')
 
         # check each field
-        for name, ftype in struct.fields.items():
+        for fname, ftype in struct.fields.items():
             if type(ftype) is pytsdl.tsdl.Sequence:
-                raise RuntimeError('field "{}" is a dynamic array (not allowed here)'.format(name))
+                raise RuntimeError('field "{}" is a dynamic array (not allowed here)'.format(fname))
             elif type(ftype) is pytsdl.tsdl.Array:
                 # we need to check every element until we find a terminal one
                 element = ftype.element
 
                 while True:
                     if type(element) is pytsdl.tsdl.Sequence:
-                        raise RuntimeError('field "{}" contains a dynamic array (not allowed here)'.format(name))
+                        raise RuntimeError('field "{}" contains a dynamic array (not allowed here)'.format(fname))
                     elif type(element) is pytsdl.tsdl.Variant:
-                        raise RuntimeError('field "{}" contains a variant (unsupported)'.format(name))
+                        raise RuntimeError('field "{}" contains a variant (unsupported)'.format(fname))
                     elif type(element) is pytsdl.tsdl.String:
-                        raise RuntimeError('field "{}" contains a string (not allowed here)'.format(name))
+                        raise RuntimeError('field "{}" contains a string (not allowed here)'.format(fname))
                     elif type(element) is pytsdl.tsdl.Struct:
                         _validate_struct(element)
                     elif type(element) is pytsdl.tsdl.Integer:
                         if self._get_obj_size(element) > 64:
-                            raise RuntimeError('integer field "{}" larger than 64-bit'.format(name))
+                            raise RuntimeError('integer field "{}" larger than 64-bit'.format(fname))
                     elif type(element) is pytsdl.tsdl.FloatingPoint:
                         if self._get_obj_size(element) > 64:
-                            raise RuntimeError('floating point field "{}" larger than 64-bit'.format(name))
+                            raise RuntimeError('floating point field "{}" larger than 64-bit'.format(fname))
                     elif type(element) is pytsdl.tsdl.Enum:
                         if self._get_obj_size(element) > 64:
-                            raise RuntimeError('enum field "{}" larger than 64-bit'.format(name))
+                            raise RuntimeError('enum field "{}" larger than 64-bit'.format(fname))
 
                     if type(element) is pytsdl.tsdl.Array:
                         # still an array, continue
@@ -183,28 +183,28 @@ class BarectfCodeGenerator:
                         # found the terminal element
                         break
             elif type(ftype) is pytsdl.tsdl.Variant:
-                raise RuntimeError('field "{}" is a variant (unsupported)'.format(name))
+                raise RuntimeError('field "{}" is a variant (unsupported)'.format(fname))
             elif type(ftype) is pytsdl.tsdl.String:
-                raise RuntimeError('field "{}" is a string (not allowed here)'.format(name))
+                raise RuntimeError('field "{}" is a string (not allowed here)'.format(fname))
             elif type(ftype) is pytsdl.tsdl.Struct:
-                _validate_struct(ftype)
+                self._validate_struct(ftype)
             elif type(ftype) is pytsdl.tsdl.Integer:
                 if self._get_obj_size(ftype) > 64:
-                    raise RuntimeError('integer field "{}" larger than 64-bit'.format(name))
+                    raise RuntimeError('integer field "{}" larger than 64-bit'.format(fname))
             elif type(ftype) is pytsdl.tsdl.FloatingPoint:
                 if self._get_obj_size(ftype) > 64:
-                    raise RuntimeError('floating point field "{}" larger than 64-bit'.format(name))
+                    raise RuntimeError('floating point field "{}" larger than 64-bit'.format(fname))
             elif type(ftype) is pytsdl.tsdl.Enum:
                 if self._get_obj_size(ftype) > 64:
-                    raise RuntimeError('enum field "{}" larger than 64-bit'.format(name))
+                    raise RuntimeError('enum field "{}" larger than 64-bit'.format(fname))
 
     def _validate_context_field(self, struct):
         if type(struct) is not pytsdl.tsdl.Struct:
             raise RuntimeError('expecting a struct')
 
-        for name, ftype in struct.fields.items():
+        for fname, ftype in struct.fields.items():
             if type(ftype) is pytsdl.tsdl.Variant:
-                raise RuntimeError('field "{}" is a variant (unsupported)'.format(name))
+                raise RuntimeError('field "{}" is a variant (unsupported)'.format(fname))
             elif type(ftype) is pytsdl.tsdl.Struct:
                 # validate inner structure against barectf constraints
                 self._validate_struct(ftype)
@@ -257,7 +257,6 @@ class BarectfCodeGenerator:
 
     def _dot_name_to_str(self, name):
         return '.'.join(name)
-
 
     def _compare_integers(self, int1, int2):
         if type(int1) is not pytsdl.tsdl.Integer:
@@ -376,15 +375,43 @@ class BarectfCodeGenerator:
         except RuntimeError as e:
             _perror('stream {}: event context: {}'.format(sid, e))
 
+    def _validate_event_context(self, stream, event):
+        event_context = event.context
+        sid = stream.id
+        eid = event.id
+
+        if event_context is None:
+            return
+
+        try:
+            self._validate_context_field(event_context)
+        except RuntimeError as e:
+            _perror('stream {}: event {}: context: {}'.format(sid, eid, e))
+
+    def _validate_event_fields(self, stream, event):
+        event_fields = event.fields
+        sid = stream.id
+        eid = event.id
+
+        try:
+            self._validate_context_field(event_fields)
+        except RuntimeError as e:
+            _perror('stream {}: event {}: fields: {}'.format(sid, eid, e))
+
     def _validate_all_scopes(self):
         # packet header
         self._validate_packet_header(self._doc.trace.packet_header)
 
         # stream stuff
-        for stream_id, stream in self._doc.streams.items():
+        for stream in self._doc.streams.values():
             self._validate_event_header(stream)
             self._validate_packet_context(stream)
             self._validate_stream_event_context(stream)
+
+            # event stuff
+            for event in stream.events:
+                self._validate_event_context(stream, event)
+                self._validate_event_fields(stream, event)
 
     def _validate_metadata(self):
         self._validate_all_scopes()
@@ -815,7 +842,8 @@ class BarectfCodeGenerator:
         clines = self._struct_to_clines(self._doc.streams[0].get_event(0).fields,
                                         'stream event context',
                                         self._ev_f_name_to_param_name)
-        source = self._cblock_to_source(_CBlock(clines))
+        source = self._cblock_to_source(clines)
+        print(source)
 
 
 def run():
