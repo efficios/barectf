@@ -72,17 +72,22 @@ def _parse_args():
     return args
 
 
+# TODO: prettify this function
 def _validate_struct(struct):
+    # just in case we call this with the wrong type
     if type(struct) is not pytsdl.tsdl.Struct:
         raise RuntimeError('expecting a struct')
 
+    # make sure inner structures are at least byte-aligned
     if _get_obj_alignment(struct) < 8:
         raise RuntimeError('inner struct must be at least byte-aligned')
 
+    # check each field
     for name, ftype in struct.fields.items():
         if type(ftype) is pytsdl.tsdl.Sequence:
             raise RuntimeError('field "{}" is a dynamic array (not allowed here)'.format(name))
         elif type(ftype) is pytsdl.tsdl.Array:
+            # we need to check every element type until we find a terminal one
             end = False
             element = ftype.element
 
@@ -106,8 +111,10 @@ def _validate_struct(struct):
                         raise RuntimeError('enum field "{}" larger than 64-bit'.format(name))
 
                 if type(element) is pytsdl.tsdl.Array:
+                    # still an array, continue
                     element = element.element
                 else:
+                    # found the terminal element
                     end = True
         elif type(ftype) is pytsdl.tsdl.Variant:
             raise RuntimeError('field "{}" is a variant (unsupported)'.format(name))
@@ -134,6 +141,7 @@ def _validate_context_field(struct):
         if type(ftype) is pytsdl.tsdl.Variant:
             raise RuntimeError('field "{}" is a variant (unsupported)'.format(name))
         elif type(ftype) is pytsdl.tsdl.Struct:
+            # validate inner structure against barectf constraints
             _validate_struct(ftype)
 
 
@@ -203,6 +211,7 @@ def _compare_integers(int1, int2):
     signed = int1.signed == int2.signed
     comps = (size, align, cmap, base, encoding, signed)
 
+    # True means 1 for sum()
     return sum(comps) == len(comps)
 
 
@@ -308,7 +317,7 @@ def _validate_stream_event_context(doc, stream):
         _perror('stream {}: event context: {}'.format(sid, e))
 
 
-def _validate_headers_contexts(doc):
+def _validate_all_scopes(doc):
     # packet header
     _validate_packet_header(doc.trace.packet_header)
 
@@ -320,9 +329,16 @@ def _validate_headers_contexts(doc):
 
 
 def _validate_metadata(doc):
-    _validate_headers_contexts(doc)
+    _validate_all_scopes(doc)
 
 
+# 3, 4 -> 4
+# 4, 4 -> 4
+# 5, 4 -> 8
+# 6, 4 -> 8
+# 7, 4 -> 8
+# 8, 4 -> 8
+# 9, 4 -> 12
 def _get_alignment(at, align):
     return (at + align - 1) & -align
 
@@ -340,6 +356,7 @@ def _offset_vars_tree_to_vars(offset_vars_tree, prefix='',
     return offset_vars
 
 
+# returns the size of a struct with _static size_
 def _get_struct_size(struct, offset_vars_tree=collections.OrderedDict(),
                      base_offset=0):
     offset = 0
@@ -445,14 +462,6 @@ def _get_obj_alignment(obj):
     return _obj_alignment_cb[type(obj)](obj)
 
 
-class _CBlock(list):
-    pass
-
-
-class _CLine(str):
-    pass
-
-
 _CTX_AT = 'ctx->at'
 _CTX_BUF = 'ctx->buf'
 _CTX_BUF_AT = '{}[{} >> 3]'.format(_CTX_BUF, _CTX_AT)
@@ -461,7 +470,7 @@ _ALIGN_OFFSET = 'ALIGN_OFFSET'
 
 
 def _field_name_to_param_name(fname):
-    return '_param_{}'.format(fname)
+    return 'param_{}'.format(fname)
 
 
 def _get_integer_param_type(integer):
@@ -523,6 +532,14 @@ def _get_obj_param_type(obj):
     return _obj_param_type_cb[type(obj)](obj)
 
 
+class _CBlock(list):
+    pass
+
+
+class _CLine(str):
+    pass
+
+
 def _write_field_struct(doc, fname, struct):
     size = _get_struct_size(struct)
     size_bytes = _get_alignment(size, 8) // 8
@@ -580,16 +597,28 @@ def _write_field_floating_point(doc, fname, floating_point):
 
 def _write_field_array(doc, fname, array):
     lines = []
+
+    # array index variable declaration
     iv = 'ia_{}'.format(fname)
     lines.append(_CLine('uint32_t {};'.format(iv)))
+
+    # for loop using array's static length
     line = 'for ({iv} = 0; {iv} < {l}; ++{iv}) {{'.format(iv=iv, l=array.length)
     lines.append(_CLine(line))
+
+    # for loop statements
     for_block = _CBlock()
+
+    # align bit index before writing to the buffer
     element_align = _get_obj_alignment(array.element)
     line = '{}({}, {});'.format(_ALIGN_OFFSET, _CTX_AT, element_align)
     for_block.append(_CLine(line))
+
+    # write element to the buffer
     for_block += _write_field_obj(doc, fname, array.element)
     lines.append(for_block)
+
+    # for loop end
     lines.append(_CLine('}'))
 
     return lines
@@ -603,16 +632,30 @@ def _write_field_sequence(doc, fname, sequence):
 
 def _write_field_string(doc, fname, string):
     lines = []
+
+    # source pointer (function parameter)
     src = _field_name_to_param_name(fname)
+
+    # string index variable declaration
     iv = 'is_{}'.format(fname)
     lines.append(_CLine('uint32_t {};'.format(iv)))
+
+    # for loop; loop until the end of the source string is reached
     fmt = "for ({iv} = 0; {src}[{iv}] != '\\0'; ++{iv}, {ctxat} += 8) {{"
     lines.append(_CLine(fmt.format(iv=iv, src=src, ctxat=_CTX_AT)))
+
+    # for loop statements
     for_block = _CBlock()
+
+    # write byte to the buffer
     line = '{} = {}[{}]'.format(_CTX_BUF_AT, src, iv)
     for_block.append(_CLine(line))
+
+    # append for loop
     lines.append(for_block)
     lines.append(_CLine('}'))
+
+    # write NULL character to the buffer
     lines.append(_CLine("{} = '\\0';".format(_CTX_BUF_AT)))
     lines.append(_CLine('{} += 8;'.format(_CTX_AT)))
 
@@ -640,19 +683,24 @@ def _struct_to_c_lines(doc, struct):
     for fname, ftype in struct.fields.items():
         pname = _field_name_to_param_name(fname)
         align = _get_obj_alignment(ftype)
+
+        # align bit index before writing to the buffer
         line = '{}({}, {});'.format(_ALIGN_OFFSET, _CTX_AT, align)
         lines.append(line)
 
-        # offset variables
+        # write offset variables
         if type(ftype) is pytsdl.tsdl.Struct:
             offset_vars_tree = collections.OrderedDict()
             _get_struct_size(ftype, offset_vars_tree)
             offset_vars = _offset_vars_tree_to_vars(offset_vars_tree)
 
+            # as many offset as there are child fields because a future
+            # sequence could refer to any of those fields
             for lname, offset in offset_vars.items():
                 line = 'uint32_t off_{}_{}'.format(fname, lname, _CTX_AT);
                 lines.append(_CLine(line))
         else:
+            # offset of this simple field is the current bit index
             line = 'uint32_t off_{} = {};'.format(fname, _CTX_AT)
             lines.append(_CLine(line))
 
