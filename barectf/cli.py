@@ -20,9 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 from termcolor import cprint, colored
-import argparse
-import pytsdl.tsdl
 import pytsdl.parser
+import pytsdl.tsdl
+import collections
+import argparse
 import sys
 import os
 import re
@@ -75,22 +76,34 @@ def _validate_struct(struct):
     if type(struct) is not pytsdl.tsdl.Struct:
         raise RuntimeError('expecting a struct')
 
+    if _get_obj_alignment(struct) < 8:
+        raise RuntimeError('inner struct must be at least byte-aligned')
+
     for name, ftype in struct.fields.items():
         if type(ftype) is pytsdl.tsdl.Sequence:
-            raise RuntimeError('field "{}" is a dynamic array'.format(name))
+            raise RuntimeError('field "{}" is a dynamic array (not allowed here)'.format(name))
         elif type(ftype) is pytsdl.tsdl.Array:
             end = False
             element = ftype.element
 
             while not end:
                 if type(element) is pytsdl.tsdl.Sequence:
-                    raise RuntimeError('field "{}" contains a dynamic array'.format(name))
+                    raise RuntimeError('field "{}" contains a dynamic array (not allowed here)'.format(name))
                 elif type(element) is pytsdl.tsdl.Variant:
                     raise RuntimeError('field "{}" contains a variant (unsupported)'.format(name))
                 elif type(element) is pytsdl.tsdl.String:
-                    raise RuntimeError('field "{}" contains a string'.format(name))
+                    raise RuntimeError('field "{}" contains a string (not allowed here)'.format(name))
                 elif type(element) is pytsdl.tsdl.Struct:
                     _validate_struct(element)
+                elif type(element) is pytsdl.tsdl.Integer:
+                    if _get_integer_size(element) > 64:
+                        raise RuntimeError('integer field "{}" larger than 64-bit'.format(name))
+                elif type(element) is pytsdl.tsdl.FloatingPoint:
+                    if _get_floating_point_size(element) > 64:
+                        raise RuntimeError('floating point field "{}" larger than 64-bit'.format(name))
+                elif type(element) is pytsdl.tsdl.Enum:
+                    if _get_enum_size(element) > 64:
+                        raise RuntimeError('enum field "{}" larger than 64-bit'.format(name))
 
                 if type(element) is pytsdl.tsdl.Array:
                     element = element.element
@@ -99,9 +112,18 @@ def _validate_struct(struct):
         elif type(ftype) is pytsdl.tsdl.Variant:
             raise RuntimeError('field "{}" is a variant (unsupported)'.format(name))
         elif type(ftype) is pytsdl.tsdl.String:
-            raise RuntimeError('field "{}" is a string'.format(name))
+            raise RuntimeError('field "{}" is a string (not allowed here)'.format(name))
         elif type(ftype) is pytsdl.tsdl.Struct:
             _validate_struct(ftype)
+        elif type(ftype) is pytsdl.tsdl.Integer:
+            if _get_integer_size(ftype) > 64:
+                raise RuntimeError('integer field "{}" larger than 64-bit'.format(name))
+        elif type(ftype) is pytsdl.tsdl.FloatingPoint:
+            if _get_floating_point_size(ftype) > 64:
+                raise RuntimeError('floating point field "{}" larger than 64-bit'.format(name))
+        elif type(ftype) is pytsdl.tsdl.Enum:
+            if _get_enum_size(ftype) > 64:
+                raise RuntimeError('enum field "{}" larger than 64-bit'.format(name))
 
 
 def _validate_context_field(struct):
@@ -164,19 +186,6 @@ def _validate_packet_header(packet_header):
 
 def _dot_name_to_str(name):
     return '.'.join(name)
-
-
-def _validate_clock(doc, name):
-    msg = '"{}" does not name an existing clock'.format(_dot_name_to_str(name))
-
-    if len(name) != 3:
-        raise RuntimeError(msg)
-
-    if name[0] != 'clock' or name[2] != 'value':
-        raise RuntimeError()
-
-    if name[1] not in doc.clocks:
-        raise RuntimeError(msg)
 
 
 def _compare_integers(int1, int2):
@@ -285,14 +294,6 @@ def _validate_event_header(doc, stream):
     except RuntimeError as e:
         _perror('stream {}: "timestamp": {}'.format(sid, format(e)))
 
-    if fields['timestamp'].map is None:
-        _perror('stream {}: "timestamp": integer must be mapped to an existing clock'.format(sid))
-
-    try:
-        _validate_clock(doc, fields['timestamp'].map)
-    except RuntimeError as e:
-        _perror('stream {}: "timestamp": integer must be mapped to an existing clock'.format(sid))
-
 
 def _validate_stream_event_context(doc, stream):
     stream_event_context = stream.event_context
@@ -322,6 +323,329 @@ def _validate_metadata(doc):
     _validate_headers_contexts(doc)
 
 
+def _get_alignment(at, align):
+    return (at + align - 1) & -align
+
+
+def _offset_vars_tree_to_vars(offset_vars_tree, prefix='',
+                              offset_vars=collections.OrderedDict()):
+    for name, offset in offset_vars_tree.items():
+        varname = '{}_{}'.format(prefix, name)
+
+        if isinstance(offset, dict):
+            _offset_vars_tree_to_vars(offset, varname, offset_vars)
+        else:
+            offset_vars[varname] = offset
+
+    return offset_vars
+
+
+def _get_struct_size(struct, offset_vars_tree=collections.OrderedDict(),
+                     base_offset=0):
+    offset = 0
+
+    for fname, ftype in struct.fields.items():
+        field_alignment = _get_obj_alignment(ftype)
+        offset = _get_alignment(offset, field_alignment)
+
+        if type(ftype) is pytsdl.tsdl.Struct:
+            offset_vars_tree[fname] = collections.OrderedDict()
+            sz = _get_struct_size(ftype, offset_vars_tree[fname],
+                                  base_offset + offset)
+        else:
+            offset_vars_tree[fname] = base_offset + offset
+            sz = _get_obj_size(ftype)
+
+        offset += sz
+
+    return offset
+
+
+def _get_array_size(array):
+    element = array.element
+
+    # effective size of one element includes its alignment after its size
+    size = _get_obj_size(element)
+    align = _get_obj_alignment(element)
+
+    return _get_alignment(size, align) * array.length
+
+
+def _get_enum_size(enum):
+    return _get_obj_size(enum.integer)
+
+
+def _get_floating_point_size(floating_point):
+    return floating_point.exp_dig + floating_point.mant_dig
+
+
+def _get_integer_size(integer):
+    return integer.size
+
+
+_obj_size_cb = {
+    pytsdl.tsdl.Integer: _get_integer_size,
+    pytsdl.tsdl.Enum: _get_enum_size,
+    pytsdl.tsdl.FloatingPoint: _get_floating_point_size,
+    pytsdl.tsdl.Array: _get_array_size,
+}
+
+
+def _get_obj_size(obj):
+    return _obj_size_cb[type(obj)](obj)
+
+
+def _get_struct_alignment(struct):
+    if struct.align is not None:
+        return struct.align
+
+    cur_align = 1
+
+    for fname, ftype in struct.fields.items():
+        cur_align = max(_get_obj_alignment(ftype), cur_align)
+
+    return cur_align
+
+
+def _get_integer_alignment(integer):
+    return integer.align
+
+
+def _get_floating_point_alignment(floating_point):
+    return floating_point.align
+
+
+def _get_enum_alignment(enum):
+    return _get_obj_alignment(enum.integer)
+
+
+def _get_string_alignment(string):
+    return 8
+
+def _get_array_alignment(array):
+    return _get_obj_alignment(array.element)
+
+
+def _get_sequence_alignment(sequence):
+    return _get_obj_alignment(sequence.element)
+
+
+_obj_alignment_cb = {
+    pytsdl.tsdl.Struct: _get_struct_alignment,
+    pytsdl.tsdl.Integer: _get_integer_alignment,
+    pytsdl.tsdl.Enum: _get_enum_alignment,
+    pytsdl.tsdl.FloatingPoint: _get_floating_point_alignment,
+    pytsdl.tsdl.Array: _get_array_alignment,
+    pytsdl.tsdl.Sequence: _get_sequence_alignment,
+    pytsdl.tsdl.String: _get_string_alignment,
+}
+
+
+def _get_obj_alignment(obj):
+    return _obj_alignment_cb[type(obj)](obj)
+
+
+class _CBlock(list):
+    pass
+
+
+class _CLine(str):
+    pass
+
+
+_CTX_AT = 'ctx->at'
+_CTX_BUF = 'ctx->buf'
+_CTX_BUF_AT = '{}[{} >> 3]'.format(_CTX_BUF, _CTX_AT)
+_CTX_BUF_AT_ADDR = '&{}'.format(_CTX_BUF_AT)
+_UPDATE_OFFSET = 'UPDATE_OFFSET'
+
+def _field_name_to_param_name(fname):
+    return '_param_{}'.format(fname)
+
+
+def _get_integer_param_type(integer):
+    signed = 'u' if not integer.signed else ''
+
+    if integer.size == 8:
+        sz = '8'
+    elif integer.size == 16:
+        sz = '16'
+    elif integer.size == 32:
+        sz = '32'
+    elif integer.size == 64:
+        sz = '64'
+    else:
+        # if the integer is signed and of uncommon size, the sign bit is
+        # at a custom position anyway so we use a 64-bit unsigned
+        signed = 'u'
+
+        if integer.signed:
+            sz = '64'
+        else:
+            if integer.size < 16:
+                sz = '8'
+            elif integer.size < 32:
+                sz = '16'
+            elif integer.size < 64:
+                sz = '32'
+            else:
+                sz = '64'
+
+    return '{}int{}_t'.format(signed, sz)
+
+
+def _get_enum_param_type(enum):
+    return _get_obj_param_type(enum.integer)
+
+
+def _get_floating_point_param_type(fp):
+    if fp.exp_dig == 8 and fp.mant_dig == 24 and fp.align == 32:
+        return 'float'
+    elif fp.exp_dig == 11 and fp.mant_dig == 53 and fp.align == 64:
+        return 'double'
+    else:
+        return 'uint64_t'
+
+
+_obj_param_type_cb = {
+    pytsdl.tsdl.Struct: lambda obj: 'const void*',
+    pytsdl.tsdl.Integer: _get_integer_param_type,
+    pytsdl.tsdl.Enum: _get_enum_param_type,
+    pytsdl.tsdl.FloatingPoint: _get_floating_point_param_type,
+    pytsdl.tsdl.Array: lambda obj: 'const void*',
+    pytsdl.tsdl.Sequence: lambda obj: 'const void*',
+    pytsdl.tsdl.String: lambda obj: 'const char*',
+}
+
+
+def _get_obj_param_type(obj):
+    return _obj_param_type_cb[type(obj)](obj)
+
+
+def _write_field_struct(doc, fname, struct):
+    size = _get_struct_size(struct)
+    size_bytes = _get_alignment(size, 8) // 8
+
+    dst = _CTX_BUF_AT_ADDR
+    src = _field_name_to_param_name(fname)
+
+    return [
+        # memcpy() is safe since barectf requires inner structures
+        # to be byte-aligned
+        _CLine('memcpy({}, {}, {});'.format(dst, src, size_bytes)),
+        _CLine('{} += {};'.format(_CTX_AT, size)),
+    ]
+
+
+_bo_suffixes_map = {
+    pytsdl.tsdl.ByteOrder.BE: 'be',
+    pytsdl.tsdl.ByteOrder.LE: 'le',
+}
+
+
+def _write_field_integer(doc, fname, integer):
+    bo = _bo_suffixes_map[integer.byte_order]
+    ptr = _CTX_BUF
+    t = _get_obj_param_type(integer)
+    start = _CTX_AT
+    length = _get_obj_size(integer)
+    value = _field_name_to_param_name(fname)
+    fmt = 'barectf_bitfield_write_{}({}, {}, {}, {}, {});'
+
+    return [
+        _CLine(fmt.format(bo, ptr, t, start, length, value)),
+        _CLine('{} += {};'.format(_CTX_AT, length))
+    ]
+
+
+def _write_field_enum(doc, fname, enum):
+    return _write_field_obj(doc, fname, enum.integer)
+
+
+def _write_field_floating_point(doc, fname, floating_point):
+    bo = _bo_suffixes_map[floating_point.byte_order]
+    ptr = _CTX_BUF
+    t = _get_obj_param_type(floating_point)
+    start = _CTX_AT
+    length = _get_obj_size(floating_point)
+    value = _field_name_to_param_name(fname)
+    fmt = 'barectf_bitfield_write_{}({}, {}, {}, {}, {});'
+
+    return [
+        _CLine(fmt.format(bo, ptr, t, start, length, value)),
+        _CLine('{} += {};'.format(_CTX_AT, length))
+    ]
+
+
+def _write_field_array(doc, fname, array):
+    lines = []
+    iv = 'ia_{}'.format(fname)
+    lines.append(_CLine('uint32_t {};'.format(iv)))
+    line = 'for ({iv} = 0; {iv} < {l}; ++{iv}) {{'.format(iv=iv, l=array.length)
+    lines.append(_CLine(line))
+    for_block = _CBlock()
+    element_align = _get_obj_alignment(array.element)
+    line = '{}({}, {});'.format(_UPDATE_OFFSET, _CTX_AT, element_align)
+    for_block.append(_CLine(line))
+    for_block += _write_field_obj(doc, fname, array.element)
+    lines.append(for_block)
+    lines.append(_CLine('}'))
+
+    return lines
+
+
+def _write_field_sequence(doc, fname, sequence):
+    return [
+        _CLine('would write sequence here;'),
+    ]
+
+
+def _write_field_string(doc, fname, string):
+    lines = []
+    src = _field_name_to_param_name(fname)
+    iv = 'is_{}'.format(fname)
+    lines.append(_CLine('uint32_t {};'.format(iv)))
+    fmt = "for ({iv} = 0; {src}[{iv}] != '\\0'; ++{iv}, {ctxat} += 8) {{"
+    lines.append(_CLine(fmt.format(iv=iv, src=src, ctxat=_CTX_AT)))
+    for_block = _CBlock()
+    line = '{} = {}[{}]'.format(_CTX_BUF_AT, src, iv)
+    for_block.append(_CLine(line))
+    lines.append(for_block)
+    lines.append(_CLine('}'))
+    lines.append(_CLine("{} = '\\0';".format(_CTX_BUF_AT)))
+    lines.append(_CLine('{} += 8;'.format(_CTX_AT)))
+
+    return lines
+
+
+_write_field_obj_cb = {
+    pytsdl.tsdl.Struct: _write_field_struct,
+    pytsdl.tsdl.Integer: _write_field_integer,
+    pytsdl.tsdl.Enum: _write_field_enum,
+    pytsdl.tsdl.FloatingPoint: _write_field_floating_point,
+    pytsdl.tsdl.Array: _write_field_array,
+    pytsdl.tsdl.Sequence: _write_field_sequence,
+    pytsdl.tsdl.String: _write_field_string,
+}
+
+
+def _write_field_obj(doc, fname, ftype):
+    return _write_field_obj_cb[type(ftype)](doc, fname, ftype)
+
+
+def _struct_to_c_lines(doc, struct):
+    lines = []
+
+    for fname, ftype in struct.fields.items():
+        pname = _field_name_to_param_name(fname)
+        align = _get_obj_alignment(ftype)
+        line = '{}({}, {});'.format(_UPDATE_OFFSET, _CTX_AT, align)
+        lines.append(line)
+        lines += _write_field_obj(doc, fname, ftype)
+
+    return lines
+
+
 def gen_barectf(metadata, output, prefix, static_inline, manual_clock):
     # open CTF metadata file
     try:
@@ -341,11 +665,11 @@ def gen_barectf(metadata, output, prefix, static_inline, manual_clock):
     # validate CTF metadata against barectf constraints
     _validate_metadata(doc)
 
-    _pinfo(metadata)
-    _pinfo(output)
-    _pinfo(prefix)
-    _pinfo(static_inline)
-    _pinfo(manual_clock)
+    import json
+
+    lines = _struct_to_c_lines(doc, doc.streams[0].get_event(0).fields)
+
+    print(json.dumps(lines, indent=4))
 
 
 def run():
