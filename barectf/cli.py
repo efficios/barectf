@@ -1875,8 +1875,12 @@ class BarectfCodeGenerator:
     #   name:     file name
     #   contents: file contents
     def _write_file(self, name, contents):
-        with open(os.path.join(self._output, name), 'w') as f:
-            f.write(contents)
+        path = os.path.join(self._output, name)
+        try:
+            with open(path, 'w') as f:
+                f.write(contents)
+        except Exception as e:
+            _perror('cannot write "{}": {}'.format(path, e))
 
     # Converts a C block to actual C source lines.
     #
