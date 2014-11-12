@@ -140,6 +140,15 @@ class BarectfCodeGenerator:
             pytsdl.tsdl.Sequence: self._write_field_sequence,
             pytsdl.tsdl.String: self._write_field_string,
         }
+        self._get_src_name_funcs = {
+            'trace.packet.header.': self._get_tph_src_name,
+            'env.': self._get_env_src_name,
+            'stream.packet.context.': self._get_spc_src_name,
+            'stream.event.header.': self._get_seh_src_name,
+            'stream.event.context.': self._get_sec_src_name,
+            'event.context.': self._get_ec_src_name,
+            'event.fields.': self._get_ef_src_name,
+        }
 
     # TODO: prettify this function
     def _validate_struct(self, struct):
@@ -648,6 +657,17 @@ class BarectfCodeGenerator:
     def _get_align_offset_cline(self, size):
         return _CLine(self._get_align_offset(size))
 
+    def _str_to_clines(self, s):
+        lines = s.split('\n')
+
+        return [_CLine(line) for line in lines]
+
+    def _template_to_clines(self, tmpl, **kwargs):
+        s = tmpl.format(prefix=self._prefix, ucprefix=self._prefix.upper(),
+                        **kwargs)
+
+        return self._str_to_clines(s)
+
     def _write_field_struct(self, fname, src_name, struct, scope_prefix):
         size = self._get_struct_size(struct)
         size_bytes = self._get_alignment(size, 8) // 8
@@ -663,17 +683,12 @@ class BarectfCodeGenerator:
 
     def _write_field_integer(self, fname, src_name, integer, scope_prefix=None):
         bo = self._bo_suffixes_map[integer.byte_order]
-        ptr = self._CTX_BUF
         t = self._get_obj_param_ctype(integer)
-        start = self._CTX_AT
         length = self._get_obj_size(integer)
-        fmt = 'barectf_bitfield_write_{}({}, {}, {}, {}, {});'
 
-        return [
-            self._get_chk_offset_v_cline(length),
-            _CLine(fmt.format(bo, ptr, t, start, length, src_name)),
-            _CLine('{} += {};'.format(self._CTX_AT, length))
-        ]
+        return self._template_to_clines(barectf.templates.WRITE_INTEGER,
+                                        sz=length, bo=bo, type=t,
+                                        src_name=src_name)
 
     def _write_field_enum(self, fname, src_name, enum, scope_prefix=None):
         return self._write_field_obj(fname, src_name, enum.integer)
@@ -681,17 +696,12 @@ class BarectfCodeGenerator:
     def _write_field_floating_point(self, fname, src_name, floating_point,
                                     scope_prefix=None):
         bo = self._bo_suffixes_map[floating_point.byte_order]
-        ptr = self._CTX_BUF
         t = self._get_obj_param_ctype(floating_point)
-        start = self._CTX_AT
         length = self._get_obj_size(floating_point)
-        fmt = 'barectf_bitfield_write_{}({}, {}, {}, {}, {});'
 
-        return [
-            self._get_chk_offset_v_cline(length),
-            _CLine(fmt.format(bo, ptr, t, start, length, src_name)),
-            _CLine('{} += {};'.format(self._CTX_AT, length))
-        ]
+        return self._template_to_clines(barectf.templates.WRITE_INTEGER,
+                                        sz=length, bo=bo, type=t,
+                                        src_name=src_name)
 
     def _write_field_array(self, fname, src_name, array, scope_prefix=None):
         clines = []
@@ -723,51 +733,43 @@ class BarectfCodeGenerator:
 
         return clines
 
+    def _get_tph_src_name(self, length):
+        offvar = self._get_offvar_name_from_expr(length[3:], 'tph')
+
+        return 'ctx->{}'.format(offvar)
+
+    def _get_env_src_name(self, length):
+        if len(length) != 2:
+            _perror('invalid sequence length: "{}"'.format(self._dot_name_to_str(length)))
+
+        fname = length[1]
+
+        if fname not in self._doc.env:
+            _perror('cannot find field env.{}'.format(fname))
+
+        return str(self._doc.env[fname])
+
+    def _get_spc_src_name(self, length):
+        offvar = self._get_offvar_name_from_expr(length[3:], 'spc')
+
+        return 'ctx->{}'.format(offvar)
+
+    def _get_seh_src_name(self, length):
+        return self._get_offvar_name_from_expr(length[3:], 'seh')
+
+    def _get_sec_src_name(self, length):
+        return self._get_offvar_name_from_expr(length[3:], 'sec')
+
+    def _get_ec_src_name(self, length):
+        return self._get_offvar_name_from_expr(length[2:], 'ec')
+
+    def _get_ef_src_name(self, length):
+        return self._get_offvar_name_from_expr(length[2:], 'ef')
+
     def _seq_length_to_src_name(self, length, scope_prefix=None):
-        def get_tph_src_name(length):
-            offvar = self._get_offvar_name_from_expr(length[3:], 'tph')
-            return 'ctx->{}'.format(offvar)
-
-        def get_env_src_name(length):
-            if len(length) != 2:
-                _perror('invalid sequence length: "{}"'.format(self._dot_name_to_str(length)))
-
-            fname = length[1]
-
-            if fname not in self._doc.env:
-                _perror('cannot find field env.{}'.format(fname))
-
-            return str(self._doc.env[fname])
-
-        def get_spc_src_name(length):
-            offvar = self._get_offvar_name_from_expr(length[3:], 'spc')
-            return 'ctx->{}'.format(offvar)
-
-        def get_seh_src_name(length):
-            return self._get_offvar_name_from_expr(length[3:], 'seh')
-
-        def get_sec_src_name(length):
-            return self._get_offvar_name_from_expr(length[3:], 'sec')
-
-        def get_ec_src_name(length):
-            return self._get_offvar_name_from_expr(length[2:], 'ec')
-
-        def get_ef_src_name(length):
-            return self._get_offvar_name_from_expr(length[2:], 'ef')
-
-        dyn_scope_map = {
-            'trace.packet.header.': get_tph_src_name,
-            'env.': get_env_src_name,
-            'stream.packet.context.': get_spc_src_name,
-            'stream.event.header.': get_seh_src_name,
-            'stream.event.context.': get_sec_src_name,
-            'event.context.': get_ec_src_name,
-            'event.fields.': get_ef_src_name,
-        }
-
         length_dot = self._dot_name_to_str(length)
 
-        for prefix, get_src_name in dyn_scope_map.items():
+        for prefix, get_src_name in self._get_src_name_funcs.items():
             if length_dot.startswith(prefix):
                 return get_src_name(length)
 
@@ -1053,6 +1055,9 @@ class BarectfCodeGenerator:
                                                 self._spc_fname_to_pname)
                 fcline_groups.append(fclines)
 
+        # return 0
+        fcline_groups.append([_CLine('return 0;')])
+
         clines += self._join_cline_groups(fcline_groups)
 
         # get source
@@ -1159,6 +1164,9 @@ class BarectfCodeGenerator:
                                                 scope_prefix,
                                                 lambda x: str(stream.id))
                 fcline_groups.append(fclines)
+
+        # return 0
+        fcline_groups.append([_CLine('return 0;')])
 
         clines += self._join_cline_groups(fcline_groups)
 
@@ -1367,6 +1375,9 @@ class BarectfCodeGenerator:
                                              'event.fields', 'ef',
                                              self._ef_fname_to_pname)
             fcline_groups.append(fclines)
+
+        # return 0
+        fcline_groups.append([_CLine('return 0;')])
 
         clines += self._join_cline_groups(fcline_groups)
 

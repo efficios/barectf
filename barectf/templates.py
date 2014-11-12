@@ -24,7 +24,7 @@ FUNC_INIT = """{si}int {prefix}{sid}_init(
 	uint32_t buf_size{params}
 )"""
 
-FUNC_OPEN = """{si}void {prefix}{sid}_open(
+FUNC_OPEN = """{si}int {prefix}{sid}_open(
 	struct {prefix}{sid}_ctx* ctx{params}
 )"""
 
@@ -35,6 +35,10 @@ FUNC_CLOSE = """{si}void {prefix}{sid}_close(
 FUNC_TRACE = """{si}int {prefix}{sid}_trace_{evname}(
 	struct {prefix}{sid}_ctx* ctx{params}
 )"""
+
+WRITE_INTEGER = """{ucprefix}_CHK_OFFSET_V(ctx->at, ctx->buf_size, {sz});
+{prefix}_bitfield_write_{bo}(ctx->buf, {type}, ctx->at, {sz}, {src_name});
+ctx->at += {sz};"""
 
 HEADER = """#ifndef _{ucprefix}_H
 #define _{ucprefix}_H
