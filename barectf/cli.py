@@ -372,7 +372,6 @@ class BarectfCodeGenerator:
         except RuntimeError as e:
             _perror('stream {}: "id": {}'.format(sid, format(e)))
 
-
         # timestamp must exist, be an unsigned integer and be mapped to a valid clock
         if 'timestamp' not in fields:
             _perror('stream {}: event header: missing "timestamp" field'.format(sid))
@@ -431,20 +430,32 @@ class BarectfCodeGenerator:
         except RuntimeError as e:
             _perror('stream {}: event {}: fields: {}'.format(sid, eid, e))
 
+    def _validate_event(self, stream, event):
+        # name must be a compatible C identifier
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', event.name):
+            _perror('stream {}: event {}: malformed name'.format(stream.id,
+                                                                 event.id))
+
+        self._validate_event_context(stream, event)
+        self._validate_event_fields(stream, event)
+
+    def _validate_stream(self, stream):
+        self._validate_event_header(stream)
+        self._validate_packet_context(stream)
+        self._validate_stream_event_context(stream)
+
+        # event stuff
+        for event in stream.events:
+            self._validate_event(stream, event)
+
     def _validate_all_scopes(self):
         # packet header
         self._validate_packet_header(self._doc.trace.packet_header)
 
         # stream stuff
         for stream in self._doc.streams.values():
-            self._validate_event_header(stream)
-            self._validate_packet_context(stream)
-            self._validate_stream_event_context(stream)
+            self._validate_stream(stream)
 
-            # event stuff
-            for event in stream.events:
-                self._validate_event_context(stream, event)
-                self._validate_event_fields(stream, event)
 
     def _validate_metadata(self):
         self._validate_all_scopes()
