@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 from termcolor import cprint, colored
+import barectf.templates
 import pytsdl.parser
 import pytsdl.tsdl
 import collections
@@ -361,7 +362,10 @@ class BarectfCodeGenerator:
         try:
             self._validate_integer(fields['timestamp'], signed=False)
         except RuntimeError as e:
-            _perror('stream {}: "timestamp": {}'.format(sid, format(e)))
+            _perror('stream {}: event header: "timestamp": {}'.format(sid, format(e)))
+
+        if fields['timestamp'].map is None:
+            _perror('stream {}: event header: "timestamp" must be mapped to a valid clock'.format(sid))
 
     def _validate_stream_event_context(self, stream):
         stream_event_context = stream.event_context
@@ -445,8 +449,11 @@ class BarectfCodeGenerator:
     #     field_other_struct_yeah -> 20
     #     field_c -> 32
     #     len -> 36
-    def _offvars_tree_to_vars(self, offvars_tree, prefix=None,
-                               off_vars=collections.OrderedDict()):
+    def _flatten_offvars_tree(self, offvars_tree, prefix=None,
+                              offvars=None):
+        if offvars is None:
+            offvars = collections.OrderedDict()
+
         for name, offset in offvars_tree.items():
             if prefix is not None:
                 varname = '{}_{}'.format(prefix, name)
@@ -454,16 +461,19 @@ class BarectfCodeGenerator:
                 varname = name
 
             if isinstance(offset, dict):
-                self._offvars_tree_to_vars(offset, varname, off_vars)
+                self._flatten_offvars_tree(offset, varname, offvars)
             else:
-                off_vars[varname] = offset
+                offvars[varname] = offset
 
-        return off_vars
+        return offvars
 
     # returns the size of a struct with _static size_
     def _get_struct_size(self, struct,
-                         offvars_tree=collections.OrderedDict(),
+                         offvars_tree=None,
                          base_offset=0):
+        if offvars_tree is None:
+            offvars_tree = collections.OrderedDict()
+
         offset = 0
 
         for fname, ftype in struct.fields.items():
@@ -667,15 +677,15 @@ class BarectfCodeGenerator:
         ]
 
     def _write_field_array(self, fname, src_name, array):
-        lines = []
+        clines = []
 
         # array index variable declaration
         iv = 'ia_{}'.format(fname)
-        lines.append(_CLine('uint32_t {};'.format(iv)))
+        clines.append(_CLine('uint32_t {};'.format(iv)))
 
         # for loop using array's static length
         line = 'for ({iv} = 0; {iv} < {l}; ++{iv}) {{'.format(iv=iv, l=array.length)
-        lines.append(_CLine(line))
+        clines.append(_CLine(line))
 
         # for loop statements
         for_block = _CBlock()
@@ -687,12 +697,12 @@ class BarectfCodeGenerator:
 
         # write element to the buffer
         for_block += self._write_field_obj(fname, src_name, array.element)
-        lines.append(for_block)
+        clines.append(for_block)
 
         # for loop end
-        lines.append(_CLine('}'))
+        clines.append(_CLine('}'))
 
-        return lines
+        return clines
 
     def _write_field_sequence(self, fname, src_name, sequence):
         return [
@@ -700,16 +710,16 @@ class BarectfCodeGenerator:
         ]
 
     def _write_field_string(self, fname, src_name, string):
-        lines = []
+        clines = []
 
         # string index variable declaration
         iv = 'is_{}'.format(fname)
-        lines.append(_CLine('uint32_t {};'.format(iv)))
+        clines.append(_CLine('uint32_t {};'.format(iv)))
 
         # for loop; loop until the end of the source string is reached
         fmt = "for ({iv} = 0; {src}[{iv}] != '\\0'; ++{iv}, {ctxat} += 8) {{"
         line = fmt.format(iv=iv, src=src_name, ctxat=self._CTX_AT)
-        lines.append(_CLine(line))
+        clines.append(_CLine(line))
 
         # for loop statements
         for_block = _CBlock()
@@ -723,26 +733,33 @@ class BarectfCodeGenerator:
         for_block.append(_CLine(line))
 
         # append for loop
-        lines.append(for_block)
-        lines.append(_CLine('}'))
+        clines.append(for_block)
+        clines.append(_CLine('}'))
 
         # write NULL character to the buffer
-        lines.append(_CLine("{} = '\\0';".format(self._CTX_BUF_AT)))
-        lines.append(_CLine('{} += 8;'.format(self._CTX_AT)))
+        clines.append(_CLine("{} = '\\0';".format(self._CTX_BUF_AT)))
+        clines.append(_CLine('{} += 8;'.format(self._CTX_AT)))
 
-        return lines
+        return clines
 
     def _write_field_obj(self, fname, src_name, ftype):
         return self._write_field_obj_cb[type(ftype)](fname, src_name, ftype)
 
-    def _get_offvar_name(self, name):
-        return 'off_{}'.format(name)
+    def _get_offvar_name(self, name, prefix=None):
+        parts = ['off']
+
+        if prefix is not None:
+            parts.append(prefix)
+
+        parts.append(name)
+
+        return '_'.join(parts)
 
     def _get_offvar_name_from_expr(self, expr):
         return self._get_offvar_name('_'.join(expr))
 
     def _field_to_cline(self, fname, ftype, scope_name, param_name_cb):
-        lines = []
+        clines = []
         pname = param_name_cb(fname)
         align = self._get_obj_alignment(ftype)
 
@@ -750,17 +767,17 @@ class BarectfCodeGenerator:
         fmt = '/* write {} field "{}" ({}) */'
         line = fmt.format(scope_name, fname,
                           self._tsdl_type_names_map[type(ftype)])
-        lines.append(_CLine(line))
+        clines.append(_CLine(line))
 
         # align bit index before writing to the buffer
         cline = self._get_align_offset_cline(align)
-        lines.append(cline)
+        clines.append(cline)
 
         # write offset variables
         if type(ftype) is pytsdl.tsdl.Struct:
             offvars_tree = collections.OrderedDict()
             self._get_struct_size(ftype, offvars_tree)
-            off_vars = self._offvars_tree_to_vars(offvars_tree)
+            off_vars = self._flatten_offvars_tree(offvars_tree)
 
             # as many offset as there are child fields because a future
             # sequence could refer to any of those fields
@@ -768,35 +785,107 @@ class BarectfCodeGenerator:
                 offvar = self._get_offvar_name('_'.join([fname, lname]))
                 fmt = 'uint32_t {} = {} + {};'
                 line = fmt.format(offvar, self._CTX_AT, offset);
-                lines.append(_CLine(line))
+                clines.append(_CLine(line))
         elif type(ftype) is pytsdl.tsdl.Integer:
             # offset of this simple field is the current bit index
             offvar = self._get_offvar_name(fname)
             line = 'uint32_t {} = {};'.format(offvar, self._CTX_AT)
-            lines.append(_CLine(line))
+            clines.append(_CLine(line))
 
-        lines += self._write_field_obj(fname, pname, ftype)
+        clines += self._write_field_obj(fname, pname, ftype)
 
-        return lines
+        return clines
+
+    def _join_cline_groups(self, cline_groups):
+        if not cline_groups:
+            return cline_groups
+
+        output_clines = cline_groups[0]
+
+        for clines in cline_groups[1:]:
+            output_clines.append('')
+            output_clines += clines
+
+        return output_clines
 
     def _struct_to_clines(self, struct, scope_name, param_name_cb):
-        line_groups = []
+        cline_groups = []
 
         for fname, ftype in struct.fields.items():
-            lines = self._field_to_cline(fname, ftype, scope_name,
+            clines = self._field_to_cline(fname, ftype, scope_name,
                                          param_name_cb)
-            line_groups.append(lines)
+            cline_groups.append(clines)
 
-        if not line_groups:
-            return line_groups
+        return self._join_cline_groups(cline_groups)
 
-        output_lines = line_groups[0]
+    def _get_struct_size_offvars(self, struct):
+        offvars_tree = collections.OrderedDict()
+        size = self._get_struct_size(struct, offvars_tree)
+        offvars = self._flatten_offvars_tree(offvars_tree)
 
-        for lines in line_groups[1:]:
-            output_lines.append('')
-            output_lines += lines
+        return size, offvars
 
-        return output_lines
+    def _get_ph_size_offvars(self):
+        return self._get_struct_size_offvars(self._doc.trace.packet_header)
+
+    def _get_pc_size_offvars(self, stream):
+        return self._get_struct_size_offvars(stream.packet_context)
+
+    def _offvars_to_ctx_clines(self, prefix, offvars):
+        clines = []
+
+        for name in offvars.keys():
+            offvar = self._get_offvar_name(name, prefix)
+            clines.append(_CLine('uint32_t {};'.format(offvar)))
+
+        return clines
+
+    def _get_barectf_ctx_struct(self, stream, hide_sid=False):
+        # get offset variables for both the packet header and packet context
+        ph_size, ph_offvars = self._get_ph_size_offvars()
+        pc_size, pc_offvars = self._get_pc_size_offvars(stream)
+        clines = self._offvars_to_ctx_clines('ph', ph_offvars)
+        clines += self._offvars_to_ctx_clines('pc', pc_offvars)
+
+        # indent C lines
+        clines_indented = []
+        for cline in clines:
+            clines_indented.append(_CLine('\t' + cline))
+
+        # fill template
+        sid = ''
+
+        if not hide_sid:
+            sid = stream.id
+
+        t = barectf.templates.BARECTF_CTX
+        struct = t.format(prefix=self._prefix, sid=sid,
+                          ctx_fields='\n'.join(clines_indented))
+
+        return struct
+
+    def _get_barectf_contexts_struct(self):
+        hide_sid = False
+
+        if len(self._doc.streams) == 1:
+            hide_sid = True
+
+        structs = []
+
+        for stream in self._doc.streams.values():
+            struct = self._get_barectf_ctx_struct(stream, hide_sid)
+            structs.append(struct)
+
+        return '\n\n'.join(structs)
+
+    def _get_barectf_header(self):
+        ctx_structs = self._get_barectf_contexts_struct()
+        t = barectf.templates.HEADER
+
+        header = t.format(prefix=self._prefix, ucprefix=self._prefix.upper(),
+                          barectf_ctx=ctx_structs, functions='')
+
+        return header
 
     def _cblock_to_source_lines(self, cblock, indent=1):
         src = []
@@ -839,11 +928,15 @@ class BarectfCodeGenerator:
         # validate CTF metadata against barectf constraints
         self._validate_metadata()
 
+        print(self._get_barectf_header())
+
+        """
         clines = self._struct_to_clines(self._doc.streams[0].get_event(0).fields,
                                         'stream event context',
                                         self._ev_f_name_to_param_name)
         source = self._cblock_to_source(clines)
         print(source)
+        """
 
 
 def run():
