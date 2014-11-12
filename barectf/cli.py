@@ -840,7 +840,7 @@ class BarectfCodeGenerator:
 
         return clines
 
-    def _get_barectf_ctx_struct(self, stream, hide_sid=False):
+    def _gen_barectf_ctx_struct(self, stream, hide_sid=False):
         # get offset variables for both the packet header and packet context
         ph_size, ph_offvars = self._get_ph_size_offvars()
         pc_size, pc_offvars = self._get_pc_size_offvars(stream)
@@ -864,7 +864,7 @@ class BarectfCodeGenerator:
 
         return struct
 
-    def _get_barectf_contexts_struct(self):
+    def _gen_barectf_contexts_struct(self):
         hide_sid = False
 
         if len(self._doc.streams) == 1:
@@ -873,13 +873,13 @@ class BarectfCodeGenerator:
         structs = []
 
         for stream in self._doc.streams.values():
-            struct = self._get_barectf_ctx_struct(stream, hide_sid)
+            struct = self._gen_barectf_ctx_struct(stream, hide_sid)
             structs.append(struct)
 
         return '\n\n'.join(structs)
 
-    def _get_barectf_header(self):
-        ctx_structs = self._get_barectf_contexts_struct()
+    def _gen_barectf_header(self):
+        ctx_structs = self._gen_barectf_contexts_struct()
         t = barectf.templates.HEADER
 
         header = t.format(prefix=self._prefix, ucprefix=self._prefix.upper(),
@@ -928,7 +928,7 @@ class BarectfCodeGenerator:
         # validate CTF metadata against barectf constraints
         self._validate_metadata()
 
-        print(self._get_barectf_header())
+        print(self._gen_barectf_header())
 
         """
         clines = self._struct_to_clines(self._doc.streams[0].get_event(0).fields,
