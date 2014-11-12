@@ -22,8 +22,8 @@ HEADER = """
 {barectf_ctx}
 
 /* barectf error codes */
-#define E{ucprefix}_OK	  0
-#define E{ucprefix}_NOSPC   1
+#define E{ucprefix}_OK		0
+#define E{ucprefix}_NOSPC	1
 
 /* alignment macro */
 #define {ucprefix}_ALIGN_OFFSET(_at, _align) \\
