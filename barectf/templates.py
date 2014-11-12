@@ -41,6 +41,8 @@ HEADER = """#ifndef _{ucprefix}_H
 
 #include <stdint.h>
 
+#include "{prefix}_bitfields.h"
+
 /* barectf contexts */
 {barectf_ctx}
 
@@ -66,4 +68,9 @@ HEADER = """#ifndef _{ucprefix}_H
 {functions}
 
 #endif /* _{ucprefix}_H */
+"""
+
+CSRC = """#include "{prefix}.h"
+
+{functions}
 """

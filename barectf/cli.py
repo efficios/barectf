@@ -564,26 +564,26 @@ class BarectfCodeGenerator:
     def _get_obj_alignment(self, obj):
         return self._obj_alignment_cb[type(obj)](obj)
 
-    def _name_to_param_name(self, prefix, name):
+    def _fname_to_pname(self, prefix, name):
         return 'param_{}_{}'.format(prefix, name)
 
-    def _ev_f_name_to_param_name(self, name):
-        return self._name_to_param_name('evf', name)
+    def _ef_fname_to_pname(self, name):
+        return self._fname_to_pname('ef', name)
 
-    def _ev_c_name_to_param_name(self, name):
-        return self._name_to_param_name('evc', name)
+    def _ec_fname_to_pname(self, name):
+        return self._fname_to_pname('ec', name)
 
-    def _ev_sec_name_to_param_name(self, name):
-        return self._name_to_param_name('evsec', name)
+    def _sec_fname_to_pname(self, name):
+        return self._fname_to_pname('sec', name)
 
-    def _ev_h_name_to_param_name(self, name):
-        return self._name_to_param_name('evh', name)
+    def _eh_fname_to_pname(self, name):
+        return self._fname_to_pname('eh', name)
 
-    def _s_pc_name_to_param_name(self, name):
-        return self._name_to_param_name('spc', name)
+    def _spc_fname_to_pname(self, name):
+        return self._fname_to_pname('spc', name)
 
-    def _s_ph_name_to_param_name(self, name):
-        return self._name_to_param_name('sph', name)
+    def _tph_fname_to_pname(self, name):
+        return self._fname_to_pname('tph', name)
 
     def _get_integer_param_ctype(self, integer):
         signed = 'u' if not integer.signed else ''
@@ -648,7 +648,7 @@ class BarectfCodeGenerator:
     def _get_align_offset_cline(self, size):
         return _CLine(self._get_align_offset(size))
 
-    def _write_field_struct(self, fname, src_name, struct):
+    def _write_field_struct(self, fname, src_name, struct, scope_prefix):
         size = self._get_struct_size(struct)
         size_bytes = self._get_alignment(size, 8) // 8
         dst = self._CTX_BUF_AT_ADDR
@@ -661,7 +661,7 @@ class BarectfCodeGenerator:
             _CLine('{} += {};'.format(self._CTX_AT, size)),
         ]
 
-    def _write_field_integer(self, fname, src_name, integer):
+    def _write_field_integer(self, fname, src_name, integer, scope_prefix=None):
         bo = self._bo_suffixes_map[integer.byte_order]
         ptr = self._CTX_BUF
         t = self._get_obj_param_ctype(integer)
@@ -675,10 +675,11 @@ class BarectfCodeGenerator:
             _CLine('{} += {};'.format(self._CTX_AT, length))
         ]
 
-    def _write_field_enum(self, fname, src_name, enum):
+    def _write_field_enum(self, fname, src_name, enum, scope_prefix=None):
         return self._write_field_obj(fname, src_name, enum.integer)
 
-    def _write_field_floating_point(self, fname, src_name, floating_point):
+    def _write_field_floating_point(self, fname, src_name, floating_point,
+                                    scope_prefix=None):
         bo = self._bo_suffixes_map[floating_point.byte_order]
         ptr = self._CTX_BUF
         t = self._get_obj_param_ctype(floating_point)
@@ -692,7 +693,7 @@ class BarectfCodeGenerator:
             _CLine('{} += {};'.format(self._CTX_AT, length))
         ]
 
-    def _write_field_array(self, fname, src_name, array):
+    def _write_field_array(self, fname, src_name, array, scope_prefix=None):
         clines = []
 
         # array index variable declaration
@@ -700,7 +701,8 @@ class BarectfCodeGenerator:
         clines.append(_CLine('uint32_t {};'.format(iv)))
 
         # for loop using array's static length
-        line = 'for ({iv} = 0; {iv} < {l}; ++{iv}) {{'.format(iv=iv, l=array.length)
+        line = 'for ({iv} = 0; {iv} < {l}; ++{iv}) {{'.format(iv=iv,
+                                                              l=array.length)
         clines.append(_CLine(line))
 
         # for loop statements
@@ -712,7 +714,8 @@ class BarectfCodeGenerator:
         for_block.append(cline)
 
         # write element to the buffer
-        for_block += self._write_field_obj(fname, src_name, array.element)
+        for_block += self._write_field_obj(fname, src_name, array.element,
+                                           scope_prefix)
         clines.append(for_block)
 
         # for loop end
@@ -720,12 +723,91 @@ class BarectfCodeGenerator:
 
         return clines
 
-    def _write_field_sequence(self, fname, src_name, sequence):
-        return [
-            _CLine('would write sequence here;'),
-        ]
+    def _seq_length_to_src_name(self, length, scope_prefix=None):
+        def get_tph_src_name(length):
+            offvar = self._get_offvar_name_from_expr(length[3:], 'tph')
+            return 'ctx->{}'.format(offvar)
 
-    def _write_field_string(self, fname, src_name, string):
+        def get_env_src_name(length):
+            if len(length) != 2:
+                _perror('invalid sequence length: "{}"'.format(self._dot_name_to_str(length)))
+
+            fname = length[1]
+
+            if fname not in self._doc.env:
+                _perror('cannot find field env.{}'.format(fname))
+
+            return str(self._doc.env[fname])
+
+        def get_spc_src_name(length):
+            offvar = self._get_offvar_name_from_expr(length[3:], 'spc')
+            return 'ctx->{}'.format(offvar)
+
+        def get_seh_src_name(length):
+            return self._get_offvar_name_from_expr(length[3:], 'seh')
+
+        def get_sec_src_name(length):
+            return self._get_offvar_name_from_expr(length[3:], 'sec')
+
+        def get_ec_src_name(length):
+            return self._get_offvar_name_from_expr(length[2:], 'ec')
+
+        def get_ef_src_name(length):
+            return self._get_offvar_name_from_expr(length[2:], 'ef')
+
+        dyn_scope_map = {
+            'trace.packet.header.': get_tph_src_name,
+            'env.': get_env_src_name,
+            'stream.packet.context.': get_spc_src_name,
+            'stream.event.header.': get_seh_src_name,
+            'stream.event.context.': get_sec_src_name,
+            'event.context.': get_ec_src_name,
+            'event.fields.': get_ef_src_name,
+        }
+
+        length_dot = self._dot_name_to_str(length)
+
+        for prefix, get_src_name in dyn_scope_map.items():
+            if length_dot.startswith(prefix):
+                return get_src_name(length)
+
+        return self._get_offvar_name_from_expr(length, scope_prefix)
+
+    def _write_field_sequence(self, fname, src_name, sequence, scope_prefix):
+        clines = []
+
+        # sequence index variable declaration
+        iv = 'is_{}'.format(fname)
+        clines.append(_CLine('uint32_t {};'.format(iv)))
+
+        # sequence length offset variable
+        length_offvar = self._seq_length_to_src_name(sequence.length,
+                                                     scope_prefix)
+
+        # for loop using sequence's static length
+        line = 'for ({iv} = 0; {iv} < {l}; ++{iv}) {{'.format(iv=iv,
+                                                              l=length_offvar)
+        clines.append(_CLine(line))
+
+        # for loop statements
+        for_block = _CBlock()
+
+        # align bit index before writing to the buffer
+        element_align = self._get_obj_alignment(sequence.element)
+        cline = self._get_align_offset_cline(element_align)
+        for_block.append(cline)
+
+        # write element to the buffer
+        for_block += self._write_field_obj(fname, src_name, sequence.element,
+                                           scope_prefix)
+        clines.append(for_block)
+
+        # for loop end
+        clines.append(_CLine('}'))
+
+        return clines
+
+    def _write_field_string(self, fname, src_name, string, scope_prefix=None):
         clines = []
 
         # string index variable declaration
@@ -758,8 +840,9 @@ class BarectfCodeGenerator:
 
         return clines
 
-    def _write_field_obj(self, fname, src_name, ftype):
-        return self._write_field_obj_cb[type(ftype)](fname, src_name, ftype)
+    def _write_field_obj(self, fname, src_name, ftype, scope_prefix):
+        return self._write_field_obj_cb[type(ftype)](fname, src_name, ftype,
+                                                     scope_prefix)
 
     def _get_offvar_name(self, name, prefix=None):
         parts = ['off']
@@ -771,10 +854,11 @@ class BarectfCodeGenerator:
 
         return '_'.join(parts)
 
-    def _get_offvar_name_from_expr(self, expr):
-        return self._get_offvar_name('_'.join(expr))
+    def _get_offvar_name_from_expr(self, expr, prefix=None):
+        return self._get_offvar_name('_'.join(expr), prefix)
 
-    def _field_to_clines(self, fname, ftype, scope_name, param_name_cb):
+    def _field_to_clines(self, fname, ftype, scope_name, scope_prefix,
+                         param_name_cb):
         clines = []
         pname = param_name_cb(fname)
         align = self._get_obj_alignment(ftype)
@@ -793,22 +877,23 @@ class BarectfCodeGenerator:
         if type(ftype) is pytsdl.tsdl.Struct:
             offvars_tree = collections.OrderedDict()
             self._get_struct_size(ftype, offvars_tree)
-            off_vars = self._flatten_offvars_tree(offvars_tree)
+            offvars = self._flatten_offvars_tree(offvars_tree)
 
             # as many offset as there are child fields because a future
             # sequence could refer to any of those fields
-            for lname, offset in off_vars.items():
-                offvar = self._get_offvar_name('_'.join([fname, lname]))
+            for lname, offset in offvars.items():
+                offvar = self._get_offvar_name('_'.join([fname, lname]),
+                                               scope_prefix)
                 fmt = 'uint32_t {} = {} + {};'
                 line = fmt.format(offvar, self._CTX_AT, offset);
                 clines.append(_CLine(line))
         elif type(ftype) is pytsdl.tsdl.Integer:
             # offset of this simple field is the current bit index
-            offvar = self._get_offvar_name(fname)
+            offvar = self._get_offvar_name(fname, scope_prefix)
             line = 'uint32_t {} = {};'.format(offvar, self._CTX_AT)
             clines.append(_CLine(line))
 
-        clines += self._write_field_obj(fname, pname, ftype)
+        clines += self._write_field_obj(fname, pname, ftype, scope_prefix)
 
         return clines
 
@@ -824,12 +909,13 @@ class BarectfCodeGenerator:
 
         return output_clines
 
-    def _struct_to_clines(self, struct, scope_name, param_name_cb):
+    def _struct_to_clines(self, struct, scope_name, scope_prefix,
+                          param_name_cb):
         cline_groups = []
 
         for fname, ftype in struct.fields.items():
             clines = self._field_to_clines(fname, ftype, scope_name,
-                                         param_name_cb)
+                                           scope_prefix, param_name_cb)
             cline_groups.append(clines)
 
         return self._join_cline_groups(cline_groups)
@@ -860,8 +946,8 @@ class BarectfCodeGenerator:
         # get offset variables for both the packet header and packet context
         ph_size, ph_offvars = self._get_ph_size_offvars()
         pc_size, pc_offvars = self._get_pc_size_offvars(stream)
-        clines = self._offvars_to_ctx_clines('ph', ph_offvars)
-        clines += self._offvars_to_ctx_clines('pc', pc_offvars)
+        clines = self._offvars_to_ctx_clines('tph', ph_offvars)
+        clines += self._offvars_to_ctx_clines('spc', pc_offvars)
 
         # indent C
         clines_indented = []
@@ -919,7 +1005,7 @@ class BarectfCodeGenerator:
     def _gen_barectf_func_open_body(self, stream):
         clines = []
 
-        # update timestamp end if present
+        # keep clock value (for timestamp_begin)
         if self._stream_has_timestamp_begin_end(stream):
             # get clock value ASAP
             clk_type = self._get_clock_type(stream)
@@ -931,36 +1017,40 @@ class BarectfCodeGenerator:
         # packet context fields
         fcline_groups = []
         scope_name = 'stream.packet.context'
+        scope_prefix = 'spc'
 
         for fname, ftype in stream.packet_context.fields.items():
             # packet size
             if fname == 'packet_size':
                 fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                scope_prefix,
                                                 lambda x: 'ctx->buffer_size')
                 fcline_groups.append(fclines)
 
             # content size (skip)
             elif fname == 'content_size':
                 fclines = self._field_to_clines(fname, ftype, scope_name,
-                                                lambda x: '0')
+                                                scope_prefix, lambda x: '0')
                 fcline_groups.append(fclines)
 
             # timestamp_begin
             elif fname == 'timestamp_begin':
                 fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                scope_prefix,
                                                 lambda x: 'clk_value')
                 fcline_groups.append(fclines)
 
             # timestamp_end (skip)
             elif fname == 'timestamp_end':
                 fclines = self._field_to_clines(fname, ftype, scope_name,
-                                                lambda x: '0')
+                                                scope_prefix, lambda x: '0')
                 fcline_groups.append(fclines)
 
             # anything else
             else:
                 fclines = self._field_to_clines(fname, ftype, scope_name,
-                                                self._s_pc_name_to_param_name)
+                                                scope_prefix,
+                                                self._spc_fname_to_pname)
                 fcline_groups.append(fclines)
 
         clines += self._join_cline_groups(fcline_groups)
@@ -985,7 +1075,7 @@ class BarectfCodeGenerator:
                 continue
 
             ptype = self._get_obj_param_ctype(ftype)
-            pname = self._s_pc_name_to_param_name(fname)
+            pname = self._spc_fname_to_pname(fname)
             param = '{} {}'.format(ptype, pname)
             params.append(param)
 
@@ -1039,12 +1129,12 @@ class BarectfCodeGenerator:
         pc_offset = self._get_alignment(ph_size, pc_alignment)
 
         for offvar, offset in ph_offvars.items():
-            offvar_field = self._get_offvar_name(offvar, 'ph')
+            offvar_field = self._get_offvar_name(offvar, 'tph')
             line = 'ctx->{} = {};'.format(offvar_field, offset)
             clines.append(_CLine(line))
 
         for offvar, offset in pc_offvars.items():
-            offvar_field = self._get_offvar_name(offvar, 'pc')
+            offvar_field = self._get_offvar_name(offvar, 'spc')
             line = 'ctx->{} = {};'.format(offvar_field, pc_offset + offset)
             clines.append(_CLine(line))
 
@@ -1052,17 +1142,21 @@ class BarectfCodeGenerator:
 
         # packet header fields
         fcline_groups = []
+        scope_name = 'trace.packet.header'
+        scope_prefix = 'tph'
 
         for fname, ftype in self._doc.trace.packet_header.fields.items():
             # magic number
             if fname == 'magic':
-                fclines = self._field_to_clines(fname, ftype, 'packet.header',
+                fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                scope_prefix,
                                                 lambda x: '0xc1fc1fc1UL')
                 fcline_groups.append(fclines)
 
             # stream ID
             elif fname == 'stream_id':
-                fclines = self._field_to_clines(fname, ftype, 'packet.header',
+                fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                scope_prefix,
                                                 lambda x: str(stream.id))
                 fcline_groups.append(fclines)
 
@@ -1223,6 +1317,65 @@ class BarectfCodeGenerator:
 
         return funcs
 
+    def _gen_barectf_func_trace_event_body(self, stream, event):
+        clines = []
+
+        # get clock value ASAP
+        clk_type = self._get_clock_type(stream)
+        clk = self._gen_get_clock_value()
+        line = '{} clk_value = {};'.format(clk_type, clk)
+        clines.append(_CLine(line))
+        clines.append(_CLine(''))
+
+        # event header
+        fcline_groups = []
+        scope_name = 'event.header'
+        scope_prefix = 'eh'
+
+        for fname, ftype in stream.event_header.fields.items():
+            # id
+            if fname == 'id':
+                fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                scope_prefix,
+                                                lambda x: str(event.id))
+                fcline_groups.append(fclines)
+
+            # timestamp
+            elif fname == 'timestamp':
+                fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                scope_prefix,
+                                                lambda x: 'clk_value')
+                fcline_groups.append(fclines)
+
+        # stream event context
+        if stream.event_context is not None:
+            fclines = self._struct_to_clines(stream.event_context,
+                                             'stream.event.context', 'sec',
+                                             self._sec_fname_to_pname)
+            fcline_groups.append(fclines)
+
+        # event context
+        if event.context is not None:
+            fclines = self._struct_to_clines(event.context,
+                                             'event.context', 'ec',
+                                             self._ec_fname_to_pname)
+            fcline_groups.append(fclines)
+
+        # event fields
+        if event.fields is not None:
+            fclines = self._struct_to_clines(event.fields,
+                                             'event.fields', 'ef',
+                                             self._ef_fname_to_pname)
+            fcline_groups.append(fclines)
+
+        clines += self._join_cline_groups(fcline_groups)
+
+        # get source
+        cblock = _CBlock(clines)
+        src = self._cblock_to_source(cblock)
+
+        return src
+
     def _gen_barectf_func_trace_event(self, stream, event, gen_body, hide_sid):
         params = []
 
@@ -1235,7 +1388,7 @@ class BarectfCodeGenerator:
         if stream.event_context is not None:
             for fname, ftype in stream.event_context.fields.items():
                 ptype = self._get_obj_param_ctype(ftype)
-                pname = self._ev_sec_name_to_param_name(fname)
+                pname = self._sec_fname_to_pname(fname)
                 param = '{} {}'.format(ptype, pname)
                 params.append(param)
 
@@ -1243,7 +1396,7 @@ class BarectfCodeGenerator:
         if event.context is not None:
             for fname, ftype in event.context.fields.items():
                 ptype = self._get_obj_param_ctype(ftype)
-                pname = self._ev_c_name_to_param_name(fname)
+                pname = self._ec_fname_to_pname(fname)
                 param = '{} {}'.format(ptype, pname)
                 params.append(param)
 
@@ -1251,7 +1404,7 @@ class BarectfCodeGenerator:
         if event.fields is not None:
             for fname, ftype in event.fields.fields.items():
                 ptype = self._get_obj_param_ctype(ftype)
-                pname = self._ev_f_name_to_param_name(fname)
+                pname = self._ef_fname_to_pname(fname)
                 param = '{} {}'.format(ptype, pname)
                 params.append(param)
 
@@ -1272,7 +1425,7 @@ class BarectfCodeGenerator:
 
         if gen_body:
             func += '\n{\n'
-            #func += self._gen_barectf_func_open_body(stream)
+            func += self._gen_barectf_func_trace_event_body(stream, event)
             func += '\n}'
         else:
             func += ';'
@@ -1388,13 +1541,6 @@ class BarectfCodeGenerator:
 
         print(self._gen_barectf_header())
 
-        """
-        clines = self._struct_to_clines(self._doc.streams[0].get_event(0).fields,
-                                        'stream event context',
-                                        self._ev_f_name_to_param_name)
-        source = self._cblock_to_source(clines)
-        print(source)
-        """
 
 
 def run():
