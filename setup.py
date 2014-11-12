@@ -35,8 +35,8 @@ if v.major < 3:
 
 
 install_requires = [
-  'termcolor',
-  'pytsdl',
+    'termcolor',
+    'pytsdl',
 ]
 
 
@@ -54,7 +54,7 @@ entry_points = {
 
 setup(name='barectf',
       version=0.1,
-      description='Generator of ANSI C code that can write native CTF',
+      description='Generator of C99 code that can write native CTF',
       author='Philippe Proulx',
       author_email='eeppeliteloop@gmail.com',
       license='MIT',
