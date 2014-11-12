@@ -780,7 +780,7 @@ class BarectfCodeGenerator:
         align = self._get_obj_alignment(ftype)
 
         # group comment
-        fmt = '/* write {} field "{}" ({}) */'
+        fmt = '/* write {}.{} ({}) */'
         line = fmt.format(scope_name, fname,
                           self._tsdl_type_names_map[type(ftype)])
         clines.append(_CLine(line))
@@ -903,11 +903,6 @@ class BarectfCodeGenerator:
 
         return '\n\n'.join(structs)
 
-    _packet_header_known_fields = [
-        'magic',
-        'stream_id',
-    ]
-
     _packet_context_known_fields = [
         'content_size',
         'packet_size',
@@ -921,6 +916,61 @@ class BarectfCodeGenerator:
     def _gen_manual_clock_param(self, stream):
         return '{} param_clock'.format(self._get_clock_type(stream))
 
+    def _gen_barectf_func_open_body(self, stream):
+        clines = []
+
+        # update timestamp end if present
+        if self._stream_has_timestamp_begin_end(stream):
+            # get clock value ASAP
+            clk_type = self._get_clock_type(stream)
+            clk = self._gen_get_clock_value()
+            line = '{} clk_value = {};'.format(clk_type, clk)
+            clines.append(_CLine(line))
+            clines.append(_CLine(''))
+
+        # packet context fields
+        fcline_groups = []
+        scope_name = 'stream.packet.context'
+
+        for fname, ftype in stream.packet_context.fields.items():
+            # packet size
+            if fname == 'packet_size':
+                fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                lambda x: 'ctx->buffer_size')
+                fcline_groups.append(fclines)
+
+            # content size (skip)
+            elif fname == 'content_size':
+                fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                lambda x: '0')
+                fcline_groups.append(fclines)
+
+            # timestamp_begin
+            elif fname == 'timestamp_begin':
+                fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                lambda x: 'clk_value')
+                fcline_groups.append(fclines)
+
+            # timestamp_end (skip)
+            elif fname == 'timestamp_end':
+                fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                lambda x: '0')
+                fcline_groups.append(fclines)
+
+            # anything else
+            else:
+                fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                self._s_pc_name_to_param_name)
+                fcline_groups.append(fclines)
+
+        clines += self._join_cline_groups(fcline_groups)
+
+        # get source
+        cblock = _CBlock(clines)
+        src = self._cblock_to_source(cblock)
+
+        return src
+
     def _gen_barectf_func_open(self, stream, gen_body, hide_sid=False):
         params = []
 
@@ -929,30 +979,20 @@ class BarectfCodeGenerator:
             clock_param = self._gen_manual_clock_param(stream)
             params.append(clock_param)
 
-        # packet header
-        for fname, ftype in self._doc.trace.packet_header.fields.items():
-            if fname in self._packet_header_known_fields:
-                continue
-
-            ptype = self._get_obj_param_ctype(ftype)
-            pname = self._name_to_param_name('ph', fname)
-            param = '{} {}'.format(ptype, pname)
-            params.append(param)
-
         # packet context
         for fname, ftype in stream.packet_context.fields.items():
             if fname in self._packet_context_known_fields:
                 continue
 
             ptype = self._get_obj_param_ctype(ftype)
-            pname = self._name_to_param_name('pc', fname)
+            pname = self._s_pc_name_to_param_name(fname)
             param = '{} {}'.format(ptype, pname)
             params.append(param)
 
         params_str = ''
 
         if params:
-            params_str = ',\n\t' + ',\n\t'.join(params)
+            params_str = ',\n\t'.join([''] + params)
 
         # fill template
         sid = ''
@@ -966,7 +1006,7 @@ class BarectfCodeGenerator:
 
         if gen_body:
             func += '\n{\n'
-
+            func += self._gen_barectf_func_open_body(stream)
             func += '\n}'
         else:
             func += ';'
@@ -1137,7 +1177,7 @@ class BarectfCodeGenerator:
             line = '{} clk_value = {};'.format(clk_type, clk)
             clines.append(_CLine(line))
 
-            # save buffer position
+            # write timestamp_end
             timestamp_end_integer = stream.packet_context['timestamp_end']
             clines += self._gen_write_ctx_field_integer('clk_value', 'pc',
                                                         'timestamp_end',
