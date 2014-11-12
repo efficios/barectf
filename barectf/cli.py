@@ -36,7 +36,11 @@ def _perror(msg, exit_code=1):
 
 
 def _pinfo(msg):
-    cprint(':: {}'.format(msg), 'blue', attrs=['bold'], file=sys.stderr)
+    cprint(':: {}'.format(msg), 'blue', attrs=['bold'])
+
+
+def _psuccess(msg):
+    cprint('{}'.format(msg), 'green', attrs=['bold'])
 
 
 def _parse_args():
@@ -1531,6 +1535,8 @@ class BarectfCodeGenerator:
             self._si_str = 'static inline '
 
         # open CTF metadata file
+        _pinfo('opening CTF metadata file "{}"'.format(self._metadata))
+
         try:
             with open(metadata) as f:
                 self._tsdl = f.read()
@@ -1538,20 +1544,24 @@ class BarectfCodeGenerator:
             _perror('cannot open/read CTF metadata file "{}"'.format(metadata))
 
         # parse CTF metadata
+        _pinfo('parsing CTF metadata file')
+
         try:
             self._doc = self._parser.parse(self._tsdl)
         except pytsdl.parser.ParseError as e:
             _perror('parse error: {}'.format(e))
 
         # validate CTF metadata against barectf constraints
+        _pinfo('validating CTF metadata file')
         self._validate_metadata()
+        _psuccess('CTF metadata file is valid')
 
         # set parameters for this generation
         self._set_params()
 
-
-        print(self._gen_barectf_header())
-
+        # generate header
+        _pinfo('generating barectf header file')
+        self._gen_barectf_header()
 
 
 def run():
