@@ -8,12 +8,35 @@ BARECTF_CTX = """struct {prefix}{sid}_ctx {{
 	/* current position from beginning of buffer in bits */
 	uint32_t at;
 
+	/* clock value callback */
+{clock_cb}
+
+	/* packet header + context size */
+	uint32_t packet_header_context_size;
+
 	/* config-specific members follow */
 {ctx_fields}
 }};"""
 
-HEADER = """
-#ifndef _{ucprefix}_H
+FUNC_INIT = """{si}int {prefix}{sid}_init(
+	struct {prefix}{sid}_ctx* ctx,
+	uint8_t* buf,
+	uint32_t buf_size{params}
+)"""
+
+FUNC_OPEN = """{si}void {prefix}{sid}_open(
+	struct {prefix}{sid}_ctx* ctx{params}
+)"""
+
+FUNC_CLOSE = """{si}void {prefix}{sid}_close(
+	struct {prefix}{sid}_ctx* ctx{params}
+)"""
+
+FUNC_TRACE = """{si}int {prefix}{sid}_trace_{evname}(
+	struct {prefix}{sid}_ctx* ctx{params}
+)"""
+
+HEADER = """#ifndef _{ucprefix}_H
 #define _{ucprefix}_H
 
 #include <stdint.h>
@@ -22,8 +45,8 @@ HEADER = """
 {barectf_ctx}
 
 /* barectf error codes */
-#define E{ucprefix}_OK		0
-#define E{ucprefix}_NOSPC	1
+#define E{ucprefix}_OK 0
+#define E{ucprefix}_NOSPC 1
 
 /* alignment macro */
 #define {ucprefix}_ALIGN_OFFSET(_at, _align) \\

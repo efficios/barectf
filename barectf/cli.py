@@ -87,6 +87,7 @@ class BarectfCodeGenerator:
     _CTX_BUF_SIZE = 'ctx->buf_size'
     _CTX_BUF_AT = '{}[{} >> 3]'.format(_CTX_BUF, _CTX_AT)
     _CTX_BUF_AT_ADDR = '&{}'.format(_CTX_BUF_AT)
+    _CTX_CALL_CLOCK_CB = 'ctx->clock_cb(ctx->clock_cb_data)'
 
     _bo_suffixes_map = {
         pytsdl.tsdl.ByteOrder.BE: 'be',
@@ -256,6 +257,10 @@ class BarectfCodeGenerator:
         except RuntimeError as e:
             _perror('packet header: "stream_id": {}'.format(e))
 
+        # only magic and stream_id allowed
+        if len(packet_header.fields) != 2:
+            _perror('packet header: only "magic" and "stream_id" fields are allowed')
+
     def _dot_name_to_str(self, name):
         return '.'.join(name)
 
@@ -366,6 +371,17 @@ class BarectfCodeGenerator:
 
         if fields['timestamp'].map is None:
             _perror('stream {}: event header: "timestamp" must be mapped to a valid clock'.format(sid))
+
+        # id must be the first field, followed by timestamp
+        if list(fields.keys())[0] != 'id':
+            _perror('stream {}: event header: "id" must be the first field'.format(sid))
+
+        if list(fields.keys())[1] != 'timestamp':
+            _perror('stream {}: event header: "timestamp" must be the second field'.format(sid))
+
+        # only id and timestamp and allowed in event header
+        if len(fields) != 2:
+            _perror('stream {}: event header: only "id" and "timestamp" fields are allowed'.format(sid))
 
     def _validate_stream_event_context(self, stream):
         stream_event_context = stream.event_context
@@ -758,7 +774,7 @@ class BarectfCodeGenerator:
     def _get_offvar_name_from_expr(self, expr):
         return self._get_offvar_name('_'.join(expr))
 
-    def _field_to_cline(self, fname, ftype, scope_name, param_name_cb):
+    def _field_to_clines(self, fname, ftype, scope_name, param_name_cb):
         clines = []
         pname = param_name_cb(fname)
         align = self._get_obj_alignment(ftype)
@@ -812,7 +828,7 @@ class BarectfCodeGenerator:
         cline_groups = []
 
         for fname, ftype in struct.fields.items():
-            clines = self._field_to_cline(fname, ftype, scope_name,
+            clines = self._field_to_clines(fname, ftype, scope_name,
                                          param_name_cb)
             cline_groups.append(clines)
 
@@ -847,10 +863,18 @@ class BarectfCodeGenerator:
         clines = self._offvars_to_ctx_clines('ph', ph_offvars)
         clines += self._offvars_to_ctx_clines('pc', pc_offvars)
 
-        # indent C lines
+        # indent C
         clines_indented = []
         for cline in clines:
             clines_indented.append(_CLine('\t' + cline))
+
+        # clock callback
+        clock_cb = '\t/* (no clock callback) */'
+
+        if not self._manual_clock:
+            ctype = self._get_clock_type(stream)
+            fmt = '\t{} (*clock_cb)(void*),\n\tvoid* clock_cb_data;'
+            clock_cb = fmt.format(ctype)
 
         # fill template
         sid = ''
@@ -860,7 +884,8 @@ class BarectfCodeGenerator:
 
         t = barectf.templates.BARECTF_CTX
         struct = t.format(prefix=self._prefix, sid=sid,
-                          ctx_fields='\n'.join(clines_indented))
+                          ctx_fields='\n'.join(clines_indented),
+                          clock_cb=clock_cb)
 
         return struct
 
@@ -878,12 +903,310 @@ class BarectfCodeGenerator:
 
         return '\n\n'.join(structs)
 
+    _packet_header_known_fields = [
+        'magic',
+        'stream_id',
+    ]
+
+    _packet_context_known_fields = [
+        'content_size',
+        'packet_size',
+        'timestamp_begin',
+        'timestamp_end',
+    ]
+
+    def _get_clock_type(self, stream):
+        return self._get_obj_param_ctype(stream.event_header['timestamp'])
+
+    def _gen_manual_clock_param(self, stream):
+        return '{} param_clock'.format(self._get_clock_type(stream))
+
+    def _gen_barectf_func_open(self, stream, gen_body, hide_sid=False):
+        params = []
+
+        # manual clock
+        if self._manual_clock:
+            clock_param = self._gen_manual_clock_param(stream)
+            params.append(clock_param)
+
+        # packet header
+        for fname, ftype in self._doc.trace.packet_header.fields.items():
+            if fname in self._packet_header_known_fields:
+                continue
+
+            ptype = self._get_obj_param_ctype(ftype)
+            pname = self._name_to_param_name('ph', fname)
+            param = '{} {}'.format(ptype, pname)
+            params.append(param)
+
+        # packet context
+        for fname, ftype in stream.packet_context.fields.items():
+            if fname in self._packet_context_known_fields:
+                continue
+
+            ptype = self._get_obj_param_ctype(ftype)
+            pname = self._name_to_param_name('pc', fname)
+            param = '{} {}'.format(ptype, pname)
+            params.append(param)
+
+        params_str = ''
+
+        if params:
+            params_str = ',\n\t' + ',\n\t'.join(params)
+
+        # fill template
+        sid = ''
+
+        if not hide_sid:
+            sid = stream.id
+
+        t = barectf.templates.FUNC_OPEN
+        func = t.format(si=self._si_str, prefix=self._prefix, sid=sid,
+                        params=params_str)
+
+        if gen_body:
+            func += '\n{\n'
+
+            func += '\n}'
+        else:
+            func += ';'
+
+        return func
+
+    def _gen_barectf_funcs_open(self, gen_body):
+        hide_sid = False
+
+        if len(self._doc.streams) == 1:
+            hide_sid = True
+
+        funcs = []
+
+        for stream in self._doc.streams.values():
+            funcs.append(self._gen_barectf_func_open(stream, gen_body,
+                                                     hide_sid))
+
+        return funcs
+
+    def _gen_barectf_func_init_body(self, stream):
+        clines = []
+
+        line = 'uint32_t ctx_at_bkup;'
+        clines.append(_CLine(line))
+
+        # set context parameters
+        clines.append(_CLine(''))
+        clines.append(_CLine("/* barectf context parameters */"))
+        clines.append(_CLine('ctx->buf = buf;'))
+        clines.append(_CLine('ctx->buf_size = buf_size * 8;'))
+        clines.append(_CLine('{} = 0;'.format(self._CTX_AT)))
+
+        if not self._manual_clock:
+            clines.append(_CLine('ctx->clock_cb = clock_cb;'))
+            clines.append(_CLine('ctx->clock_cb_data = clock_cb_data;'))
+
+        # set context offsets
+        clines.append(_CLine(''))
+        clines.append(_CLine("/* barectf context offsets */"))
+        ph_size, ph_offvars = self._get_ph_size_offvars()
+        pc_size, pc_offvars = self._get_pc_size_offvars(stream)
+        pc_alignment = self._get_obj_alignment(stream.packet_context)
+        pc_offset = self._get_alignment(ph_size, pc_alignment)
+
+        for offvar, offset in ph_offvars.items():
+            offvar_field = self._get_offvar_name(offvar, 'ph')
+            line = 'ctx->{} = {};'.format(offvar_field, offset)
+            clines.append(_CLine(line))
+
+        for offvar, offset in pc_offvars.items():
+            offvar_field = self._get_offvar_name(offvar, 'pc')
+            line = 'ctx->{} = {};'.format(offvar_field, pc_offset + offset)
+            clines.append(_CLine(line))
+
+        clines.append(_CLine(''))
+
+        # packet header fields
+        fcline_groups = []
+
+        for fname, ftype in self._doc.trace.packet_header.fields.items():
+            # magic number
+            if fname == 'magic':
+                fclines = self._field_to_clines(fname, ftype, 'packet.header',
+                                                lambda x: '0xc1fc1fc1UL')
+                fcline_groups.append(fclines)
+
+            # stream ID
+            elif fname == 'stream_id':
+                fclines = self._field_to_clines(fname, ftype, 'packet.header',
+                                                lambda x: str(stream.id))
+                fcline_groups.append(fclines)
+
+        clines += self._join_cline_groups(fcline_groups)
+
+        # get source
+        cblock = _CBlock(clines)
+        src = self._cblock_to_source(cblock)
+
+        return src
+
+    def _gen_barectf_func_init(self, stream, gen_body, hide_sid=False):
+        # fill template
+        sid = ''
+
+        if not hide_sid:
+            sid = stream.id
+
+        params = ''
+
+        if not self._manual_clock:
+            ts_ftype = stream.event_header['timestamp']
+            ts_ptype = self._get_obj_param_ctype(ts_ftype)
+            fmt = ',\n\t{} (*clock_cb)(void*),\n\tvoid* clock_cb_data'
+            params = fmt.format(ts_ptype)
+
+        t = barectf.templates.FUNC_INIT
+        func = t.format(si=self._si_str, prefix=self._prefix, sid=sid,
+                        params=params)
+
+        if gen_body:
+            func += '\n{\n'
+            func += self._gen_barectf_func_init_body(stream)
+            func += '\n}'
+        else:
+            func += ';'
+
+        return func
+
+    def _gen_barectf_funcs_init(self, gen_body):
+        hide_sid = False
+
+        if len(self._doc.streams) == 1:
+            hide_sid = True
+
+        funcs = []
+
+        for stream in self._doc.streams.values():
+            funcs.append(self._gen_barectf_func_init(stream, gen_body,
+                                                     hide_sid))
+
+        return funcs
+
+    def _gen_get_clock_value(self):
+        if self._manual_clock:
+            return 'param_clock'
+        else:
+            return self._CTX_CALL_CLOCK_CB
+
+    def _stream_has_timestamp_begin_end(self, stream):
+        return self._has_timestamp_begin_end[stream.id]
+
+    def _gen_write_ctx_field_integer(self, src_name, prefix, name, obj):
+        clines = []
+
+        # save buffer position
+        line = 'ctx_at_bkup = {};'.format(self._CTX_AT)
+        clines.append(_CLine(line))
+
+        # go back to field offset
+        offvar = self._get_offvar_name(name, prefix)
+        line = '{} = ctx->{};'.format(self._CTX_AT, offvar)
+        clines.append(_CLine(line))
+
+        # write value
+        clines += self._write_field_integer(None, src_name, obj)
+
+        # restore buffer position
+        line = '{} = ctx_at_bkup;'.format(self._CTX_AT)
+        clines.append(_CLine(line))
+
+        return clines
+
+    def _gen_barectf_func_close_body(self, stream):
+        clines = []
+
+        line = 'uint32_t ctx_at_bkup;'
+        clines.append(_CLine(line))
+
+        # update timestamp end if present
+        if self._stream_has_timestamp_begin_end(stream):
+            clines.append(_CLine(''))
+            clines.append(_CLine("/* update packet context's timestamp_end */"))
+
+            # get clock value ASAP
+            clk_type = self._get_clock_type(stream)
+            clk = self._gen_get_clock_value()
+            line = '{} clk_value = {};'.format(clk_type, clk)
+            clines.append(_CLine(line))
+
+            # save buffer position
+            timestamp_end_integer = stream.packet_context['timestamp_end']
+            clines += self._gen_write_ctx_field_integer('clk_value', 'pc',
+                                                        'timestamp_end',
+                                                        timestamp_end_integer)
+
+        # update content_size
+        clines.append(_CLine(''))
+        clines.append(_CLine("/* update packet context's content_size */"))
+        content_size_integer = stream.packet_context['content_size']
+        clines += self._gen_write_ctx_field_integer('ctx_at_bkup', 'pc',
+                                                    'content_size',
+                                                    content_size_integer)
+
+        # get source
+        cblock = _CBlock(clines)
+        src = self._cblock_to_source(cblock)
+
+        return src
+
+    def _gen_barectf_func_close(self, stream, gen_body, hide_sid=False):
+        # fill template
+        sid = ''
+
+        if not hide_sid:
+            sid = stream.id
+
+        params = ''
+
+        if self._manual_clock:
+            clock_param = self._gen_manual_clock_param(stream)
+            params = ',\n\t{}'.format(clock_param)
+
+        t = barectf.templates.FUNC_CLOSE
+        func = t.format(si=self._si_str, prefix=self._prefix, sid=sid,
+                        params=params)
+
+        if gen_body:
+            func += '\n{\n'
+            func += self._gen_barectf_func_close_body(stream)
+            func += '\n}'
+        else:
+            func += ';'
+
+        return func
+
+    def _gen_barectf_funcs_close(self, gen_body):
+        hide_sid = False
+
+        if len(self._doc.streams) == 1:
+            hide_sid = True
+
+        funcs = []
+
+        for stream in self._doc.streams.values():
+            funcs.append(self._gen_barectf_func_close(stream, gen_body,
+                                                      hide_sid))
+
+        return funcs
+
     def _gen_barectf_header(self):
         ctx_structs = self._gen_barectf_contexts_struct()
+        init_funcs = self._gen_barectf_funcs_init(self._static_inline)
+        open_funcs = self._gen_barectf_funcs_open(self._static_inline)
+        close_funcs = self._gen_barectf_funcs_close(self._static_inline)
+        functions = init_funcs + open_funcs + close_funcs
+        functions_str = '\n\n'.join(functions)
         t = barectf.templates.HEADER
-
         header = t.format(prefix=self._prefix, ucprefix=self._prefix.upper(),
-                          barectf_ctx=ctx_structs, functions='')
+                          barectf_ctx=ctx_structs, functions=functions_str)
 
         return header
 
@@ -904,6 +1227,13 @@ class BarectfCodeGenerator:
 
         return '\n'.join(lines)
 
+    def _set_params(self):
+        self._has_timestamp_begin_end = {}
+
+        for stream in self._doc.streams.values():
+            has = 'timestamp_begin' in stream.packet_context.fields
+            self._has_timestamp_begin_end[stream.id] = has
+
     def gen_barectf(self, metadata, output, prefix, static_inline,
                     manual_clock):
         self._metadata = metadata
@@ -911,6 +1241,10 @@ class BarectfCodeGenerator:
         self._prefix = prefix
         self._static_inline = static_inline
         self._manual_clock = manual_clock
+        self._si_str = ''
+
+        if static_inline:
+            self._si_str = 'static inline '
 
         # open CTF metadata file
         try:
@@ -927,6 +1261,10 @@ class BarectfCodeGenerator:
 
         # validate CTF metadata against barectf constraints
         self._validate_metadata()
+
+        # set parameters for this generation
+        self._set_params()
+
 
         print(self._gen_barectf_header())
 
