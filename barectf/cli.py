@@ -1013,20 +1013,6 @@ class BarectfCodeGenerator:
 
         return func
 
-    def _gen_barectf_funcs_open(self, gen_body):
-        hide_sid = False
-
-        if len(self._doc.streams) == 1:
-            hide_sid = True
-
-        funcs = []
-
-        for stream in self._doc.streams.values():
-            funcs.append(self._gen_barectf_func_open(stream, gen_body,
-                                                     hide_sid))
-
-        return funcs
-
     def _gen_barectf_func_init_body(self, stream):
         clines = []
 
@@ -1115,20 +1101,6 @@ class BarectfCodeGenerator:
             func += ';'
 
         return func
-
-    def _gen_barectf_funcs_init(self, gen_body):
-        hide_sid = False
-
-        if len(self._doc.streams) == 1:
-            hide_sid = True
-
-        funcs = []
-
-        for stream in self._doc.streams.values():
-            funcs.append(self._gen_barectf_func_init(stream, gen_body,
-                                                     hide_sid))
-
-        return funcs
 
     def _gen_get_clock_value(self):
         if self._manual_clock:
@@ -1223,6 +1195,113 @@ class BarectfCodeGenerator:
 
         return func
 
+    def _gen_barectf_funcs_init(self, gen_body):
+        hide_sid = False
+
+        if len(self._doc.streams) == 1:
+            hide_sid = True
+
+        funcs = []
+
+        for stream in self._doc.streams.values():
+            funcs.append(self._gen_barectf_func_init(stream, gen_body,
+                                                     hide_sid))
+
+        return funcs
+
+    def _gen_barectf_funcs_open(self, gen_body):
+        hide_sid = False
+
+        if len(self._doc.streams) == 1:
+            hide_sid = True
+
+        funcs = []
+
+        for stream in self._doc.streams.values():
+            funcs.append(self._gen_barectf_func_open(stream, gen_body,
+                                                     hide_sid))
+
+        return funcs
+
+    def _gen_barectf_func_trace_event(self, stream, event, gen_body, hide_sid):
+        params = []
+
+        # manual clock
+        if self._manual_clock:
+            clock_param = self._gen_manual_clock_param(stream)
+            params.append(clock_param)
+
+        # stream event context params
+        if stream.event_context is not None:
+            for fname, ftype in stream.event_context.fields.items():
+                ptype = self._get_obj_param_ctype(ftype)
+                pname = self._ev_sec_name_to_param_name(fname)
+                param = '{} {}'.format(ptype, pname)
+                params.append(param)
+
+        # event context params
+        if event.context is not None:
+            for fname, ftype in event.context.fields.items():
+                ptype = self._get_obj_param_ctype(ftype)
+                pname = self._ev_c_name_to_param_name(fname)
+                param = '{} {}'.format(ptype, pname)
+                params.append(param)
+
+        # event fields params
+        if event.fields is not None:
+            for fname, ftype in event.fields.fields.items():
+                ptype = self._get_obj_param_ctype(ftype)
+                pname = self._ev_f_name_to_param_name(fname)
+                param = '{} {}'.format(ptype, pname)
+                params.append(param)
+
+        params_str = ''
+
+        if params:
+            params_str = ',\n\t'.join([''] + params)
+
+        # fill template
+        sid = ''
+
+        if not hide_sid:
+            sid = stream.id
+
+        t = barectf.templates.FUNC_TRACE
+        func = t.format(si=self._si_str, prefix=self._prefix, sid=sid,
+                        evname=event.name, params=params_str)
+
+        if gen_body:
+            func += '\n{\n'
+            #func += self._gen_barectf_func_open_body(stream)
+            func += '\n}'
+        else:
+            func += ';'
+
+        return func
+
+    def _gen_barectf_funcs_trace_stream(self, stream, gen_body, hide_sid):
+        funcs = []
+
+        for event in stream.events:
+            funcs.append(self._gen_barectf_func_trace_event(stream, event,
+                                                            gen_body, hide_sid))
+
+        return funcs
+
+    def _gen_barectf_funcs_trace(self, gen_body):
+        hide_sid = False
+
+        if len(self._doc.streams) == 1:
+            hide_sid = True
+
+        funcs = []
+
+        for stream in self._doc.streams.values():
+            funcs += self._gen_barectf_funcs_trace_stream(stream, gen_body,
+                                                          hide_sid)
+
+        return funcs
+
     def _gen_barectf_funcs_close(self, gen_body):
         hide_sid = False
 
@@ -1242,7 +1321,8 @@ class BarectfCodeGenerator:
         init_funcs = self._gen_barectf_funcs_init(self._static_inline)
         open_funcs = self._gen_barectf_funcs_open(self._static_inline)
         close_funcs = self._gen_barectf_funcs_close(self._static_inline)
-        functions = init_funcs + open_funcs + close_funcs
+        trace_funcs = self._gen_barectf_funcs_trace(self._static_inline)
+        functions = init_funcs + open_funcs + close_funcs + trace_funcs
         functions_str = '\n\n'.join(functions)
         t = barectf.templates.HEADER
         header = t.format(prefix=self._prefix, ucprefix=self._prefix.upper(),
