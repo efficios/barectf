@@ -31,7 +31,7 @@ import re
 
 
 def _perror(msg, exit_code=1):
-    cprint('Error: {}'.format(msg), 'red', attrs=['bold'], file=sys.stderr)
+    cprint('error: {}'.format(msg), 'red', attrs=['bold'], file=sys.stderr)
     sys.exit(exit_code)
 
 
@@ -1560,8 +1560,15 @@ class BarectfCodeGenerator:
         self._set_params()
 
         # generate header
-        _pinfo('generating barectf header file')
+        _pinfo('generating barectf header files')
         self._gen_barectf_header()
+
+        # generate C source file
+        if not self._static_inline:
+            _pinfo('generating barectf translation unit')
+            pass
+
+        _psuccess('done')
 
 
 def run():
