@@ -93,12 +93,12 @@ class BarectfCodeGenerator:
     _CTX_BUF_AT_ADDR = '&{}'.format(_CTX_BUF_AT)
     _CTX_CALL_CLOCK_CB = 'ctx->clock_cb(ctx->clock_cb_data)'
 
-    _bo_suffixes_map = {
+    _BO_SUFFIXES_MAP = {
         pytsdl.tsdl.ByteOrder.BE: 'be',
         pytsdl.tsdl.ByteOrder.LE: 'le',
     }
 
-    _tsdl_type_names_map = {
+    _TSDL_TYPE_NAMES_MAP = {
         pytsdl.tsdl.Integer: 'integer',
         pytsdl.tsdl.FloatingPoint: 'floating point',
         pytsdl.tsdl.Enum: 'enumeration',
@@ -110,6 +110,7 @@ class BarectfCodeGenerator:
 
     def __init__(self):
         self._parser = pytsdl.parser.Parser()
+
         self._obj_size_cb = {
             pytsdl.tsdl.Struct: self._get_struct_size,
             pytsdl.tsdl.Integer: self._get_integer_size,
@@ -117,6 +118,7 @@ class BarectfCodeGenerator:
             pytsdl.tsdl.FloatingPoint: self._get_floating_point_size,
             pytsdl.tsdl.Array: self._get_array_size,
         }
+
         self._obj_alignment_cb = {
             pytsdl.tsdl.Struct: self._get_struct_alignment,
             pytsdl.tsdl.Integer: self._get_integer_alignment,
@@ -126,6 +128,7 @@ class BarectfCodeGenerator:
             pytsdl.tsdl.Sequence: self._get_sequence_alignment,
             pytsdl.tsdl.String: self._get_string_alignment,
         }
+
         self._obj_param_ctype_cb = {
             pytsdl.tsdl.Struct: lambda obj: 'const void*',
             pytsdl.tsdl.Integer: self._get_integer_param_ctype,
@@ -135,6 +138,7 @@ class BarectfCodeGenerator:
             pytsdl.tsdl.Sequence: lambda obj: 'const void*',
             pytsdl.tsdl.String: lambda obj: 'const char*',
         }
+
         self._write_field_obj_cb = {
             pytsdl.tsdl.Struct: self._write_field_struct,
             pytsdl.tsdl.Integer: self._write_field_integer,
@@ -144,6 +148,7 @@ class BarectfCodeGenerator:
             pytsdl.tsdl.Sequence: self._write_field_sequence,
             pytsdl.tsdl.String: self._write_field_string,
         }
+
         self._get_src_name_funcs = {
             'trace.packet.header.': self._get_tph_src_name,
             'env.': self._get_env_src_name,
@@ -154,8 +159,37 @@ class BarectfCodeGenerator:
             'event.fields.': self._get_ef_src_name,
         }
 
-    # TODO: prettify this function
-    def _validate_struct(self, struct):
+    # Validates an inner TSDL structure's field (constrained structure).
+    #
+    #   fname: field name
+    #   ftype: TSDL object
+    def _validate_inner_struct_field(self, fname, ftype):
+        if type(ftype) is pytsdl.tsdl.Sequence:
+            raise RuntimeError('field "{}" is a dynamic array (not allowed here)'.format(fname))
+        elif type(ftype) is pytsdl.tsdl.Array:
+            # we need to check every element until we find a terminal one
+            element = ftype.element
+            self._validate_inner_struct_field(fname, element)
+        elif type(ftype) is pytsdl.tsdl.Variant:
+            raise RuntimeError('field "{}" is a variant (unsupported)'.format(fname))
+        elif type(ftype) is pytsdl.tsdl.String:
+            raise RuntimeError('field "{}" is a string (not allowed here)'.format(fname))
+        elif type(ftype) is pytsdl.tsdl.Struct:
+            self._validate_inner_struct(ftype)
+        elif type(ftype) is pytsdl.tsdl.Integer:
+            if self._get_obj_size(ftype) > 64:
+                raise RuntimeError('integer field "{}" larger than 64-bit'.format(fname))
+        elif type(ftype) is pytsdl.tsdl.FloatingPoint:
+            if self._get_obj_size(ftype) > 64:
+                raise RuntimeError('floating point field "{}" larger than 64-bit'.format(fname))
+        elif type(ftype) is pytsdl.tsdl.Enum:
+            if self._get_obj_size(ftype) > 64:
+                raise RuntimeError('enum field "{}" larger than 64-bit'.format(fname))
+
+    # Validates an inner TSDL structure (constrained).
+    #
+    #   struct: TSDL structure to validate
+    def _validate_inner_struct(self, struct):
         # just in case we call this with the wrong type
         if type(struct) is not pytsdl.tsdl.Struct:
             raise RuntimeError('expecting a struct')
@@ -166,53 +200,11 @@ class BarectfCodeGenerator:
 
         # check each field
         for fname, ftype in struct.fields.items():
-            if type(ftype) is pytsdl.tsdl.Sequence:
-                raise RuntimeError('field "{}" is a dynamic array (not allowed here)'.format(fname))
-            elif type(ftype) is pytsdl.tsdl.Array:
-                # we need to check every element until we find a terminal one
-                element = ftype.element
+            self._validate_inner_struct_field(fname, ftype)
 
-                while True:
-                    if type(element) is pytsdl.tsdl.Sequence:
-                        raise RuntimeError('field "{}" contains a dynamic array (not allowed here)'.format(fname))
-                    elif type(element) is pytsdl.tsdl.Variant:
-                        raise RuntimeError('field "{}" contains a variant (unsupported)'.format(fname))
-                    elif type(element) is pytsdl.tsdl.String:
-                        raise RuntimeError('field "{}" contains a string (not allowed here)'.format(fname))
-                    elif type(element) is pytsdl.tsdl.Struct:
-                        _validate_struct(element)
-                    elif type(element) is pytsdl.tsdl.Integer:
-                        if self._get_obj_size(element) > 64:
-                            raise RuntimeError('integer field "{}" larger than 64-bit'.format(fname))
-                    elif type(element) is pytsdl.tsdl.FloatingPoint:
-                        if self._get_obj_size(element) > 64:
-                            raise RuntimeError('floating point field "{}" larger than 64-bit'.format(fname))
-                    elif type(element) is pytsdl.tsdl.Enum:
-                        if self._get_obj_size(element) > 64:
-                            raise RuntimeError('enum field "{}" larger than 64-bit'.format(fname))
-
-                    if type(element) is pytsdl.tsdl.Array:
-                        # still an array, continue
-                        element = element.element
-                    else:
-                        # found the terminal element
-                        break
-            elif type(ftype) is pytsdl.tsdl.Variant:
-                raise RuntimeError('field "{}" is a variant (unsupported)'.format(fname))
-            elif type(ftype) is pytsdl.tsdl.String:
-                raise RuntimeError('field "{}" is a string (not allowed here)'.format(fname))
-            elif type(ftype) is pytsdl.tsdl.Struct:
-                self._validate_struct(ftype)
-            elif type(ftype) is pytsdl.tsdl.Integer:
-                if self._get_obj_size(ftype) > 64:
-                    raise RuntimeError('integer field "{}" larger than 64-bit'.format(fname))
-            elif type(ftype) is pytsdl.tsdl.FloatingPoint:
-                if self._get_obj_size(ftype) > 64:
-                    raise RuntimeError('floating point field "{}" larger than 64-bit'.format(fname))
-            elif type(ftype) is pytsdl.tsdl.Enum:
-                if self._get_obj_size(ftype) > 64:
-                    raise RuntimeError('enum field "{}" larger than 64-bit'.format(fname))
-
+    # Validates a context or fields structure.
+    #
+    #   struct: context/fields TSDL structure
     def _validate_context_fields(self, struct):
         if type(struct) is not pytsdl.tsdl.Struct:
             raise RuntimeError('expecting a struct')
@@ -222,10 +214,16 @@ class BarectfCodeGenerator:
                 raise RuntimeError('field "{}" is a variant (unsupported)'.format(fname))
             elif type(ftype) is pytsdl.tsdl.Struct:
                 # validate inner structure against barectf constraints
-                self._validate_struct(ftype)
+                self._validate_inner_struct(ftype)
 
+    # Validates a TSDL integer with optional constraints.
+    #
+    #   integer: TSDL integer to validate
+    #   size:    expected size (None for any size)
+    #   align:   expected alignment (None for any alignment)
+    #   signed:  expected signedness (None for any signedness)
     def _validate_integer(self, integer, size=None, align=None,
-                               signed=None):
+                          signed=None):
         if type(integer) is not pytsdl.tsdl.Integer:
             raise RuntimeError('expected integer')
 
@@ -241,9 +239,12 @@ class BarectfCodeGenerator:
             if integer.signed != signed:
                 raise RuntimeError('expected {} integer'.format('signed' if signed else 'unsigned'))
 
-    def _validate_packet_header(self, packet_header):
+    # Validates a packet header.
+    #
+    #   packet_header: packet header TSDL structure to validate
+    def _validate_tph(self, packet_header):
         try:
-            self._validate_struct(packet_header)
+            self._validate_inner_struct(packet_header)
         except RuntimeError as e:
             _perror('packet header: {}'.format(e))
 
@@ -274,9 +275,18 @@ class BarectfCodeGenerator:
         if len(packet_header.fields) != 2:
             _perror('packet header: only "magic" and "stream_id" fields are allowed')
 
+    # Converts a list of strings to a dotted representation. For
+    # example, ['trace', 'packet', 'header', 'magic'] is converted to
+    # 'trace.packet.header.magic'.
+    #
+    #   name: list of strings to convert
     def _dot_name_to_str(self, name):
         return '.'.join(name)
 
+    # Compares two TSDL integers. Returns True if they are the same.
+    #
+    #   int1: first TSDL integer
+    #   int2: second TSDL integer
     def _compare_integers(self, int1, int2):
         if type(int1) is not pytsdl.tsdl.Integer:
             return False
@@ -295,12 +305,15 @@ class BarectfCodeGenerator:
         # True means 1 for sum()
         return sum(comps) == len(comps)
 
-    def _validate_packet_context(self, stream):
+    # Validates a packet context.
+    #
+    #   stream: TSDL stream containing the packet context to validate
+    def _validate_spc(self, stream):
         packet_context = stream.packet_context
         sid = stream.id
 
         try:
-            self._validate_struct(packet_context)
+            self._validate_inner_struct(packet_context)
         except RuntimeError as e:
             _perror('stream {}: packet context: {}'.format(sid, e))
 
@@ -352,12 +365,15 @@ class BarectfCodeGenerator:
             except RuntimeError as e:
                 _perror('stream {}: packet context: "cpu_id": {}'.format(sid, e))
 
-    def _validate_event_header(self, stream):
+    # Validates an event header.
+    #
+    #   stream: TSDL stream containing the event header to validate
+    def _validate_seh(self, stream):
         event_header = stream.event_header
         sid = stream.id
 
         try:
-            self._validate_struct(event_header)
+            self._validate_inner_struct(event_header)
         except RuntimeError as e:
             _perror('stream {}: event header: {}'.format(sid, e))
 
@@ -395,7 +411,10 @@ class BarectfCodeGenerator:
         if len(fields) != 2:
             _perror('stream {}: event header: only "id" and "timestamp" fields are allowed'.format(sid))
 
-    def _validate_stream_event_context(self, stream):
+    # Validates a strean event context.
+    #
+    #   stream: TSDL stream containing the stream event context
+    def _validate_sec(self, stream):
         stream_event_context = stream.event_context
         sid = stream.id
 
@@ -407,7 +426,11 @@ class BarectfCodeGenerator:
         except RuntimeError as e:
             _perror('stream {}: event context: {}'.format(sid, e))
 
-    def _validate_event_context(self, stream, event):
+    # Validates an event context.
+    #
+    #   stream: TSDL stream containing the TSDL event
+    #   event:  TSDL event containing the context to validate
+    def _validate_ec(self, stream, event):
         event_context = event.context
         sid = stream.id
         eid = event.id
@@ -420,7 +443,11 @@ class BarectfCodeGenerator:
         except RuntimeError as e:
             _perror('stream {}: event {}: context: {}'.format(sid, eid, e))
 
-    def _validate_event_fields(self, stream, event):
+    # Validates an event fields.
+    #
+    #   stream: TSDL stream containing the TSDL event
+    #   event:  TSDL event containing the fields to validate
+    def _validate_ef(self, stream, event):
         event_fields = event.fields
         sid = stream.id
         eid = event.id
@@ -430,36 +457,53 @@ class BarectfCodeGenerator:
         except RuntimeError as e:
             _perror('stream {}: event {}: fields: {}'.format(sid, eid, e))
 
+    # Validates a TSDL event.
+    #
+    #   stream: TSDL stream containing the TSDL event
+    #   event:  TSDL event to validate
     def _validate_event(self, stream, event):
         # name must be a compatible C identifier
         if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', event.name):
             _perror('stream {}: event {}: malformed name'.format(stream.id,
                                                                  event.id))
 
-        self._validate_event_context(stream, event)
-        self._validate_event_fields(stream, event)
+        self._validate_ec(stream, event)
+        self._validate_ef(stream, event)
 
+    # Validates a TSDL stream.
+    #
+    #   stream: TSDL stream to validate
     def _validate_stream(self, stream):
-        self._validate_event_header(stream)
-        self._validate_packet_context(stream)
-        self._validate_stream_event_context(stream)
+        self._validate_seh(stream)
+        self._validate_spc(stream)
+        self._validate_sec(stream)
 
         # event stuff
         for event in stream.events:
             self._validate_event(stream, event)
 
+    # Validates all TSDL scopes of the current TSDL document.
     def _validate_all_scopes(self):
         # packet header
-        self._validate_packet_header(self._doc.trace.packet_header)
+        self._validate_tph(self._doc.trace.packet_header)
 
         # stream stuff
         for stream in self._doc.streams.values():
             self._validate_stream(stream)
 
+    # Validates the trace block.
+    def _validate_trace(self):
+        # make sure a native byte order is specified
+        if self._doc.trace.byte_order is None:
+            _perror('native byte order (trace.byte_order) is not specified')
 
+    # Validates the current TSDL document.
     def _validate_metadata(self):
+        self._validate_trace()
         self._validate_all_scopes()
 
+    # Returns an aligned number.
+    #
     # 3, 4 -> 4
     # 4, 4 -> 4
     # 5, 4 -> 8
@@ -467,10 +511,13 @@ class BarectfCodeGenerator:
     # 7, 4 -> 8
     # 8, 4 -> 8
     # 9, 4 -> 12
+    #
+    #   at:    number to align
+    #   align: alignment (power of two)
     def _get_alignment(self, at, align):
         return (at + align - 1) & -align
 
-    # this converts a tree of offset variables:
+    # Converts a tree of offset variables:
     #
     #     field
     #       a -> 0
@@ -489,6 +536,10 @@ class BarectfCodeGenerator:
     #     field_other_struct_yeah -> 20
     #     field_c -> 32
     #     len -> 36
+    #
+    #   offvars_tree: tree of offset variables
+    #   prefix:       offset variable name prefix
+    #   offvars:      flattened offset variables
     def _flatten_offvars_tree(self, offvars_tree, prefix=None,
                               offvars=None):
         if offvars is None:
@@ -507,7 +558,12 @@ class BarectfCodeGenerator:
 
         return offvars
 
-    # returns the size of a struct with _static size_
+    # Returns the size of a TSDL structure with _static size_ (must be
+    # validated first).
+    #
+    #   struct:       TSDL structure of which to get the size
+    #   offvars_tree: optional offset variables tree (output)
+    #   base_offset:  base offsets for offset variables
     def _get_struct_size(self, struct,
                          offvars_tree=None,
                          base_offset=0):
@@ -535,6 +591,9 @@ class BarectfCodeGenerator:
 
         return offset
 
+    # Returns the size of a TSDL array.
+    #
+    #   array: TSDL array of which to get the size
     def _get_array_size(self, array):
         element = array.element
 
@@ -544,18 +603,33 @@ class BarectfCodeGenerator:
 
         return self._get_alignment(size, align) * array.length
 
+    # Returns the size of a TSDL enumeration.
+    #
+    #   enum: TSDL enumeration of which to get the size
     def _get_enum_size(self, enum):
         return self._get_obj_size(enum.integer)
 
+    # Returns the size of a TSDL floating point number.
+    #
+    #   floating_point: TSDL floating point number of which to get the size
     def _get_floating_point_size(self, floating_point):
         return floating_point.exp_dig + floating_point.mant_dig
 
+    # Returns the size of a TSDL integer.
+    #
+    #   integer: TSDL integer of which to get the size
     def _get_integer_size(self, integer):
         return integer.size
 
+    # Returns the size of a TSDL type.
+    #
+    #   obj: TSDL type of which to get the size
     def _get_obj_size(self, obj):
         return self._obj_size_cb[type(obj)](obj)
 
+    # Returns the alignment of a TSDL structure.
+    #
+    #   struct: TSDL structure of which to get the alignment
     def _get_struct_alignment(self, struct):
         if struct.align is not None:
             return struct.align
@@ -567,48 +641,98 @@ class BarectfCodeGenerator:
 
         return cur_align
 
+    # Returns the alignment of a TSDL integer.
+    #
+    #   integer: TSDL integer of which to get the alignment
     def _get_integer_alignment(self, integer):
         return integer.align
 
+    # Returns the alignment of a TSDL floating point number.
+    #
+    #   floating_point: TSDL floating point number of which to get the
+    #                   alignment
     def _get_floating_point_alignment(self, floating_point):
         return floating_point.align
 
+    # Returns the alignment of a TSDL enumeration.
+    #
+    #   enum: TSDL enumeration of which to get the alignment
     def _get_enum_alignment(self, enum):
         return self._get_obj_alignment(enum.integer)
 
+    # Returns the alignment of a TSDL string.
+    #
+    #   string: TSDL string of which to get the alignment
     def _get_string_alignment(self, string):
         return 8
 
+    # Returns the alignment of a TSDL array.
+    #
+    #   array: TSDL array of which to get the alignment
     def _get_array_alignment(self, array):
         return self._get_obj_alignment(array.element)
 
+    # Returns the alignment of a TSDL sequence.
+    #
+    #   sequence: TSDL sequence of which to get the alignment
     def _get_sequence_alignment(self, sequence):
         return self._get_obj_alignment(sequence.element)
 
+    # Returns the alignment of a TSDL type.
+    #
+    #   obj: TSDL type of which to get the alignment
     def _get_obj_alignment(self, obj):
         return self._obj_alignment_cb[type(obj)](obj)
 
-    def _fname_to_pname(self, prefix, name):
-        return 'param_{}_{}'.format(prefix, name)
+    # Converts a field name to a C parameter name.
+    #
+    # You should not use this function directly, but rather use one
+    # of the _*_fname_to_pname() variants depending on your scope.
+    #
+    #   prefix: parameter name prefix
+    #   fname:  field name
+    def _fname_to_pname(self, prefix, fname):
+        return 'param_{}_{}'.format(prefix, fname)
 
-    def _ef_fname_to_pname(self, name):
-        return self._fname_to_pname('ef', name)
+    # Converts an event fields field name to a C parameter name.
+    #
+    #   fname: field name
+    def _ef_fname_to_pname(self, fname):
+        return self._fname_to_pname('ef', fname)
 
-    def _ec_fname_to_pname(self, name):
-        return self._fname_to_pname('ec', name)
+    # Converts an event context field name to a C parameter name.
+    #
+    #   fname: field name
+    def _ec_fname_to_pname(self, fname):
+        return self._fname_to_pname('ec', fname)
 
-    def _sec_fname_to_pname(self, name):
-        return self._fname_to_pname('sec', name)
+    # Converts a stream event context field name to a C parameter name.
+    #
+    #   fname: field name
+    def _sec_fname_to_pname(self, fname):
+        return self._fname_to_pname('sec', fname)
 
-    def _eh_fname_to_pname(self, name):
-        return self._fname_to_pname('eh', name)
+    # Converts an event header field name to a C parameter name.
+    #
+    #   fname: field name
+    def _eh_fname_to_pname(self, fname):
+        return self._fname_to_pname('eh', fname)
 
-    def _spc_fname_to_pname(self, name):
-        return self._fname_to_pname('spc', name)
+    # Converts a stream packet context field name to a C parameter name.
+    #
+    #   fname: field name
+    def _spc_fname_to_pname(self, fname):
+        return self._fname_to_pname('spc', fname)
 
-    def _tph_fname_to_pname(self, name):
-        return self._fname_to_pname('tph', name)
+    # Converts a trace packet header field name to a C parameter name.
+    #
+    #   fname: field name
+    def _tph_fname_to_pname(self, fname):
+        return self._fname_to_pname('tph', fname)
 
+    # Returns the equivalent C type of a TSDL integer.
+    #
+    #   integer: TSDL integer of which to get the equivalent C type
     def _get_integer_param_ctype(self, integer):
         signed = 'u' if not integer.signed else ''
 
@@ -639,9 +763,15 @@ class BarectfCodeGenerator:
 
         return '{}int{}_t'.format(signed, sz)
 
+    # Returns the equivalent C type of a TSDL enumeration.
+    #
+    #   enum: TSDL enumeration of which to get the equivalent C type
     def _get_enum_param_ctype(self, enum):
         return self._get_obj_param_ctype(enum.integer)
 
+    # Returns the equivalent C type of a TSDL floating point number.
+    #
+    #   fp: TSDL floating point number of which to get the equivalent C type
     def _get_floating_point_param_ctype(self, fp):
         if fp.exp_dig == 8 and fp.mant_dig == 24 and fp.align == 32:
             return 'float'
@@ -650,9 +780,15 @@ class BarectfCodeGenerator:
         else:
             return 'uint64_t'
 
+    # Returns the equivalent C type of a TSDL type.
+    #
+    #   obj: TSDL type of which to get the equivalent C type
     def _get_obj_param_ctype(self, obj):
         return self._obj_param_ctype_cb[type(obj)](obj)
 
+    # Returns the check offset overflow macro call string for a given size.
+    #
+    #   size: size to check
     def _get_chk_offset_v(self, size):
         fmt = '{}_CHK_OFFSET_V({}, {}, {});'
         ret = fmt.format(self._prefix.upper(), self._CTX_AT,
@@ -660,30 +796,54 @@ class BarectfCodeGenerator:
 
         return ret
 
+    # Returns the check offset overflow macro call C line for a given size.
+    #
+    #   size: size to check
     def _get_chk_offset_v_cline(self, size):
         return _CLine(self._get_chk_offset_v(size))
 
+    # Returns the offset alignment macro call string for a given alignment.
+    #
+    #   size: new alignment
     def _get_align_offset(self, align):
         fmt = '{}_ALIGN_OFFSET({}, {});'
         ret = fmt.format(self._prefix.upper(), self._CTX_AT, align)
 
         return ret
 
+    # Returns the offset alignment macro call C line for a given alignment.
+    #
+    #   size: new alignment
     def _get_align_offset_cline(self, size):
         return _CLine(self._get_align_offset(size))
 
+    # Converts a C source string with newlines to an array of C lines and
+    # returns it.
+    #
+    #   s: C source string
     def _str_to_clines(self, s):
         lines = s.split('\n')
 
         return [_CLine(line) for line in lines]
 
+    # Fills a given template with values and returns its C lines. The `prefix`
+    # and `ucprefix` template variable are automatically provided using the
+    # generator's context.
+    #
+    #   tmpl:   template
+    #   kwargs: additional template variable values
     def _template_to_clines(self, tmpl, **kwargs):
         s = tmpl.format(prefix=self._prefix, ucprefix=self._prefix.upper(),
                         **kwargs)
 
         return self._str_to_clines(s)
 
-    def _write_field_struct(self, fname, src_name, struct, scope_prefix):
+    # Returns the C lines for writing a TSDL structure field.
+    #
+    #   fname:    field name
+    #   src_name: C source pointer
+    #   struct:   TSDL structure
+    def _write_field_struct(self, fname, src_name, struct, scope_prefix=None):
         size = self._get_struct_size(struct)
         size_bytes = self._get_alignment(size, 8) // 8
         dst = self._CTX_BUF_AT_ADDR
@@ -696,8 +856,13 @@ class BarectfCodeGenerator:
             _CLine('{} += {};'.format(self._CTX_AT, size)),
         ]
 
+    # Returns the C lines for writing a TSDL integer field.
+    #
+    #   fname:    field name
+    #   src_name: C source integer
+    #   integer:  TSDL integer
     def _write_field_integer(self, fname, src_name, integer, scope_prefix=None):
-        bo = self._bo_suffixes_map[integer.byte_order]
+        bo = self._BO_SUFFIXES_MAP[integer.byte_order]
         t = self._get_obj_param_ctype(integer)
         length = self._get_obj_size(integer)
 
@@ -705,12 +870,22 @@ class BarectfCodeGenerator:
                                         sz=length, bo=bo, type=t,
                                         src_name=src_name)
 
+    # Returns the C lines for writing a TSDL enumeration field.
+    #
+    #   fname:    field name
+    #   src_name: C source integer
+    #   enum:     TSDL enumeration
     def _write_field_enum(self, fname, src_name, enum, scope_prefix=None):
         return self._write_field_obj(fname, src_name, enum.integer)
 
+    # Returns the C lines for writing a TSDL floating point number field.
+    #
+    #   fname:          field name
+    #   src_name:       C source pointer
+    #   floating_point: TSDL floating point number
     def _write_field_floating_point(self, fname, src_name, floating_point,
                                     scope_prefix=None):
-        bo = self._bo_suffixes_map[floating_point.byte_order]
+        bo = self._BO_SUFFIXES_MAP[floating_point.byte_order]
         t = self._get_obj_param_ctype(floating_point)
         length = self._get_obj_size(floating_point)
 
@@ -718,6 +893,11 @@ class BarectfCodeGenerator:
                                         sz=length, bo=bo, type=t,
                                         src_name=src_name)
 
+    # Returns the C lines for writing a TSDL array field.
+    #
+    #   fname:    field name
+    #   src_name: C source pointer
+    #   struct:   TSDL array
     def _write_field_array(self, fname, src_name, array, scope_prefix=None):
         clines = []
 
@@ -748,11 +928,19 @@ class BarectfCodeGenerator:
 
         return clines
 
+    # Returns a trace packet header C source name out of a sequence length
+    # expression.
+    #
+    #   length: sequence length expression
     def _get_tph_src_name(self, length):
         offvar = self._get_offvar_name_from_expr(length[3:], 'tph')
 
         return 'ctx->{}'.format(offvar)
 
+    # Returns an environment C source name out of a sequence length
+    # expression.
+    #
+    #   length: sequence length expression
     def _get_env_src_name(self, length):
         if len(length) != 2:
             _perror('invalid sequence length: "{}"'.format(self._dot_name_to_str(length)))
@@ -764,24 +952,48 @@ class BarectfCodeGenerator:
 
         return str(self._doc.env[fname])
 
+    # Returns a stream packet context C source name out of a sequence length
+    # expression.
+    #
+    #   length: sequence length expression
     def _get_spc_src_name(self, length):
         offvar = self._get_offvar_name_from_expr(length[3:], 'spc')
 
         return 'ctx->{}'.format(offvar)
 
+    # Returns a stream event header C source name out of a sequence length
+    # expression.
+    #
+    #   length: sequence length expression
     def _get_seh_src_name(self, length):
         return self._get_offvar_name_from_expr(length[3:], 'seh')
 
+    # Returns a stream event context C source name out of a sequence length
+    # expression.
+    #
+    #   length: sequence length expression
     def _get_sec_src_name(self, length):
         return self._get_offvar_name_from_expr(length[3:], 'sec')
 
+    # Returns an event context C source name out of a sequence length
+    # expression.
+    #
+    #   length: sequence length expression
     def _get_ec_src_name(self, length):
         return self._get_offvar_name_from_expr(length[2:], 'ec')
 
+    # Returns an event fields C source name out of a sequence length
+    # expression.
+    #
+    #   length: sequence length expression
     def _get_ef_src_name(self, length):
         return self._get_offvar_name_from_expr(length[2:], 'ef')
 
-    def _seq_length_to_src_name(self, length, scope_prefix=None):
+    # Returns a C source name out of a sequence length expression.
+    #
+    #   length:       sequence length expression
+    #   scope_prefix: preferred scope prefix
+    def _get_seq_length_src_name(self, length, scope_prefix=None):
         length_dot = self._dot_name_to_str(length)
 
         for prefix, get_src_name in self._get_src_name_funcs.items():
@@ -790,6 +1002,12 @@ class BarectfCodeGenerator:
 
         return self._get_offvar_name_from_expr(length, scope_prefix)
 
+    # Returns the C lines for writing a TSDL sequence field.
+    #
+    #   fname:        field name
+    #   src_name:     C source pointer
+    #   sequence:     TSDL sequence
+    #   scope_prefix: preferred scope prefix
     def _write_field_sequence(self, fname, src_name, sequence, scope_prefix):
         clines = []
 
@@ -798,7 +1016,7 @@ class BarectfCodeGenerator:
         clines.append(_CLine('uint32_t {};'.format(iv)))
 
         # sequence length offset variable
-        length_offvar = self._seq_length_to_src_name(sequence.length,
+        length_offvar = self._get_seq_length_src_name(sequence.length,
                                                      scope_prefix)
 
         # for loop using sequence's static length
@@ -824,6 +1042,11 @@ class BarectfCodeGenerator:
 
         return clines
 
+    # Returns the C lines for writing a TSDL string field.
+    #
+    #   fname:        field name
+    #   src_name:     C source pointer
+    #   string:       TSDL string
     def _write_field_string(self, fname, src_name, string, scope_prefix=None):
         clines = []
 
@@ -857,10 +1080,20 @@ class BarectfCodeGenerator:
 
         return clines
 
+    # Returns the C lines for writing a TSDL type field.
+    #
+    #   fname:        field name
+    #   src_name:     C source pointer
+    #   ftype:        TSDL type
+    #   scope_prefix: preferred scope prefix
     def _write_field_obj(self, fname, src_name, ftype, scope_prefix):
         return self._write_field_obj_cb[type(ftype)](fname, src_name, ftype,
                                                      scope_prefix)
 
+    # Returns an offset variable name out of an offset name.
+    #
+    #   name:   offset name
+    #   prefix: offset variable name prefix
     def _get_offvar_name(self, name, prefix=None):
         parts = ['off']
 
@@ -871,9 +1104,22 @@ class BarectfCodeGenerator:
 
         return '_'.join(parts)
 
+    # Returns an offset variable name out of an expression (array of
+    # strings).
+    #
+    #   expr:   array of strings
+    #   prefix: offset variable name prefix
     def _get_offvar_name_from_expr(self, expr, prefix=None):
         return self._get_offvar_name('_'.join(expr), prefix)
 
+    # Returns the C lines for writing a TSDL field.
+    #
+    #   fname:         field name
+    #   ftype:         TSDL field type
+    #   scope_name:    scope name
+    #   scope_prefix:  preferred scope prefix
+    #   param_name_cb: callback to get the C parameter name out of the
+    #                  field name
     def _field_to_clines(self, fname, ftype, scope_name, scope_prefix,
                          param_name_cb):
         clines = []
@@ -883,7 +1129,7 @@ class BarectfCodeGenerator:
         # group comment
         fmt = '/* write {}.{} ({}) */'
         line = fmt.format(scope_name, fname,
-                          self._tsdl_type_names_map[type(ftype)])
+                          self._TSDL_TYPE_NAMES_MAP[type(ftype)])
         clines.append(_CLine(line))
 
         # align bit index before writing to the buffer
@@ -914,6 +1160,9 @@ class BarectfCodeGenerator:
 
         return clines
 
+    # Joins C line groups and returns C lines.
+    #
+    #   cline_groups: C line groups to join
     def _join_cline_groups(self, cline_groups):
         if not cline_groups:
             return cline_groups
@@ -926,6 +1175,14 @@ class BarectfCodeGenerator:
 
         return output_clines
 
+    # Returns the C lines for writing a complete TSDL structure (top level
+    # scope).
+    #
+    #   struct:        TSDL structure
+    #   scope_name:    scope name
+    #   scope_prefix:  preferred scope prefix
+    #   param_name_cb: callback to get the C parameter name out of the
+    #                  field name
     def _struct_to_clines(self, struct, scope_name, scope_prefix,
                           param_name_cb):
         cline_groups = []
@@ -937,6 +1194,9 @@ class BarectfCodeGenerator:
 
         return self._join_cline_groups(cline_groups)
 
+    # Returns the offset variables of a TSDL structure.
+    #
+    #   struct: TSDL structure
     def _get_struct_size_offvars(self, struct):
         offvars_tree = collections.OrderedDict()
         size = self._get_struct_size(struct, offvars_tree)
@@ -944,12 +1204,21 @@ class BarectfCodeGenerator:
 
         return size, offvars
 
-    def _get_ph_size_offvars(self):
+    # Returns the size and offset variables of the current trace packet header.
+    def _get_tph_size_offvars(self):
         return self._get_struct_size_offvars(self._doc.trace.packet_header)
 
-    def _get_pc_size_offvars(self, stream):
+    # Returns the size and offset variables of the a stream packet context.
+    #
+    #   stream: TSDL stream
+    def _get_spc_size_offvars(self, stream):
         return self._get_struct_size_offvars(stream.packet_context)
 
+    # Returns the C lines for the barectf context C structure entries for
+    # offsets.
+    #
+    #   prefix:  offset variable names prefix
+    #   offvars: offset variables
     def _offvars_to_ctx_clines(self, prefix, offvars):
         clines = []
 
@@ -959,12 +1228,16 @@ class BarectfCodeGenerator:
 
         return clines
 
+    # Generates a barectf context C structure.
+    #
+    #   stream:   TSDL stream
+    #   hide_sid: True to hide the stream ID
     def _gen_barectf_ctx_struct(self, stream, hide_sid=False):
         # get offset variables for both the packet header and packet context
-        ph_size, ph_offvars = self._get_ph_size_offvars()
-        pc_size, pc_offvars = self._get_pc_size_offvars(stream)
-        clines = self._offvars_to_ctx_clines('tph', ph_offvars)
-        clines += self._offvars_to_ctx_clines('spc', pc_offvars)
+        tph_size, tph_offvars = self._get_tph_size_offvars()
+        spc_size, spc_offvars = self._get_spc_size_offvars(stream)
+        clines = self._offvars_to_ctx_clines('tph', tph_offvars)
+        clines += self._offvars_to_ctx_clines('spc', spc_offvars)
 
         # indent C
         clines_indented = []
@@ -975,7 +1248,7 @@ class BarectfCodeGenerator:
         clock_cb = '\t/* (no clock callback) */'
 
         if not self._manual_clock:
-            ctype = self._get_clock_type(stream)
+            ctype = self._get_clock_ctype(stream)
             fmt = '\t{} (*clock_cb)(void*),\n\tvoid* clock_cb_data;'
             clock_cb = fmt.format(ctype)
 
@@ -992,6 +1265,7 @@ class BarectfCodeGenerator:
 
         return struct
 
+    # Generates all barectf context C structures.
     def _gen_barectf_contexts_struct(self):
         hide_sid = False
 
@@ -1006,26 +1280,29 @@ class BarectfCodeGenerator:
 
         return '\n\n'.join(structs)
 
-    _packet_context_known_fields = [
-        'content_size',
-        'packet_size',
-        'timestamp_begin',
-        'timestamp_end',
-    ]
-
-    def _get_clock_type(self, stream):
+    # Returns the C type of the clock used by the event header of a
+    # TSDL stream.
+    #
+    #   stream: TSDL stream containing the event header to inspect
+    def _get_clock_ctype(self, stream):
         return self._get_obj_param_ctype(stream.event_header['timestamp'])
 
+    # Generates the manual clock value C parameter for a given stream.
+    #
+    #   stream: TSDL stream
     def _gen_manual_clock_param(self, stream):
-        return '{} param_clock'.format(self._get_clock_type(stream))
+        return '{} param_clock'.format(self._get_clock_ctype(stream))
 
+    # Generates the body of a barectf_open() function.
+    #
+    #   stream: TSDL stream
     def _gen_barectf_func_open_body(self, stream):
         clines = []
 
         # keep clock value (for timestamp_begin)
         if self._stream_has_timestamp_begin_end(stream):
             # get clock value ASAP
-            clk_type = self._get_clock_type(stream)
+            clk_type = self._get_clock_ctype(stream)
             clk = self._gen_get_clock_value()
             line = '{} clk_value = {};'.format(clk_type, clk)
             clines.append(_CLine(line))
@@ -1081,6 +1358,18 @@ class BarectfCodeGenerator:
 
         return src
 
+    _SPC_KNOWN_FIELDS = [
+        'content_size',
+        'packet_size',
+        'timestamp_begin',
+        'timestamp_end',
+    ]
+
+    # Generates a barectf_open() function.
+    #
+    #   stream:   TSDL stream
+    #   gen_body: also generate function body
+    #   hide_sid: True to hide the stream ID
     def _gen_barectf_func_open(self, stream, gen_body, hide_sid=False):
         params = []
 
@@ -1091,7 +1380,7 @@ class BarectfCodeGenerator:
 
         # packet context
         for fname, ftype in stream.packet_context.fields.items():
-            if fname in self._packet_context_known_fields:
+            if fname in self._SPC_KNOWN_FIELDS:
                 continue
 
             ptype = self._get_obj_param_ctype(ftype)
@@ -1123,6 +1412,9 @@ class BarectfCodeGenerator:
 
         return func
 
+    # Generates the body of a barectf_init() function.
+    #
+    #   stream: TSDL stream
     def _gen_barectf_func_init_body(self, stream):
         clines = []
 
@@ -1143,8 +1435,8 @@ class BarectfCodeGenerator:
         # set context offsets
         clines.append(_CLine(''))
         clines.append(_CLine("/* barectf context offsets */"))
-        ph_size, ph_offvars = self._get_ph_size_offvars()
-        pc_size, pc_offvars = self._get_pc_size_offvars(stream)
+        ph_size, ph_offvars = self._get_tph_size_offvars()
+        pc_size, pc_offvars = self._get_spc_size_offvars(stream)
         pc_alignment = self._get_obj_alignment(stream.packet_context)
         pc_offset = self._get_alignment(ph_size, pc_alignment)
 
@@ -1191,6 +1483,11 @@ class BarectfCodeGenerator:
 
         return src
 
+    # Generates a barectf_init() function.
+    #
+    #   stream:   TSDL stream
+    #   gen_body: also generate function body
+    #   hide_sid: True to hide the stream ID
     def _gen_barectf_func_init(self, stream, gen_body, hide_sid=False):
         # fill template
         sid = ''
@@ -1219,16 +1516,29 @@ class BarectfCodeGenerator:
 
         return func
 
+    # Generates the C expression to get the clock value depending on
+    # whether we're in manual clock mode or not.
     def _gen_get_clock_value(self):
         if self._manual_clock:
             return 'param_clock'
         else:
             return self._CTX_CALL_CLOCK_CB
 
+    # Returns True if the given TSDL stream has timestamp_begin and
+    # timestamp_end fields.
+    #
+    #   stream: TSDL stream to check
     def _stream_has_timestamp_begin_end(self, stream):
         return self._has_timestamp_begin_end[stream.id]
 
-    def _gen_write_ctx_field_integer(self, src_name, prefix, name, obj):
+    # Generates the C lines to write a barectf context field, saving
+    # and restoring the current bit position accordingly.
+    #
+    #   src_name: C source name
+    #   prefix:   offset variable prefix
+    #   name:     offset variable name
+    #   integer:  TSDL integer to write
+    def _gen_write_ctx_field_integer(self, src_name, prefix, name, integer):
         clines = []
 
         # save buffer position
@@ -1241,7 +1551,7 @@ class BarectfCodeGenerator:
         clines.append(_CLine(line))
 
         # write value
-        clines += self._write_field_integer(None, src_name, obj)
+        clines += self._write_field_integer(None, src_name, integer)
 
         # restore buffer position
         line = '{} = ctx_at_bkup;'.format(self._CTX_AT)
@@ -1249,6 +1559,9 @@ class BarectfCodeGenerator:
 
         return clines
 
+    # Generates the body of a barectf_close() function.
+    #
+    #   stream: TSDL stream
     def _gen_barectf_func_close_body(self, stream):
         clines = []
 
@@ -1261,7 +1574,7 @@ class BarectfCodeGenerator:
             clines.append(_CLine("/* update packet context's timestamp_end */"))
 
             # get clock value ASAP
-            clk_type = self._get_clock_type(stream)
+            clk_type = self._get_clock_ctype(stream)
             clk = self._gen_get_clock_value()
             line = '{} clk_value = {};'.format(clk_type, clk)
             clines.append(_CLine(line))
@@ -1286,6 +1599,11 @@ class BarectfCodeGenerator:
 
         return src
 
+    # Generates a barectf_close() function.
+    #
+    #   stream:   TSDL stream
+    #   gen_body: also generate function body
+    #   hide_sid: True to hide the stream ID
     def _gen_barectf_func_close(self, stream, gen_body, hide_sid=False):
         # fill template
         sid = ''
@@ -1312,6 +1630,9 @@ class BarectfCodeGenerator:
 
         return func
 
+    # Generates all barectf_init() function.
+    #
+    #   gen_body: also generate function bodies
     def _gen_barectf_funcs_init(self, gen_body):
         hide_sid = False
 
@@ -1326,6 +1647,9 @@ class BarectfCodeGenerator:
 
         return funcs
 
+    # Generates all barectf_open() function.
+    #
+    #   gen_body: also generate function bodies
     def _gen_barectf_funcs_open(self, gen_body):
         hide_sid = False
 
@@ -1340,11 +1664,15 @@ class BarectfCodeGenerator:
 
         return funcs
 
+    # Generates the body of a barectf_trace() function.
+    #
+    #   stream: TSDL stream of TSDL event to trace
+    #   event:  TSDL event to trace
     def _gen_barectf_func_trace_event_body(self, stream, event):
         clines = []
 
         # get clock value ASAP
-        clk_type = self._get_clock_type(stream)
+        clk_type = self._get_clock_ctype(stream)
         clk = self._gen_get_clock_value()
         line = '{} clk_value = {};'.format(clk_type, clk)
         clines.append(_CLine(line))
@@ -1402,6 +1730,12 @@ class BarectfCodeGenerator:
 
         return src
 
+    # Generates a barectf_trace() function.
+    #
+    #   stream:   TSDL stream containing the TSDL event to trace
+    #   event:    TSDL event to trace
+    #   gen_body: also generate function body
+    #   hide_sid: True to hide the stream ID
     def _gen_barectf_func_trace_event(self, stream, event, gen_body, hide_sid):
         params = []
 
@@ -1458,6 +1792,11 @@ class BarectfCodeGenerator:
 
         return func
 
+    # Generates all barectf_trace() functions of a given TSDL stream.
+    #
+    #   stream:   TSDL stream containing the TSDL events to trace
+    #   gen_body: also generate function body
+    #   hide_sid: True to hide the stream ID
     def _gen_barectf_funcs_trace_stream(self, stream, gen_body, hide_sid):
         funcs = []
 
@@ -1467,6 +1806,9 @@ class BarectfCodeGenerator:
 
         return funcs
 
+    # Generates all barectf_trace() function.
+    #
+    #   gen_body: also generate function bodies
     def _gen_barectf_funcs_trace(self, gen_body):
         hide_sid = False
 
@@ -1481,6 +1823,9 @@ class BarectfCodeGenerator:
 
         return funcs
 
+    # Generates all barectf_close() function.
+    #
+    #   gen_body: also generate function bodies
     def _gen_barectf_funcs_close(self, gen_body):
         hide_sid = False
 
@@ -1495,6 +1840,7 @@ class BarectfCodeGenerator:
 
         return funcs
 
+    # Generates the barectf header C source
     def _gen_barectf_header(self):
         ctx_structs = self._gen_barectf_contexts_struct()
         init_funcs = self._gen_barectf_funcs_init(self._static_inline)
@@ -1509,6 +1855,33 @@ class BarectfCodeGenerator:
 
         return header
 
+    _BO_DEF_MAP = {
+        pytsdl.tsdl.ByteOrder.BE: 'BIG_ENDIAN',
+        pytsdl.tsdl.ByteOrder.LE: 'LITTLE_ENDIAN',
+    }
+
+    # Generates the barectf bitfield.h header.
+    def _gen_barectf_bitfield_header(self):
+        header = barectf.templates.BITFIELD
+        header = header.replace('$prefix$', self._prefix)
+        header = header.replace('$PREFIX$', self._prefix.upper())
+        endian_def = self._BO_DEF_MAP[self._doc.trace.byte_order]
+        header = header.replace('$ENDIAN_DEF$', endian_def)
+
+        return header
+
+    # Writes a file to the generator's output.
+    #
+    #   name:     file name
+    #   contents: file contents
+    def _write_file(self, name, contents):
+        with open(os.path.join(self._output, name), 'w') as f:
+            f.write(contents)
+
+    # Converts a C block to actual C source lines.
+    #
+    #   cblock: C block
+    #   indent: initial indentation
     def _cblock_to_source_lines(self, cblock, indent=1):
         src = []
         indentstr = '\t' * indent
@@ -1521,18 +1894,32 @@ class BarectfCodeGenerator:
 
         return src
 
+    # Converts a C block to an actual C source string.
+    #
+    #   cblock: C block
+    #   indent: initial indentation
     def _cblock_to_source(self, cblock, indent=1):
         lines = self._cblock_to_source_lines(cblock, indent)
 
         return '\n'.join(lines)
 
+    # Sets the generator parameters.
     def _set_params(self):
+        # streams have timestamp_begin/timestamp_end fields
         self._has_timestamp_begin_end = {}
 
         for stream in self._doc.streams.values():
             has = 'timestamp_begin' in stream.packet_context.fields
             self._has_timestamp_begin_end[stream.id] = has
 
+    # Generates barectf C files.
+    #
+    #   metadata:      metadata path
+    #   output:        output directory
+    #   prefix:        prefix
+    #   static_inline: generate static inline functions
+    #   manual_clock:  do not use a clock callback: pass clock value to
+    #                  tracing functions
     def gen_barectf(self, metadata, output, prefix, static_inline,
                     manual_clock):
         self._metadata = metadata
@@ -1572,11 +1959,15 @@ class BarectfCodeGenerator:
 
         # generate header
         _pinfo('generating barectf header files')
-        self._gen_barectf_header()
+        header = self._gen_barectf_header()
+        self._write_file('{}.h'.format(self._prefix), header)
+        header = self._gen_barectf_bitfield_header()
+        self._write_file('{}_bitfield.h'.format(self._prefix), header)
 
         # generate C source file
         if not self._static_inline:
             _pinfo('generating barectf translation unit')
+
             pass
 
         _psuccess('done')
