@@ -88,7 +88,7 @@ class _CLine(str):
 class BarectfCodeGenerator:
     _CTX_AT = 'ctx->at'
     _CTX_BUF = 'ctx->buf'
-    _CTX_BUF_SIZE = 'ctx->packet_size'
+    _CTX_PACKET_SIZE = 'ctx->packet_size'
     _CTX_BUF_AT = '{}[{} >> 3]'.format(_CTX_BUF, _CTX_AT)
     _CTX_BUF_AT_ADDR = '&{}'.format(_CTX_BUF_AT)
     _CTX_CALL_CLOCK_CB = 'ctx->clock_cb(ctx->clock_cb_data)'
@@ -220,7 +220,7 @@ class BarectfCodeGenerator:
 
                 while not done:
                     if type(el) is pytsdl.tsdl.Struct:
-                        self._validate_inner_struct(ftype)
+                        self._validate_inner_struct(el)
                     if type(el) is pytsdl.tsdl.Array or type(el) is pytsdl.tsdl.Sequence:
                         el = el.element
                         continue
@@ -474,9 +474,10 @@ class BarectfCodeGenerator:
     #   event:  TSDL event to validate
     def _validate_event(self, stream, event):
         # name must be a compatible C identifier
+        print('checking', event.name)
         if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', event.name):
-            _perror('stream {}: event {}: malformed name'.format(stream.id,
-                                                                 event.id))
+            fmt = 'stream {}: event {}: malformed event name: "{}"'
+            _perror(fmt.format(stream.id, event.id, event.name))
 
         self._validate_ec(stream, event)
         self._validate_ef(stream, event)
@@ -803,7 +804,7 @@ class BarectfCodeGenerator:
     def _get_chk_offset_v(self, size):
         fmt = '{}_CHK_OFFSET_V({}, {}, {});'
         ret = fmt.format(self._prefix.upper(), self._CTX_AT,
-                       self._CTX_BUF_SIZE, size)
+                       self._CTX_PACKET_SIZE, size)
 
         return ret
 
@@ -987,12 +988,17 @@ class BarectfCodeGenerator:
             else:
                 emulops.append(str(mulop))
 
-        # write multiplication of sizes in bits
+        # write product of sizes in bits
         mul = ' * '.join(emulops)
         sz_bits_varname = 'sz_bits_{}'.format(fname)
         sz_bytes_varname = 'sz_bytes_{}'.format(fname)
         line = 'uint32_t {} = {};'.format(sz_bits_varname, mul)
         clines.append(_CLine(line))
+
+        # check overflow
+        clines.append(self._get_chk_offset_v_cline(sz_bits_varname))
+
+        # write product of sizes in bytes
         line = 'uint32_t {} = {};'.format(sz_bytes_varname, sz_bits_varname)
         clines.append(_CLine(line))
         line = self._get_align_offset(8, at=sz_bytes_varname)
@@ -1006,8 +1012,6 @@ class BarectfCodeGenerator:
         clines.append(_CLine(line))
         line = '{} += {};'.format(self._CTX_AT, sz_bits_varname)
         clines.append(_CLine(line))
-
-        # TODO: continue this
 
         return clines
 
