@@ -1378,6 +1378,17 @@ class BarectfCodeGenerator:
             clines.append(_CLine(line))
             clines.append(_CLine(''))
 
+        # reset bit position to write the packet context (after packet header)
+        spc_offset = self._get_stream_packet_context_offset(stream)
+        fmt = '{} = {};'
+        line = fmt.format(self._CTX_AT, spc_offset)
+        clines.append(_CLine(line))
+
+        # bit position at beginning of event (to reset in case we run
+        # out of space)
+        line = 'uint32_t ctx_at_begin = {};'.format(self._CTX_AT)
+        clines.append(_CLine(line))
+
         # packet context fields
         fcline_groups = []
         scope_name = 'stream.packet.context'
@@ -1491,6 +1502,11 @@ class BarectfCodeGenerator:
         line = 'uint32_t ctx_at_bkup;'
         clines.append(_CLine(line))
 
+        # bit position at beginning of event (to reset in case we run
+        # out of space)
+        line = 'uint32_t ctx_at_begin = {};'.format(self._CTX_AT)
+        clines.append(_CLine(line))
+
         # set context parameters
         clines.append(_CLine(''))
         clines.append(_CLine("/* barectf context parameters */"))
@@ -1601,6 +1617,13 @@ class BarectfCodeGenerator:
     def _stream_has_timestamp_begin_end(self, stream):
         return self._has_timestamp_begin_end[stream.id]
 
+    # Returns the packet context offset (from the beginning of the
+    # packet) of a given TSDL stream
+    #
+    #   stream: TSDL stream
+    def _get_stream_packet_context_offset(self, stream):
+        return self._packet_context_offsets[stream.id]
+
     # Generates the C lines to write a barectf context field, saving
     # and restoring the current bit position accordingly.
     #
@@ -1636,6 +1659,11 @@ class BarectfCodeGenerator:
         clines = []
 
         line = 'uint32_t ctx_at_bkup;'
+        clines.append(_CLine(line))
+
+        # bit position at beginning of event (to reset in case we run
+        # out of space)
+        line = 'uint32_t ctx_at_begin = {};'.format(self._CTX_AT)
         clines.append(_CLine(line))
 
         # update timestamp end if present
@@ -1745,14 +1773,20 @@ class BarectfCodeGenerator:
     def _gen_barectf_func_trace_event_body(self, stream, event):
         clines = []
 
-        clines.append(_CLine('uint32_t ctx_at_bkup;'))
-
         # get clock value ASAP
         clk_type = self._get_clock_ctype(stream)
         clk = self._gen_get_clock_value()
         line = '{} clk_value = {};'.format(clk_type, clk)
         clines.append(_CLine(line))
         clines.append(_CLine(''))
+
+        # bit position backup (could be used)
+        clines.append(_CLine('uint32_t ctx_at_bkup;'))
+
+        # bit position at beginning of event (to reset in case we run
+        # out of space)
+        line = 'uint32_t ctx_at_begin = {};'.format(self._CTX_AT)
+        clines.append(_CLine(line))
 
         # event header
         fcline_groups = []
@@ -2008,6 +2042,16 @@ class BarectfCodeGenerator:
         for stream in self._doc.streams.values():
             has = 'timestamp_begin' in stream.packet_context.fields
             self._has_timestamp_begin_end[stream.id] = has
+
+        # packet header size with alignment
+        self._packet_context_offsets = {}
+
+        tph_size = self._get_struct_size(self._doc.trace.packet_header)
+
+        for stream in self._doc.streams.values():
+            spc_alignment = self._get_obj_alignment(stream.packet_context)
+            spc_offset = self._get_alignment(tph_size, spc_alignment)
+            self._packet_context_offsets[stream.id] = spc_offset
 
     # Generates barectf C files.
     #

@@ -58,13 +58,14 @@ HEADER = """#ifndef _{ucprefix}_H
 /* alignment macro */
 #define {ucprefix}_ALIGN_OFFSET(_at, _align) \\
 	do {{ \\
-		_at = ((_at) + (_align)) & ~((_at) + (_align)); \\
+		_at = ((_at) + (_align - 1)) & -_align; \\
 	}} while (0)
 
 /* buffer overflow check macro */
 #define {ucprefix}_CHK_OFFSET_V(_at, _bufsize, _size) \\
 	do {{ \\
 		if ((_at) + (_size) > (_bufsize)) {{ \\
+			_at = ctx_at_begin; \\
 			return -E{ucprefix}_NOSPC; \\
 		}} \\
 	}} while (0)
