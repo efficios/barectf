@@ -24,11 +24,11 @@ FUNC_INIT = """{si}int {prefix}{sid}_init(
 	uint32_t buf_size{params}
 )"""
 
-FUNC_OPEN = """{si}int {prefix}{sid}_open(
+FUNC_OPEN = """{si}int {prefix}{sid}_open_packet(
 	struct {prefix}{sid}_ctx* ctx{params}
 )"""
 
-FUNC_CLOSE = """{si}int {prefix}{sid}_close(
+FUNC_CLOSE = """{si}int {prefix}{sid}_close_packet(
 	struct {prefix}{sid}_ctx* ctx{params}
 )"""
 

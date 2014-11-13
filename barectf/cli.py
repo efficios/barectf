@@ -159,22 +159,40 @@ class BarectfCodeGenerator:
             'event.fields.': self._get_ef_src_name,
         }
 
+    # Finds the terminal element of a TSDL array/sequence.
+    #
+    #   arrayseq: array or sequence
+    def _find_arrayseq_element(self, arrayseq):
+        el = arrayseq.element
+        t = type(arrayseq.element)
+
+        if t is pytsdl.tsdl.Array or t is pytsdl.tsdl.Sequence:
+            return self._find_arrayseq_element(el)
+
+        return el
+
     # Validates an inner TSDL structure's field (constrained structure).
     #
     #   fname: field name
     #   ftype: TSDL object
-    def _validate_inner_struct_field(self, fname, ftype):
+    def _validate_struct_field(self, fname, ftype, inner_struct):
         if type(ftype) is pytsdl.tsdl.Sequence:
-            raise RuntimeError('field "{}" is a dynamic array (not allowed here)'.format(fname))
+            if inner_struct:
+                raise RuntimeError('field "{}" is a dynamic array (not allowed here)'.format(fname))
+            else:
+                element = self._find_arrayseq_element(ftype)
+                self._validate_struct_field(fname, element, True)
         elif type(ftype) is pytsdl.tsdl.Array:
             # we need to check every element until we find a terminal one
-            self._validate_inner_struct_field(fname, ftype.element)
+            element = self._find_arrayseq_element(ftype)
+            self._validate_struct_field(fname, element, True)
         elif type(ftype) is pytsdl.tsdl.Variant:
-            raise RuntimeError('field "{}" is a variant (unsupported)'.format(fname))
+            raise RuntimeError('field "{}" contains a variant (unsupported)'.format(fname))
         elif type(ftype) is pytsdl.tsdl.String:
-            raise RuntimeError('field "{}" is a string (not allowed here)'.format(fname))
+            if inner_struct:
+                raise RuntimeError('field "{}" contains a string (not allowed here)'.format(fname))
         elif type(ftype) is pytsdl.tsdl.Struct:
-            self._validate_inner_struct(ftype)
+            self._validate_struct(ftype, True)
         elif type(ftype) is pytsdl.tsdl.Integer:
             if self._get_obj_size(ftype) > 64:
                 raise RuntimeError('integer field "{}" larger than 64-bit'.format(fname))
@@ -188,18 +206,19 @@ class BarectfCodeGenerator:
     # Validates an inner TSDL structure (constrained).
     #
     #   struct: TSDL structure to validate
-    def _validate_inner_struct(self, struct):
+    def _validate_struct(self, struct, inner_struct):
         # just in case we call this with the wrong type
         if type(struct) is not pytsdl.tsdl.Struct:
             raise RuntimeError('expecting a struct')
 
         # make sure inner structures are at least byte-aligned
-        if self._get_obj_alignment(struct) < 8:
-            raise RuntimeError('inner struct must be at least byte-aligned')
+        if inner_struct:
+            if self._get_obj_alignment(struct) < 8:
+                raise RuntimeError('inner struct must be at least byte-aligned')
 
         # check each field
         for fname, ftype in struct.fields.items():
-            self._validate_inner_struct_field(fname, ftype)
+            self._validate_struct_field(fname, ftype, inner_struct)
 
     # Validates a context or fields structure.
     #
@@ -208,24 +227,7 @@ class BarectfCodeGenerator:
         if type(struct) is not pytsdl.tsdl.Struct:
             raise RuntimeError('expecting a struct')
 
-        for fname, ftype in struct.fields.items():
-            if type(ftype) is pytsdl.tsdl.Variant:
-                raise RuntimeError('field "{}" is a variant (unsupported)'.format(fname))
-            elif type(ftype) is pytsdl.tsdl.Struct:
-                # validate inner structure against barectf constraints
-                self._validate_inner_struct(ftype)
-            elif type(ftype) is pytsdl.tsdl.Array or type(ftype) is pytsdl.tsdl.Sequence:
-                done = False
-                el = ftype
-
-                while not done:
-                    if type(el) is pytsdl.tsdl.Struct:
-                        self._validate_inner_struct(el)
-                    if type(el) is pytsdl.tsdl.Array or type(el) is pytsdl.tsdl.Sequence:
-                        el = el.element
-                        continue
-
-                    done = True
+        self._validate_struct(struct, False)
 
     # Validates a TSDL integer with optional constraints.
     #
@@ -255,7 +257,7 @@ class BarectfCodeGenerator:
     #   packet_header: packet header TSDL structure to validate
     def _validate_tph(self, packet_header):
         try:
-            self._validate_inner_struct(packet_header)
+            self._validate_struct(packet_header, True)
         except RuntimeError as e:
             _perror('packet header: {}'.format(e))
 
@@ -324,7 +326,7 @@ class BarectfCodeGenerator:
         sid = stream.id
 
         try:
-            self._validate_inner_struct(packet_context)
+            self._validate_struct(packet_context, True)
         except RuntimeError as e:
             _perror('stream {}: packet context: {}'.format(sid, e))
 
@@ -384,7 +386,7 @@ class BarectfCodeGenerator:
         sid = stream.id
 
         try:
-            self._validate_inner_struct(event_header)
+            self._validate_struct(event_header, True)
         except RuntimeError as e:
             _perror('stream {}: event header: {}'.format(sid, e))
 
@@ -763,11 +765,11 @@ class BarectfCodeGenerator:
             if integer.signed:
                 sz = '64'
             else:
-                if integer.size < 16:
+                if integer.size <= 8:
                     sz = '8'
-                elif integer.size < 32:
+                elif integer.size <= 16:
                     sz = '16'
-                elif integer.size < 64:
+                elif integer.size <= 32:
                     sz = '32'
                 else:
                     sz = '64'
