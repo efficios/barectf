@@ -1126,33 +1126,27 @@ class BarectfCodeGenerator:
     def _write_field_string(self, fname, src_name, string, scope_prefix=None):
         clines = []
 
-        # string index variable declaration
-        iv = 'is_{}'.format(fname)
-        clines.append(_CLine('uint32_t {};'.format(iv)))
-
-        # for loop; loop until the end of the source string is reached
-        fmt = "for ({iv} = 0; {src}[{iv}] != '\\0'; ++{iv}, {ctxat} += 8) {{"
-        line = fmt.format(iv=iv, src=src_name, ctxat=self._CTX_AT)
+        # get string length
+        sz_bytes_varname = 'slen_bytes_{}'.format(fname)
+        line = 'size_t {} = strlen({}) + 1;'.format(sz_bytes_varname, src_name)
         clines.append(_CLine(line))
 
-        # for loop statements
-        for_block = _CBlock()
-
         # check offset overflow
-        for_block.append(self._get_chk_offset_v_cline(8))
+        sz_bits_varname = 'slen_bits_{}'.format(fname)
+        line = 'size_t {} = ({} << 3);'.format(sz_bits_varname,
+                                               sz_bytes_varname)
+        clines.append(_CLine(line))
+        cline = self._get_chk_offset_v_cline(sz_bits_varname)
+        clines.append(cline)
 
-        # write byte to the buffer
-        fmt = '{dst} = {src}[{iv}];'
-        line = fmt.format(dst=self._CTX_BUF_AT, iv=iv, src=src_name)
-        for_block.append(_CLine(line))
+        # memcpy()
+        dst = self._CTX_BUF_AT_ADDR
+        line = 'memcpy({}, {}, {});'.format(dst, src_name, sz_bytes_varname)
+        clines.append(_CLine(line))
 
-        # append for loop
-        clines.append(for_block)
-        clines.append(_CLine('}'))
-
-        # write NULL character to the buffer
-        clines.append(_CLine("{} = '\\0';".format(self._CTX_BUF_AT)))
-        clines.append(_CLine('{} += 8;'.format(self._CTX_AT)))
+        # update bit position
+        line = '{} += {};'.format(self._CTX_AT, sz_bits_varname)
+        clines.append(_CLine(line))
 
         return clines
 
