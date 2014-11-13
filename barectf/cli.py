@@ -749,30 +749,14 @@ class BarectfCodeGenerator:
     def _get_integer_param_ctype(self, integer):
         signed = 'u' if not integer.signed else ''
 
-        if integer.size == 8:
+        if integer.size <= 8:
             sz = '8'
-        elif integer.size == 16:
+        elif integer.size <= 16:
             sz = '16'
-        elif integer.size == 32:
+        elif integer.size <= 32:
             sz = '32'
         elif integer.size == 64:
             sz = '64'
-        else:
-            # if the integer is signed and of uncommon size, the sign bit is
-            # at a custom position anyway so we use a 64-bit unsigned
-            signed = 'u'
-
-            if integer.signed:
-                sz = '64'
-            else:
-                if integer.size <= 8:
-                    sz = '8'
-                elif integer.size <= 16:
-                    sz = '16'
-                elif integer.size <= 32:
-                    sz = '32'
-                else:
-                    sz = '64'
 
         return '{}int{}_t'.format(signed, sz)
 
