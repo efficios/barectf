@@ -3,7 +3,7 @@ BARECTF_CTX = """struct {prefix}{sid}_ctx {{
 	uint8_t* buf;
 
 	/* buffer size in bits */
-	uint32_t buf_size;
+	uint32_t packet_size;
 
 	/* current position from beginning of buffer in bits */
 	uint32_t at;
@@ -28,7 +28,7 @@ FUNC_OPEN = """{si}int {prefix}{sid}_open(
 	struct {prefix}{sid}_ctx* ctx{params}
 )"""
 
-FUNC_CLOSE = """{si}void {prefix}{sid}_close(
+FUNC_CLOSE = """{si}int {prefix}{sid}_close(
 	struct {prefix}{sid}_ctx* ctx{params}
 )"""
 
@@ -36,14 +36,15 @@ FUNC_TRACE = """{si}int {prefix}{sid}_trace_{evname}(
 	struct {prefix}{sid}_ctx* ctx{params}
 )"""
 
-WRITE_INTEGER = """{ucprefix}_CHK_OFFSET_V(ctx->at, ctx->buf_size, {sz});
-{prefix}_bt_bitfield_write_{bo}(ctx->buf, {type}, ctx->at, {sz}, {src_name});
+WRITE_INTEGER = """{ucprefix}_CHK_OFFSET_V(ctx->at, ctx->packet_size, {sz});
+{prefix}_bt_bitfield_write_{bo}(ctx->buf, uint8_t, ctx->at, {sz}, {src_name});
 ctx->at += {sz};"""
 
 HEADER = """#ifndef _{ucprefix}_H
 #define _{ucprefix}_H
 
 #include <stdint.h>
+#include <string.h>
 
 #include "{prefix}_bitfield.h"
 
@@ -74,7 +75,10 @@ HEADER = """#ifndef _{ucprefix}_H
 #endif /* _{ucprefix}_H */
 """
 
-CSRC = """#include "{prefix}.h"
+CSRC = """#include <stdint.h>
+#include <string.h>
+
+#include "{prefix}.h"
 
 {functions}
 """
@@ -109,6 +113,7 @@ BITFIELD = """#ifndef _$PREFIX$_BITFIELD_H
  */
 
 #include <stdint.h>	/* C99 5.2.4.2 Numerical limits */
+#include <limits.h>
 
 #define $PREFIX$_BYTE_ORDER $ENDIAN_DEF$
 

@@ -88,7 +88,7 @@ class _CLine(str):
 class BarectfCodeGenerator:
     _CTX_AT = 'ctx->at'
     _CTX_BUF = 'ctx->buf'
-    _CTX_BUF_SIZE = 'ctx->buf_size'
+    _CTX_BUF_SIZE = 'ctx->packet_size'
     _CTX_BUF_AT = '{}[{} >> 3]'.format(_CTX_BUF, _CTX_AT)
     _CTX_BUF_AT_ADDR = '&{}'.format(_CTX_BUF_AT)
     _CTX_CALL_CLOCK_CB = 'ctx->clock_cb(ctx->clock_cb_data)'
@@ -168,8 +168,7 @@ class BarectfCodeGenerator:
             raise RuntimeError('field "{}" is a dynamic array (not allowed here)'.format(fname))
         elif type(ftype) is pytsdl.tsdl.Array:
             # we need to check every element until we find a terminal one
-            element = ftype.element
-            self._validate_inner_struct_field(fname, element)
+            self._validate_inner_struct_field(fname, ftype.element)
         elif type(ftype) is pytsdl.tsdl.Variant:
             raise RuntimeError('field "{}" is a variant (unsupported)'.format(fname))
         elif type(ftype) is pytsdl.tsdl.String:
@@ -215,6 +214,18 @@ class BarectfCodeGenerator:
             elif type(ftype) is pytsdl.tsdl.Struct:
                 # validate inner structure against barectf constraints
                 self._validate_inner_struct(ftype)
+            elif type(ftype) is pytsdl.tsdl.Array or type(ftype) is pytsdl.tsdl.Sequence:
+                done = False
+                el = ftype
+
+                while not done:
+                    if type(el) is pytsdl.tsdl.Struct:
+                        self._validate_inner_struct(ftype)
+                    if type(el) is pytsdl.tsdl.Array or type(el) is pytsdl.tsdl.Sequence:
+                        el = el.element
+                        continue
+
+                    done = True
 
     # Validates a TSDL integer with optional constraints.
     #
@@ -805,9 +816,12 @@ class BarectfCodeGenerator:
     # Returns the offset alignment macro call string for a given alignment.
     #
     #   size: new alignment
-    def _get_align_offset(self, align):
+    def _get_align_offset(self, align, at=None):
+        if at is None:
+            at = self._CTX_AT
+
         fmt = '{}_ALIGN_OFFSET({}, {});'
-        ret = fmt.format(self._prefix.upper(), self._CTX_AT, align)
+        ret = fmt.format(self._prefix.upper(), at, align)
 
         return ret
 
@@ -889,44 +903,133 @@ class BarectfCodeGenerator:
         t = self._get_obj_param_ctype(floating_point)
         length = self._get_obj_size(floating_point)
 
+        if t == 'float':
+            t = 'uint32_t'
+        elif t == 'double':
+            t = 'uint64_t'
+
+        src_name_casted = '({}) {}'.format(t, src_name)
+
         return self._template_to_clines(barectf.templates.WRITE_INTEGER,
                                         sz=length, bo=bo, type=t,
-                                        src_name=src_name)
+                                        src_name=src_name_casted)
+
+    # Returns the C lines for writing either a TSDL array field or a
+    # TSDL sequence field.
+    #
+    #   fname:        field name
+    #   src_name:     C source pointer
+    #   arrayseq:     TSDL array or sequence
+    #   scope_prefix: preferred scope prefix
+    def _write_field_array_sequence(self, fname, src_name, arrayseq,
+                                    scope_prefix):
+        def length_index_varname(index):
+            return 'lens_{}_{}'.format(fname, index)
+
+        # first pass: find all lengths to multiply
+        mulops = []
+        done = False
+
+        while not done:
+            mulops.append(arrayseq.length)
+            element = arrayseq.element
+            tel = type(element)
+
+            if tel is pytsdl.tsdl.Array or tel is pytsdl.tsdl.Sequence:
+                # another array/sequence; continue
+                arrayseq = element
+                continue
+
+            # found the end
+            done = True
+
+        # align the size of the repeating element (effective repeating size)
+        el_size = self._get_obj_size(element)
+        el_align = self._get_obj_alignment(element)
+        el_size = self._get_alignment(el_size, el_align)
+
+        # this effective size is part of the operands to multiply
+        mulops.append(el_size)
+
+        # clines
+        clines = []
+
+        # fetch and save sequence lengths
+        emulops = []
+
+        for i in range(len(mulops)):
+            mulop = mulops[i]
+
+            if type(mulop) is list:
+                # offset variable to fetch
+                offvar = self._get_seq_length_src_name(mulop, scope_prefix)
+
+                # save buffer position
+                line = 'ctx_at_bkup = {};'.format(self._CTX_AT)
+                clines.append(_CLine(line))
+
+                # go back to field offset
+                line = '{} = {};'.format(self._CTX_AT, offvar)
+                clines.append(_CLine(line))
+
+                # read value into specific variable
+                varname = length_index_varname(i)
+                emulops.append(varname)
+                varctype = 'uint32_t'
+                fmt = '{ctype} {cname} = *(({ctype}*) ({ctxbufataddr}));'
+                line = fmt.format(ctype=varctype, cname=varname,
+                                  ctxbufataddr=self._CTX_BUF_AT_ADDR)
+                clines.append(_CLine(line))
+
+                # restore buffer position
+                line = '{} = ctx_at_bkup;'.format(self._CTX_AT)
+                clines.append(_CLine(line))
+            else:
+                emulops.append(str(mulop))
+
+        # write multiplication of sizes in bits
+        mul = ' * '.join(emulops)
+        sz_bits_varname = 'sz_bits_{}'.format(fname)
+        sz_bytes_varname = 'sz_bytes_{}'.format(fname)
+        line = 'uint32_t {} = {};'.format(sz_bits_varname, mul)
+        clines.append(_CLine(line))
+        line = 'uint32_t {} = {};'.format(sz_bytes_varname, sz_bits_varname)
+        clines.append(_CLine(line))
+        line = self._get_align_offset(8, at=sz_bytes_varname)
+        clines.append(_CLine(line))
+        line = '{} >>= 3;'.format(sz_bytes_varname)
+        clines.append(_CLine(line))
+
+        # memcpy()
+        dst = self._CTX_BUF_AT_ADDR
+        line = 'memcpy({}, {}, {});'.format(dst, src_name, sz_bytes_varname)
+        clines.append(_CLine(line))
+        line = '{} += {};'.format(self._CTX_AT, sz_bits_varname)
+        clines.append(_CLine(line))
+
+        # TODO: continue this
+
+        return clines
 
     # Returns the C lines for writing a TSDL array field.
     #
-    #   fname:    field name
-    #   src_name: C source pointer
-    #   struct:   TSDL array
+    #   fname:        field name
+    #   src_name:     C source pointer
+    #   array:        TSDL array
+    #   scope_prefix: preferred scope prefix
     def _write_field_array(self, fname, src_name, array, scope_prefix=None):
-        clines = []
+        return self._write_field_array_sequence(fname, src_name, array,
+                                                scope_prefix)
 
-        # array index variable declaration
-        iv = 'ia_{}'.format(fname)
-        clines.append(_CLine('uint32_t {};'.format(iv)))
-
-        # for loop using array's static length
-        line = 'for ({iv} = 0; {iv} < {l}; ++{iv}) {{'.format(iv=iv,
-                                                              l=array.length)
-        clines.append(_CLine(line))
-
-        # for loop statements
-        for_block = _CBlock()
-
-        # align bit index before writing to the buffer
-        element_align = self._get_obj_alignment(array.element)
-        cline = self._get_align_offset_cline(element_align)
-        for_block.append(cline)
-
-        # write element to the buffer
-        for_block += self._write_field_obj(fname, src_name, array.element,
-                                           scope_prefix)
-        clines.append(for_block)
-
-        # for loop end
-        clines.append(_CLine('}'))
-
-        return clines
+    # Returns the C lines for writing a TSDL sequence field.
+    #
+    #   fname:        field name
+    #   src_name:     C source pointer
+    #   sequence:     TSDL sequence
+    #   scope_prefix: preferred scope prefix
+    def _write_field_sequence(self, fname, src_name, sequence, scope_prefix):
+        return self._write_field_array_sequence(fname, src_name, sequence,
+                                                scope_prefix)
 
     # Returns a trace packet header C source name out of a sequence length
     # expression.
@@ -1001,46 +1104,6 @@ class BarectfCodeGenerator:
                 return get_src_name(length)
 
         return self._get_offvar_name_from_expr(length, scope_prefix)
-
-    # Returns the C lines for writing a TSDL sequence field.
-    #
-    #   fname:        field name
-    #   src_name:     C source pointer
-    #   sequence:     TSDL sequence
-    #   scope_prefix: preferred scope prefix
-    def _write_field_sequence(self, fname, src_name, sequence, scope_prefix):
-        clines = []
-
-        # sequence index variable declaration
-        iv = 'is_{}'.format(fname)
-        clines.append(_CLine('uint32_t {};'.format(iv)))
-
-        # sequence length offset variable
-        length_offvar = self._get_seq_length_src_name(sequence.length,
-                                                     scope_prefix)
-
-        # for loop using sequence's static length
-        line = 'for ({iv} = 0; {iv} < {l}; ++{iv}) {{'.format(iv=iv,
-                                                              l=length_offvar)
-        clines.append(_CLine(line))
-
-        # for loop statements
-        for_block = _CBlock()
-
-        # align bit index before writing to the buffer
-        element_align = self._get_obj_alignment(sequence.element)
-        cline = self._get_align_offset_cline(element_align)
-        for_block.append(cline)
-
-        # write element to the buffer
-        for_block += self._write_field_obj(fname, src_name, sequence.element,
-                                           scope_prefix)
-        clines.append(for_block)
-
-        # for loop end
-        clines.append(_CLine('}'))
-
-        return clines
 
     # Returns the C lines for writing a TSDL string field.
     #
@@ -1147,13 +1210,13 @@ class BarectfCodeGenerator:
             for lname, offset in offvars.items():
                 offvar = self._get_offvar_name('_'.join([fname, lname]),
                                                scope_prefix)
-                fmt = 'uint32_t {} = {} + {};'
+                fmt = 'uint32_t {} = (uint32_t) {} + {};'
                 line = fmt.format(offvar, self._CTX_AT, offset);
                 clines.append(_CLine(line))
         elif type(ftype) is pytsdl.tsdl.Integer:
             # offset of this simple field is the current bit index
             offvar = self._get_offvar_name(fname, scope_prefix)
-            line = 'uint32_t {} = {};'.format(offvar, self._CTX_AT)
+            line = 'uint32_t {} = (uint32_t) {};'.format(offvar, self._CTX_AT)
             clines.append(_CLine(line))
 
         clines += self._write_field_obj(fname, pname, ftype, scope_prefix)
@@ -1249,7 +1312,7 @@ class BarectfCodeGenerator:
 
         if not self._manual_clock:
             ctype = self._get_clock_ctype(stream)
-            fmt = '\t{} (*clock_cb)(void*),\n\tvoid* clock_cb_data;'
+            fmt = '\t{} (*clock_cb)(void*);\n\tvoid* clock_cb_data;'
             clock_cb = fmt.format(ctype)
 
         # fill template
@@ -1318,7 +1381,7 @@ class BarectfCodeGenerator:
             if fname == 'packet_size':
                 fclines = self._field_to_clines(fname, ftype, scope_name,
                                                 scope_prefix,
-                                                lambda x: 'ctx->buffer_size')
+                                                lambda x: 'ctx->packet_size')
                 fcline_groups.append(fclines)
 
             # content size (skip)
@@ -1425,7 +1488,7 @@ class BarectfCodeGenerator:
         clines.append(_CLine(''))
         clines.append(_CLine("/* barectf context parameters */"))
         clines.append(_CLine('ctx->buf = buf;'))
-        clines.append(_CLine('ctx->buf_size = buf_size * 8;'))
+        clines.append(_CLine('ctx->packet_size = buf_size * 8;'))
         clines.append(_CLine('{} = 0;'.format(self._CTX_AT)))
 
         if not self._manual_clock:
@@ -1581,7 +1644,7 @@ class BarectfCodeGenerator:
 
             # write timestamp_end
             timestamp_end_integer = stream.packet_context['timestamp_end']
-            clines += self._gen_write_ctx_field_integer('clk_value', 'pc',
+            clines += self._gen_write_ctx_field_integer('clk_value', 'spc',
                                                         'timestamp_end',
                                                         timestamp_end_integer)
 
@@ -1589,9 +1652,13 @@ class BarectfCodeGenerator:
         clines.append(_CLine(''))
         clines.append(_CLine("/* update packet context's content_size */"))
         content_size_integer = stream.packet_context['content_size']
-        clines += self._gen_write_ctx_field_integer('ctx_at_bkup', 'pc',
+        clines += self._gen_write_ctx_field_integer('ctx_at_bkup', 'spc',
                                                     'content_size',
                                                     content_size_integer)
+
+        # return 0
+        clines.append(_CLine('\n'))
+        clines.append(_CLine('return 0;'))
 
         # get source
         cblock = _CBlock(clines)
@@ -1670,6 +1737,8 @@ class BarectfCodeGenerator:
     #   event:  TSDL event to trace
     def _gen_barectf_func_trace_event_body(self, stream, event):
         clines = []
+
+        clines.append(_CLine('uint32_t ctx_at_bkup;'))
 
         # get clock value ASAP
         clk_type = self._get_clock_ctype(stream)
@@ -1840,14 +1909,21 @@ class BarectfCodeGenerator:
 
         return funcs
 
+    # Generate all barectf functions
+    #
+    #   gen_body: also generate function bodies
+    def _gen_barectf_functions(self, gen_body):
+        init_funcs = self._gen_barectf_funcs_init(gen_body)
+        open_funcs = self._gen_barectf_funcs_open(gen_body)
+        close_funcs = self._gen_barectf_funcs_close(gen_body)
+        trace_funcs = self._gen_barectf_funcs_trace(gen_body)
+
+        return init_funcs + open_funcs + close_funcs + trace_funcs
+
     # Generates the barectf header C source
     def _gen_barectf_header(self):
         ctx_structs = self._gen_barectf_contexts_struct()
-        init_funcs = self._gen_barectf_funcs_init(self._static_inline)
-        open_funcs = self._gen_barectf_funcs_open(self._static_inline)
-        close_funcs = self._gen_barectf_funcs_close(self._static_inline)
-        trace_funcs = self._gen_barectf_funcs_trace(self._static_inline)
-        functions = init_funcs + open_funcs + close_funcs + trace_funcs
+        functions = self._gen_barectf_functions(self._static_inline)
         functions_str = '\n\n'.join(functions)
         t = barectf.templates.HEADER
         header = t.format(prefix=self._prefix, ucprefix=self._prefix.upper(),
@@ -1869,6 +1945,16 @@ class BarectfCodeGenerator:
         header = header.replace('$ENDIAN_DEF$', endian_def)
 
         return header
+
+    # Generates the main barectf C source file.
+    def _gen_barectf_tu(self):
+        functions = self._gen_barectf_functions(True)
+        functions_str = '\n\n'.join(functions)
+        t = barectf.templates.CSRC
+        csrc = t.format(prefix=self._prefix, ucprefix=self._prefix.upper(),
+                        functions=functions_str)
+
+        return csrc
 
     # Writes a file to the generator's output.
     #
@@ -1971,8 +2057,8 @@ class BarectfCodeGenerator:
         # generate C source file
         if not self._static_inline:
             _pinfo('generating barectf translation unit')
-
-            pass
+            csrc = self._gen_barectf_tu()
+            self._write_file('{}.c'.format(self._prefix), csrc)
 
         _psuccess('done')
 
