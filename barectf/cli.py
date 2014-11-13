@@ -474,7 +474,6 @@ class BarectfCodeGenerator:
     #   event:  TSDL event to validate
     def _validate_event(self, stream, event):
         # name must be a compatible C identifier
-        print('checking', event.name)
         if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', event.name):
             fmt = 'stream {}: event {}: malformed event name: "{}"'
             _perror(fmt.format(stream.id, event.id, event.name))
@@ -965,6 +964,11 @@ class BarectfCodeGenerator:
                 # offset variable to fetch
                 offvar = self._get_seq_length_src_name(mulop, scope_prefix)
 
+                if type(offvar) is int:
+                    # environment constant
+                    emulops.append(str(offvar))
+                    continue
+
                 # save buffer position
                 line = 'ctx_at_bkup = {};'.format(self._CTX_AT)
                 clines.append(_CLine(line))
@@ -1057,7 +1061,12 @@ class BarectfCodeGenerator:
         if fname not in self._doc.env:
             _perror('cannot find field env.{}'.format(fname))
 
-        return str(self._doc.env[fname])
+        env_length = self._doc.env[fname]
+
+        if type(env_length) is not int:
+            _perror('env.{} is not a constant integer'.format(fname))
+
+        return self._doc.env[fname]
 
     # Returns a stream packet context C source name out of a sequence length
     # expression.
@@ -1951,7 +1960,7 @@ class BarectfCodeGenerator:
         return header
 
     # Generates the main barectf C source file.
-    def _gen_barectf_tu(self):
+    def _gen_barectf_csrc(self):
         functions = self._gen_barectf_functions(True)
         functions_str = '\n\n'.join(functions)
         t = barectf.templates.CSRC
@@ -2060,8 +2069,8 @@ class BarectfCodeGenerator:
 
         # generate C source file
         if not self._static_inline:
-            _pinfo('generating barectf translation unit')
-            csrc = self._gen_barectf_tu()
+            _pinfo('generating barectf C source file')
+            csrc = self._gen_barectf_csrc()
             self._write_file('{}.c'.format(self._prefix), csrc)
 
         _psuccess('done')
