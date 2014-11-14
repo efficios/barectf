@@ -665,7 +665,7 @@ struct ipv4_header {
 }
 ```
 
-Although this complex structure has more than ten independant fields,
+Although this complex structure has more than ten independent fields,
 the generated C function would only call a 20-byte `memcpy()`, making
 it fast to record. Bits will be unpacked properly and values displayed
 in a human-readable form by the CTF reader thanks to the CTF metadata.
