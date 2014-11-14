@@ -819,12 +819,12 @@ function prototype:
 
 ```c
 int barectf_trace_my_event(
-  struct barectf_ctx* ctx,
-  uint32_t param_ef__a,
-  int16_t param_ef__b,
-  float param_ef__c,
-  const void* param_ef__d,
-  const char* param_ef__e
+    struct barectf_ctx* ctx,
+    uint32_t param_ef__a,
+    int16_t param_ef__b,
+    float param_ef__c,
+    const void* param_ef__d,
+    const char* param_ef__e
 );
 ```
 
