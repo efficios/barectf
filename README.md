@@ -753,7 +753,7 @@ This section assumes you ran `barectf` with no options:
 
     barectf metadata
 
-The command generates ANSI C structures and functions to initialize
+The command generates C99 structures and functions to initialize
 and finalize bare CTF contexts. It also generates as many tracing functions
 as there are events described in the CTF metadata file.
 
