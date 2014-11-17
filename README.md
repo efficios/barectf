@@ -105,7 +105,7 @@ is thorough, you will almost always start from this template:
 ```
 /* CTF 1.8 */
 
-// a few useful standard integer aliases
+/* a few useful standard integer aliases */
 typealias integer {size = 8; align = 8;}                  := uint8_t;
 typealias integer {size = 16; align = 16;}                := uint16_t;
 typealias integer {size = 32; align = 32;}                := uint32_t;
@@ -115,37 +115,39 @@ typealias integer {size = 16; align = 16; signed = true;} := int16_t;
 typealias integer {size = 32; align = 32; signed = true;} := int32_t;
 typealias integer {size = 64; align = 64; signed = true;} := int64_t;
 
-// IEEE 754 standard-precision floating point alias
+/* IEEE 754 standard-precision floating point alias */
 typealias floating_point {
     exp_dig = 8;
     mant_dig = 24;
     align = 32;
 } := float;
 
-// IEEE 754 double-precision floating point alias
+/* IEEE 754 double-precision floating point alias */
 typealias floating_point {
     exp_dig = 11;
     mant_dig = 53;
     align = 64;
 } := double;
 
-// trace block
+/* trace block */
 trace {
-    // CTF version 1.8; leave this as is
+    /* CTF version 1.8; leave this as is */
     major = 1;
     minor = 8;
 
-    /* Native byte order (`le` or `be`). This is used by barectf to generate
+    /*
+     * Native byte order (`le` or `be`). This is used by barectf to generate
      * the appropriate code when writing data to the packet.
      */
     byte_order = le;
 
-    /* Packet header. All packets (buffers) will have the same header.
+    /*
+     * Packet header. All packets (buffers) will have the same header.
      *
      * Special fields recognized by barectf (must appear in this order):
      *
      *   magic:     will be set to CTF's magic number (must be the first field)
-     *              (32-bit unsigned integer)
+     *              (32-bit unsigned integer) (mandatory)
      *   stream_id: will be set to the ID of the stream associated with
      *              this packet (unsigned integer of your choice) (mandatory)
      */
@@ -155,7 +157,7 @@ trace {
     };
 };
 
-// environment variables; you may add custom entries
+/* environment variables; you may add custom entries */
 env {
     domain = "bare";
     tracer_name = "barectf";
@@ -164,38 +166,41 @@ env {
     tracer_patchlevel = 0;
 };
 
-// clock descriptor
+/* clock descriptor */
 clock {
-    // clock name
+    /* clock name */
     name = my_clock;
 
-    // clock frequency (Hz)
+    /* clock frequency (Hz) */
     freq = 1000000000;
 
-    // optional clock value offset (offfset from Epoch is: offset * (1 / freq))
+    /* optional clock value offset; offset from Epoch is: offset * (1 / freq) */
     offset = 0;
 };
 
-// alias for integer used to hold clock cycles
+/* alias for integer used to hold clock cycles */
 typealias integer {
     size = 32;
 
-    // map to the appropriate clock using its name
+    /* map to the appropriate clock using its name */
     map = clock.my_clock.value;
 } := my_clock_int_t;
 
-/* A stream. You may have as many streams as you want. Events are unique
+/*
+ * A stream. You may have as many streams as you want. Events are unique
  * within their own stream. The main advantage of having multiple streams
  * is having different event headers, stream event contexts and stream
  * packet contexts for each one.
  */
 stream {
-    /* Mandatory stream ID (must fit the integer type of
-     * `trace.packet.header.stream_id`.
+    /*
+     * Mandatory stream ID (must fit the integer type of
+     * `trace.packet.header.stream_id`).
      */
     id = 0;
 
-    /* Mandatory packet context. This structure follows the packet header
+    /*
+     * Mandatory packet context. This structure follows the packet header
      * (see `trace.packet.header`) immediately in CTF binary streams.
      *
      * Special fields recognized by barectf:
@@ -224,7 +229,8 @@ stream {
         uint32_t cpu_id;
     };
 
-    /* Mandatory event header. All events recorded in this stream will start
+    /*
+     * Mandatory event header. All events recorded in this stream will start
      * with this structure.
      *
      * Special fields recognized by barectf:
@@ -239,34 +245,40 @@ stream {
         my_clock_int_t timestamp;
     };
 
-    /* Optional stream event context (you may remove the whole block or leave
+    /*
+     * Optional stream event context (you may remove the whole block or leave
      * the structure empty if you don't want any). This structure follows the
-     * event header (see `stream.event.header`) immediately in CTF binary streams.
+     * event header (see `stream.event.header`) immediately in CTF binary
+     * streams.
      */
     event.context := struct {
         int32_t _some_stream_event_context_field;
     };
 };
 
-/* An event. Events have an ID, a name, an optional context and fields. An
+/*
+ * An event. Events have an ID, a name, an optional context and fields. An
  * event is associated to a specific stream using its stream ID.
  */
 event {
-    /* Mandatory event name. This is used by barectf to generate the suffix
+    /*
+     * Mandatory event name. This is used by barectf to generate the suffix
      * of this event's corresponding tracing function, so make sure it follows
      * the C identifier syntax even though it's a quoted string here.
      */
     name = "my_event";
 
-    /* Mandatory event ID (must fit the integer type of
-     * in `stream.event.header.id` of the associated stream).
+    /*
+     * Mandatory event ID (must fit the integer type of in
+     * `stream.event.header.id` of the associated stream).
      */
     id = 0;
 
-    // ID of the stream in which this event will be recorded
+    /* ID of the stream in which this event will be recorded */
     stream_id = 0;
 
-    /* Optional event context (you may remove the whole block or leave the
+    /*
+     * Optional event context (you may remove the whole block or leave the
      * structure empty if you don't want one). This structure follows the
      * stream event context (if it exists) immediately in CTF binary streams.
      */
@@ -274,7 +286,8 @@ event {
         int32_t _some_event_context_field;
     };
 
-    /* Mandatory event fields (although the structure may be left empty if this
+    /*
+     * Mandatory event fields (although the structure may be left empty if this
      * event has no fields). This structure follows the event context (if it
      * exists) immediately in CTF binary streams.
      */
@@ -321,24 +334,27 @@ CTF integers are defined like this:
 
 ```
 integer {
-    // mandatory size in bits (64-bit and less)
+    /* mandatory size in bits (64-bit and less) */
     size = 16;
 
-    /* Optional alignment in bits (power of two). Default is 8 when the
+    /*
+     * Optional alignment in bits (power of two). Default is 8 when the
      * size is a multiple of 8, and 1 otherwise.
      */
     align = 16;
 
-    // optional signedness (`true` or `false`); default is unsigned
+    /* optional signedness (`true` or `false`); default is unsigned */
     signed = true;
 
-    /* Optional byte order (`le`, `be`, `native` or `network`). `native`
+    /*
+     * Optional byte order (`le`, `be`, `native` or `network`). `native`
      * will use the byte order specified by the `trace.byte_order`.
      * Default is `native`.
      */
     byte_order = le;
 
-    /* Optional display base, used to display the integer value when
+    /*
+     * Optional display base, used to display the integer value when
      * reading the trace. Valid values are 2 (or `binary`, `bin` and `b`),
      * 8 (or `o`, `oct` or `octal`), 10 (or `u`, `i`, `d`, `dec` or
      * `decimal`), and 16 (or `x`, `X`, `p`, `hex` or `hexadecimal`).
@@ -346,7 +362,8 @@ integer {
      */
     base = hex;
 
-    /* Encoding (if this integer represents a character). Valid values
+    /*
+     * Encoding (if this integer represents a character). Valid values
      * are `none`, `UTF8` and `ASCII`. Default is `none`.
      */
     encoding = UTF8;
@@ -378,18 +395,20 @@ CTF floating point numbers are defined like this:
 
 ```
 floating_point {
-    // exponent size in bits
+    /* exponent size in bits */
     exp_dig = 8;
 
-    // mantissa size in bits
+    /* mantissa size in bits */
     mant_dig = 24;
 
-    /* Optional alignment (power of two). Default is 8 when the total
+    /*
+     * Optional alignment (power of two). Default is 8 when the total
      * size (exponent + mantissa) is a multiple of 8, and 1 otherwise.
      */
     align = 32;
 
-    /* Optional byte order (`le`, `be`, `native` or `network`). `native`
+    /*
+     * Optional byte order (`le`, `be`, `native` or `network`). `native`
      * will use the byte order specified by the `trace.byte_order`.
      * Default is `native`.
      */
@@ -417,7 +436,7 @@ They may also have an encoding property:
 
 ```
 string {
-    // encoding: `none`, `UTF8` or `ASCII`; default is `none`
+    /* encoding: `none`, `UTF8` or `ASCII`; default is `none` */
     encoding = UTF8;
 }
 ```
@@ -484,7 +503,7 @@ array is valid for barectf:
 
 ```
 struct {
-  // ...
+    /* ... */
     integer {size = 5;} _field[10];
 }
 ```
@@ -576,12 +595,12 @@ its fields. For example, the following structure has a 32-bit alignment:
 
 ```
 struct {
-    uint16_t _a;             // alignment: 16
-    struct {                 // alignment: 32
-        uint32_t _a;         // alignment: 32
-        string; _b;          // alignment: 8
+    uint16_t _a;             /* alignment: 16 */
+    struct {                 /* alignment: 32 */
+        uint32_t _a;         /* alignment: 32 */
+        string; _b;          /* alignment: 8 */
     } _b;
-    integer {size = 64;} _c; // alignment: 8
+    integer {size = 64;} _c; /* alignment: 8 */
 }
 ```
 
@@ -590,12 +609,12 @@ option after the structure is closed:
 
 ```
 struct {
-    uint16_t _a;             // alignment: 16
-    struct {                 // alignment: 32
-        uint32_t _a;         // alignment: 32
-        string; _b;          // alignment: 8
+    uint16_t _a;
+    struct {
+        uint32_t _a;
+        string; _b;
     } _b;
-    integer {size = 64;} _c; // alignment: 8
+    integer {size = 64;} _c;
 } align(16)
 ```
 
