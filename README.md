@@ -33,7 +33,7 @@ save it to some permanent storage, swap it with another empty buffer and
 concatenate recorded packets, etc.
 
 barectf is written in Python 3 and currently uses
-[pytsdl](https://github.com/eepp/pytsdl) to parse the CTF metadata file
+[pytsdl](https://github.com/efficios/pytsdl) to parse the CTF metadata file
 provided by the user.
 
 

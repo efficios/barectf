@@ -53,13 +53,13 @@ entry_points = {
 
 
 setup(name='barectf',
-      version=0.1,
+      version='0.1.1',
       description='Generator of C99 code that can write native CTF',
       author='Philippe Proulx',
       author_email='eeppeliteloop@gmail.com',
       license='MIT',
       keywords='ctf generator tracing bare-metal bare-machine',
-      url='https://github.com/eepp/barectf',
+      url='https://github.com/efficios/barectf',
       packages=packages,
       install_requires=install_requires,
       entry_points=entry_points)
