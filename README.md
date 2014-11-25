@@ -69,6 +69,9 @@ Using barectf involves:
 
 The following subsections explain the three steps above.
 
+Also, have a look at the [`examples`](examples) directory which
+contains a few complete examples.
+
 
 ### writing the CTF metadata
 
