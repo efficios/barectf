@@ -895,7 +895,7 @@ class BarectfCodeGenerator:
         elif t == 'double':
             t = 'uint64_t'
 
-        src_name_casted = '({}) {}'.format(t, src_name)
+        src_name_casted = '*(({}*) &{})'.format(t, src_name)
 
         return self._template_to_clines(barectf.templates.WRITE_INTEGER,
                                         sz=length, bo=bo, type=t,
