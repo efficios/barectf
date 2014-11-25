@@ -876,7 +876,8 @@ class BarectfCodeGenerator:
     #   src_name: C source integer
     #   enum:     TSDL enumeration
     def _write_field_enum(self, fname, src_name, enum, scope_prefix=None):
-        return self._write_field_obj(fname, src_name, enum.integer)
+        return self._write_field_obj(fname, src_name, enum.integer,
+                                     scope_prefix)
 
     # Returns the C lines for writing a TSDL floating point number field.
     #
