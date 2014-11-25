@@ -1375,6 +1375,7 @@ class BarectfCodeGenerator:
         # out of space)
         line = 'uint32_t ctx_at_begin = {};'.format(self._CTX_AT)
         clines.append(_CLine(line))
+        clines.append(_CLine(''))
 
         # packet context fields
         fcline_groups = []
@@ -1493,9 +1494,9 @@ class BarectfCodeGenerator:
         # out of space)
         line = 'uint32_t ctx_at_begin = {};'.format(self._CTX_AT)
         clines.append(_CLine(line))
+        clines.append(_CLine(''))
 
         # set context parameters
-        clines.append(_CLine(''))
         clines.append(_CLine("/* barectf context parameters */"))
         clines.append(_CLine('ctx->buf = buf;'))
         clines.append(_CLine('ctx->packet_size = buf_size * 8;'))
@@ -1774,6 +1775,7 @@ class BarectfCodeGenerator:
         # out of space)
         line = 'uint32_t ctx_at_begin = {};'.format(self._CTX_AT)
         clines.append(_CLine(line))
+        clines.append(_CLine(''))
 
         # event header
         fcline_groups = []
