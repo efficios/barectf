@@ -863,11 +863,11 @@ class BarectfCodeGenerator:
     #   integer:  TSDL integer
     def _write_field_integer(self, fname, src_name, integer, scope_prefix=None):
         bo = self._BO_SUFFIXES_MAP[integer.byte_order]
-        t = self._get_obj_param_ctype(integer)
         length = self._get_obj_size(integer)
+        signed = 'signed' if integer.signed else 'unsigned'
 
         return self._template_to_clines(barectf.templates.WRITE_INTEGER,
-                                        sz=length, bo=bo, type=t,
+                                        signed=signed, sz=length, bo=bo,
                                         src_name=src_name)
 
     # Returns the C lines for writing a TSDL enumeration field.
@@ -898,7 +898,7 @@ class BarectfCodeGenerator:
         src_name_casted = '*(({}*) &{})'.format(t, src_name)
 
         return self._template_to_clines(barectf.templates.WRITE_INTEGER,
-                                        sz=length, bo=bo, type=t,
+                                        signed='unsigned', sz=length, bo=bo,
                                         src_name=src_name_casted)
 
     # Returns the C lines for writing either a TSDL array field or a

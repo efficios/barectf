@@ -37,7 +37,7 @@ FUNC_TRACE = """{si}int {prefix}{sid}_trace_{evname}(
 )"""
 
 WRITE_INTEGER = """{ucprefix}_CHK_OFFSET_V(ctx->at, ctx->packet_size, {sz});
-{prefix}_bt_bitfield_write_{bo}(ctx->buf, uint8_t, ctx->at, {sz}, {src_name});
+{prefix}_write_integer_{signed}_{bo}(ctx->buf, ctx->at, {sz}, {src_name});
 ctx->at += {sz};"""
 
 HEADER = """#ifndef _{ucprefix}_H
@@ -321,6 +321,30 @@ do {									\\
 #error "Byte order not supported"
 
 #endif
+
+static
+void $prefix$_write_integer_signed_le(void *ptr, uint32_t at, uint32_t len, int64_t v)
+{
+	$prefix$_bt_bitfield_write_le(ptr, uint8_t, at, len, v);
+}
+
+static
+void $prefix$_write_integer_unsigned_le(void *ptr, uint32_t at, uint32_t len, uint64_t v)
+{
+	$prefix$_bt_bitfield_write_le(ptr, uint8_t, at, len, v);
+}
+
+static
+void $prefix$_write_integer_signed_be(void *ptr, uint32_t at, uint32_t len, int64_t v)
+{
+	$prefix$_bt_bitfield_write_be(ptr, uint8_t, at, len, v);
+}
+
+static
+void $prefix$_write_integer_unsigned_be(void *ptr, uint32_t at, uint32_t len, uint64_t v)
+{
+	$prefix$_bt_bitfield_write_be(ptr, uint8_t, at, len, v);
+}
 
 #endif /* _$PREFIX$_BITFIELD_H */
 """

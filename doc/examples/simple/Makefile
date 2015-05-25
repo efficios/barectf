@@ -1,7 +1,7 @@
 BARECTF ?= barectf
 RM = rm -rf
 
-CFLAGS = -O2 -Wall
+CFLAGS = -O2
 
 TARGET = simple
 OBJS = $(TARGET).o barectf.o
