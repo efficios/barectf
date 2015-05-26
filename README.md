@@ -208,19 +208,24 @@ stream {
      *
      * Special fields recognized by barectf:
      *
-     *   timestamp_begin: will be set to the current clock value when opening
-     *                    the packet (same integer type as the clock's value)
-     *   timestamp_end:   will be set to the current clock value when closing
-     *                    the packet (same integer type as the clock's value)
-     *   content_size:    will be set to the content size, in bits, of this
-     *                    stream (unsigned 32-bit or 64-bit integer) (mandatory)
-     *   packet_size:     will be set to the packet size, in bits, of this
-     *                    stream (unsigned 32-bit or 64-bit integer) (mandatory)
-     *   cpu_id:          if present, the barectf_open_packet() function of this
-     *                    stream will accept an additional parameter to specify the
-     *                    ID of the CPU associated with this stream (a given
-     *                    stream should only be written to by a specific CPU)
-     *                    (unsigned integer of your choice)
+     *   timestamp_begin:  will be set to the current clock value when opening
+     *                     the packet (same integer type as the clock's value)
+     *   timestamp_end:    will be set to the current clock value when closing
+     *                     the packet (same integer type as the clock's value)
+     *   content_size:     will be set to the content size, in bits, of this
+     *                     stream (unsigned 32-bit or 64-bit integer) (mandatory)
+     *   packet_size:      will be set to the packet size, in bits, of this
+     *                     stream (unsigned 32-bit or 64-bit integer) (mandatory)
+     *   events_discarded: if present, the barectf_close_packet() function of
+     *                     this stream will accept an additional parameter to
+     *                     specify the number of events that were discarded in
+     *                     this stream _so far_ (free-running counter for the
+     *                     whole stream)
+     *   cpu_id:           if present, the barectf_open_packet() function of
+     *                     this stream will accept an additional parameter to
+     *                     specify the ID of the CPU associated with this stream
+     *                     (a given stream should only be written to by a
+     *                     specific CPU) (unsigned integer of your choice)
      *
      * `timestamp_end` must be present if `timestamp_begin` exists.
      */
