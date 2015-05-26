@@ -59,6 +59,7 @@ stream {
 		my_clock_int_t timestamp_end;
 		uint64_t packet_size;
 		uint64_t content_size;
+		uint32_t events_discarded;
 	};
 
 	event.header := struct {

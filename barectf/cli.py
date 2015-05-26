@@ -378,6 +378,13 @@ class BarectfCodeGenerator:
             except RuntimeError as e:
                 _perror('stream {}: packet context: "cpu_id": {}'.format(sid, e))
 
+        # if events_discarded exists, must be an unsigned integer
+        if 'events_discarded' in fields:
+            try:
+                self._validate_integer(fields['events_discarded'], signed=False)
+            except RuntimeError as e:
+                _perror('stream {}: packet context: "events_discarded": {}'.format(sid, e))
+
     # Validates an event header.
     #
     #   stream: TSDL stream containing the event header to validate
@@ -1396,6 +1403,12 @@ class BarectfCodeGenerator:
                                                 scope_prefix, lambda x: '0')
                 fcline_groups.append(fclines)
 
+            # events discarded (skip)
+            elif fname == 'events_discarded':
+                fclines = self._field_to_clines(fname, ftype, scope_name,
+                                                scope_prefix, lambda x: '0')
+                fcline_groups.append(fclines)
+
             # timestamp_begin
             elif fname == 'timestamp_begin':
                 fclines = self._field_to_clines(fname, ftype, scope_name,
@@ -1432,6 +1445,7 @@ class BarectfCodeGenerator:
         'packet_size',
         'timestamp_begin',
         'timestamp_end',
+        'events_discarded',
     ]
 
     # Generates a barectf_open() function.
@@ -1679,6 +1693,29 @@ class BarectfCodeGenerator:
                                                     'content_size',
                                                     content_size_integer)
 
+        # set events_discarded
+        if 'events_discarded' in stream.packet_context.fields:
+            # events_discarded parameter name (provided by user)
+            pname = self._spc_fname_to_pname('events_discarded')
+
+            # save buffer position
+            clines.append(_CLine(''))
+            line = 'ctx_at_bkup = {};'.format(self._CTX_AT)
+            clines.append(_CLine(line))
+
+            # go back to field offset
+            offvar = self._get_offvar_name('events_discarded', 'spc')
+            line = '{} = ctx->{};'.format(self._CTX_AT, offvar)
+            clines.append(_CLine(line))
+
+            # write value
+            integer = stream.packet_context['events_discarded']
+            clines += self._write_field_integer(None, pname, integer)
+
+            # restore buffer position
+            line = '{} = ctx_at_bkup;'.format(self._CTX_AT)
+            clines.append(_CLine(line))
+
         # return 0
         clines.append(_CLine('\n'))
         clines.append(_CLine('return 0;'))
@@ -1706,6 +1743,12 @@ class BarectfCodeGenerator:
         if self._manual_clock:
             clock_param = self._gen_manual_clock_param(stream)
             params = ',\n\t{}'.format(clock_param)
+
+        if 'events_discarded' in stream.packet_context.fields:
+            ftype = stream.packet_context['events_discarded']
+            ptype = self._get_obj_param_ctype(ftype)
+            pname = self._spc_fname_to_pname('events_discarded')
+            params += ',\n\t{} {}'.format(ptype, pname)
 
         t = barectf.templates.FUNC_CLOSE
         func = t.format(si=self._si_str, prefix=self._prefix, sid=sid,

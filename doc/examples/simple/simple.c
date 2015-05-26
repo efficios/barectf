@@ -42,8 +42,8 @@ static void simple(uint8_t* buf, size_t sz)
 	barectf_trace_a_few_fields(pctx, -1, 301, -3.14159, "Hello again!", NEW);
 	barectf_trace_bit_packed_integers(pctx, 1, -1, 3, -2, 2, 7, 23, -55, 232);
 
-	/* close packet */
-	barectf_close_packet(pctx);
+	/* close packet with 3 discarded events */
+	barectf_close_packet(pctx, 3);
 }
 
 static void write_packet(const char* filename, const uint8_t* buf, size_t sz)
