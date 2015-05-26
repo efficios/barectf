@@ -53,7 +53,7 @@ entry_points = {
 
 
 setup(name='barectf',
-      version='0.1.2',
+      version='0.2.0',
       description='Generator of C99 code that can write native CTF',
       author='Philippe Proulx',
       author_email='eeppeliteloop@gmail.com',
