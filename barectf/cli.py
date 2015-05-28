@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2014 Philippe Proulx <philippe.proulx@efficios.com>
+# Copyright (c) 2014-2015 Philippe Proulx <philippe.proulx@efficios.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,12 +19,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+
 from termcolor import cprint, colored
 import barectf.templates
 import pytsdl.parser
 import pytsdl.tsdl
 import collections
 import argparse
+import barectf
 import sys
 import os
 import re
@@ -56,6 +58,8 @@ def _parse_args():
                     help='generate static inline C functions')
     ap.add_argument('-c', '--manual-clock', action='store_true',
                     help='do not use a clock callback: pass clock value to tracing functions')
+    ap.add_argument('-V', '--version', action='version',
+                    version='%(prog)s v{}'.format(barectf.__version__))
     ap.add_argument('metadata', metavar='METADATA', action='store',
                     help='CTF metadata input file')
 
