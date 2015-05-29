@@ -29,6 +29,7 @@ from setuptools import setup
 
 # make sure we run Python 3+ here
 v = sys.version_info
+
 if v.major < 3:
     sys.stderr.write('Sorry, barectf needs Python 3\n')
     sys.exit(1)
@@ -53,7 +54,7 @@ entry_points = {
 
 
 setup(name='barectf',
-      version='0.2.0',
+      version='0.3.0',
       description='Generator of C99 code that can write native CTF',
       author='Philippe Proulx',
       author_email='eeppeliteloop@gmail.com',
