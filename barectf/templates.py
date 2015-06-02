@@ -1,91 +1,375 @@
-BARECTF_CTX = """struct {prefix}{sid}_ctx {{
-	/* output buffer (will contain a CTF binary packet) */
-	uint8_t* buf;
+_CLOCK_CB = '{return_ctype} (*{cname}_clock_get_value)(void *);'
 
-	/* buffer size in bits */
+
+_PLATFORM_CALLBACKS_BEGIN = '''/* barectf platform callbacks */
+struct {prefix}platform_callbacks {{
+	/* clock callbacks */'''
+
+
+_PLATFORM_CALLBACKS_END = '''
+	/* is back-end full? */
+	int (*is_backend_full)(void *);
+
+	/* open packet */
+	void (*open_packet)(void *);
+
+	/* close packet */
+	void (*close_packet)(void *);
+};'''
+
+
+_CTX_PARENT = '''/* common barectf context */
+struct {prefix}ctx {{
+	/* platform callbacks */
+	struct {prefix}platform_callbacks cbs;
+
+	/* platform data (passed to callbacks) */
+	void *data;
+
+	/* output buffer (will contain a CTF binary packet) */
+	uint8_t *buf;
+
+	/* packet size in bits */
 	uint32_t packet_size;
 
-	/* current position from beginning of buffer in bits */
+	/* content size in bits */
+	uint32_t content_size;
+
+	/* current position from beginning of packet in bits */
 	uint32_t at;
 
-	/* clock value callback */
-{clock_cb}
+	/* packet header + context size (content offset) */
+	uint32_t off_content;
 
-	/* packet header + context size */
-	uint32_t packet_header_context_size;
+	/* events discarded */
+	uint32_t events_discarded;
 
-	/* config-specific members follow */
-{ctx_fields}
-}};"""
+	/* current packet is opened */
+	int packet_is_open;
+}};'''
 
-FUNC_INIT = """{si}int {prefix}{sid}_init(
-	struct {prefix}{sid}_ctx* ctx,
-	uint8_t* buf,
-	uint32_t buf_size{params}
-)"""
 
-FUNC_OPEN = """{si}int {prefix}{sid}_open_packet(
-	struct {prefix}{sid}_ctx* ctx{params}
-)"""
+_CTX_BEGIN = '''/* context for stream "{sname}" */
+struct {prefix}{sname}_ctx {{
+	/* parent */
+	struct {prefix}ctx parent;
 
-FUNC_CLOSE = """{si}int {prefix}{sid}_close_packet(
-	struct {prefix}{sid}_ctx* ctx{params}
-)"""
+	/* config-specific members follow */'''
 
-FUNC_TRACE = """{si}int {prefix}{sid}_trace_{evname}(
-	struct {prefix}{sid}_ctx* ctx{params}
-)"""
 
-WRITE_INTEGER = """{ucprefix}_CHK_OFFSET_V(ctx->at, ctx->packet_size, {sz});
-{prefix}_write_integer_{signed}_{bo}(ctx->buf, ctx->at, {sz}, {src_name});
-ctx->at += {sz};"""
+_CTX_END = '};'
 
-HEADER = """#ifndef _{ucprefix}_H
-#define _{ucprefix}_H
+
+_FUNC_INIT_PROTO = '''/* initialize context */
+void {prefix}init(
+	void *ctx,
+	uint8_t *buf,
+	uint32_t buf_size,
+	struct {prefix}platform_callbacks cbs,
+	void *data
+)'''
+
+
+_FUNC_INIT_BODY = '''{{
+	struct {prefix}ctx *{prefix}ctx = ctx;
+	{prefix}ctx->cbs = cbs;
+	{prefix}ctx->data = data;
+	{prefix}ctx->buf = buf;
+	{prefix}ctx->packet_size = _BYTES_TO_BITS(buf_size);
+	{prefix}ctx->at = 0;
+	{prefix}ctx->events_discarded = 0;
+	{prefix}ctx->packet_is_open = 0;
+}}'''
+
+
+_FUNC_OPEN_PROTO_BEGIN = '''/* open packet for stream "{sname}" */
+void {prefix}{sname}_open_packet(
+	struct {prefix}{sname}_ctx *ctx'''
+
+
+_FUNC_OPEN_PROTO_END = ')'
+
+
+_FUNC_OPEN_BODY_BEGIN = '{'
+
+
+_FUNC_OPEN_BODY_END = '''
+	ctx->parent.off_content = ctx->parent.at;
+
+	/* mark current packet as open */
+	ctx->parent.packet_is_open = 1;
+}'''
+
+
+_FUNC_CLOSE_PROTO = '''/* close packet for stream "{sname}" */
+void {prefix}{sname}_close_packet(struct {prefix}{sname}_ctx *ctx)'''
+
+
+_FUNC_CLOSE_BODY_BEGIN = '{'
+
+
+_FUNC_CLOSE_BODY_END = '''
+	/* go back to end of packet */
+	ctx->parent.at = ctx->parent.packet_size;
+
+	/* mark packet as closed */
+	ctx->parent.packet_is_open = 0;
+}'''
+
+
+_FUNC_TRACE_PROTO_BEGIN = '''/* trace (stream "{sname}", event "{evname}") */
+void {prefix}{sname}_trace_{evname}(
+	struct {prefix}{sname}_ctx *ctx'''
+
+
+_FUNC_TRACE_PROTO_END = ')'
+
+
+_FUNC_TRACE_BODY = '''{{
+	uint32_t ev_size;
+
+	/* get event size */
+	ev_size = _get_event_size_{sname}_{evname}((void *) ctx{params});
+
+	/* do we have enough space to serialize? */
+	if (!_reserve_event_space((void *) ctx, ev_size)) {{
+		/* no: forget this */
+		return;
+	}}
+
+	/* serialize event */
+	_serialize_event_{sname}_{evname}((void *) ctx{params});
+
+	/* commit event */
+	_commit_event((void *) ctx);
+}}'''
+
+
+_FUNC_GET_EVENT_SIZE_PROTO_BEGIN = '''static uint32_t _get_event_size_{sname}_{evname}(
+	struct {prefix}ctx *ctx'''
+
+
+_FUNC_GET_EVENT_SIZE_PROTO_END = ')'
+
+
+_FUNC_GET_EVENT_SIZE_BODY_BEGIN = '''{
+	uint32_t at = ctx->at;'''
+
+
+_FUNC_GET_EVENT_SIZE_BODY_END = '''	return at - ctx->at;
+}'''
+
+
+_FUNC_SERIALIZE_STREAM_EVENT_HEADER_PROTO_BEGIN = '''static void _serialize_stream_event_header_{sname}(
+	struct {prefix}ctx *ctx,
+	uint32_t event_id'''
+
+
+_FUNC_SERIALIZE_STREAM_EVENT_HEADER_PROTO_END = ')'
+
+
+_FUNC_SERIALIZE_STREAM_EVENT_HEADER_BODY_BEGIN = '{'
+
+
+_FUNC_SERIALIZE_STREAM_EVENT_HEADER_BODY_END = '}'
+
+
+_FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_PROTO_BEGIN = '''static void _serialize_stream_event_context_{sname}(
+	struct {prefix}ctx *ctx'''
+
+
+_FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_PROTO_END = ')'
+
+
+_FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_BEGIN = '{'
+
+
+_FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_END = '}'
+
+
+_FUNC_SERIALIZE_EVENT_PROTO_BEGIN = '''static void _serialize_event_{sname}_{evname}(
+	struct {prefix}ctx *ctx'''
+
+
+_FUNC_SERIALIZE_EVENT_PROTO_END = ')'
+
+
+_FUNC_SERIALIZE_EVENT_BODY_BEGIN = '{'
+
+
+_FUNC_SERIALIZE_EVENT_BODY_END = '}'
+
+
+_HEADER_BEGIN = '''#ifndef _{ucprefix}H
+#define _{ucprefix}H
+
+/*
+ * The following C code was generated by barectf {version}
+ * on {date}.
+ *
+ * For more details, see <https://github.com/efficios/barectf>.
+ */
+
+#include <stdint.h>
+
+#include "{bitfield_header_filename}"
+
+struct {prefix}ctx;
+
+uint32_t {prefix}packet_size(void *ctx);
+int {prefix}packet_is_full(void *ctx);
+int {prefix}packet_is_empty(void *ctx);
+uint32_t {prefix}packet_events_discarded(void *ctx);
+uint8_t *{prefix}packet_buf(void *ctx);
+void {prefix}packet_set_buf(void *ctx, uint8_t *buf, uint32_t buf_size);
+uint32_t {prefix}packet_buf_size(void *ctx);
+int {prefix}packet_is_open(void *ctx);'''
+
+
+_HEADER_END = '#endif /* _{ucprefix}H */'
+
+
+_C_SRC = '''/*
+ * The following C code was generated by barectf {version}
+ * on {date}.
+ *
+ * For more details, see <https://github.com/efficios/barectf>.
+ */
 
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 
-#include "{prefix}_bitfield.h"
+#include "{header_filename}"
 
-/* barectf contexts */
-{barectf_ctx}
-
-/* barectf error codes */
-#define E{ucprefix}_OK 0
-#define E{ucprefix}_NOSPC 1
-
-/* alignment macro */
-#define {ucprefix}_ALIGN_OFFSET(_at, _align) \\
-	do {{ \\
-		_at = ((_at) + (_align - 1)) & -_align; \\
+#define _ALIGN(_at, _align)				\\
+	do {{						\\
+		(_at) = ((_at) + ((_align) - 1)) & -(_align);	\\
 	}} while (0)
 
-/* buffer overflow check macro */
-#define {ucprefix}_CHK_OFFSET_V(_at, _bufsize, _size) \\
-	do {{ \\
-		if ((_at) + (_size) > (_bufsize)) {{ \\
-			_at = ctx_at_begin; \\
-			return -E{ucprefix}_NOSPC; \\
-		}} \\
-	}} while (0)
+#define _BITS_TO_BYTES(_x)	((_x) >> 3)
+#define _BYTES_TO_BITS(_x)	((_x) << 3)
 
-/* generated functions follow */
-{functions}
+uint32_t {prefix}packet_size(void *ctx)
+{{
+	return ((struct {prefix}ctx *) ctx)->packet_size;
+}}
 
-#endif /* _{ucprefix}_H */
-"""
+int {prefix}packet_is_full(void *ctx)
+{{
+	struct {prefix}ctx *cctx = ctx;
 
-CSRC = """#include <stdint.h>
-#include <string.h>
+	return cctx->at == cctx->packet_size;
+}}
 
-#include "{prefix}.h"
+int {prefix}packet_is_empty(void *ctx)
+{{
+	struct {prefix}ctx *cctx = ctx;
 
-{functions}
-"""
+	return cctx->at <= cctx->off_content;
+}}
 
-BITFIELD = """#ifndef _$PREFIX$_BITFIELD_H
-#define _$PREFIX$_BITFIELD_H
+uint32_t {prefix}packet_events_discarded(void *ctx)
+{{
+	return ((struct {prefix}ctx *) ctx)->events_discarded;
+}}
+
+uint8_t *{prefix}packet_buf(void *ctx)
+{{
+	return ((struct {prefix}ctx *) ctx)->buf;
+}}
+
+uint32_t {prefix}packet_buf_size(void *ctx)
+{{
+	return _BITS_TO_BYTES(((struct {prefix}ctx *) ctx)->packet_size);
+}}
+
+void {prefix}packet_set_buf(void *ctx, uint8_t *buf, uint32_t buf_size)
+{{
+	struct {prefix}ctx *{prefix}ctx = ctx;
+
+	{prefix}ctx->buf = buf;
+	{prefix}ctx->packet_size = _BYTES_TO_BITS(buf_size);
+}}
+
+int {prefix}packet_is_open(void *ctx)
+{{
+	return ((struct {prefix}ctx *) ctx)->packet_is_open;
+}}
+
+static
+void _write_cstring(struct barectf_ctx *ctx, const char *src)
+{{
+	uint32_t sz = strlen(src) + 1;
+
+	memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], src, sz);
+	ctx->at += _BYTES_TO_BITS(sz);
+}}
+
+static inline
+int _packet_is_full(struct {prefix}ctx *ctx)
+{{
+	return {prefix}packet_is_full(ctx);
+}}
+
+static
+int _reserve_event_space(struct {prefix}ctx *ctx, uint32_t ev_size)
+{{
+	/* event _cannot_ fit? */
+	if (ev_size > (ctx->packet_size - ctx->off_content)) {{
+		ctx->events_discarded++;
+
+		return 0;
+	}}
+
+	/* packet is full? */
+	if ({prefix}packet_is_full(ctx)) {{
+		/* yes: is back-end full? */
+		if (ctx->cbs.is_backend_full(ctx->data)) {{
+			/* yes: discard event */
+			ctx->events_discarded++;
+
+			return 0;
+		}}
+
+		/* back-end is not full: open new packet */
+		ctx->cbs.open_packet(ctx->data);
+	}}
+
+	/* event fits the current packet? */
+	if (ev_size > (ctx->packet_size - ctx->at)) {{
+		/* no: close packet now */
+		ctx->cbs.close_packet(ctx->data);
+
+		/* is back-end full? */
+		if (ctx->cbs.is_backend_full(ctx->data)) {{
+			/* yes: discard event */
+			ctx->events_discarded++;
+
+			return 0;
+		}}
+
+		/* back-end is not full: open new packet */
+		ctx->cbs.open_packet(ctx->data);
+		assert(ev_size <= (ctx->packet_size - ctx->at));
+	}}
+
+	return 1;
+}}
+
+static
+void _commit_event(struct {prefix}ctx *ctx)
+{{
+	/* is packet full? */
+	if ({prefix}packet_is_full(ctx)) {{
+		/* yes: close it now */
+		ctx->cbs.close_packet(ctx->data);
+	}}
+}}'''
+
+
+_BITFIELD = '''#ifndef _$PREFIX$BITFIELD_H
+#define _$PREFIX$BITFIELD_H
 
 /*
  * BabelTrace
@@ -116,13 +400,13 @@ BITFIELD = """#ifndef _$PREFIX$_BITFIELD_H
 #include <stdint.h>	/* C99 5.2.4.2 Numerical limits */
 #include <limits.h>
 
-#define $PREFIX$_BYTE_ORDER $ENDIAN_DEF$
+#define $PREFIX$BYTE_ORDER $ENDIAN_DEF$
 
 /* We can't shift a int from 32 bit, >> 32 and << 32 on int is undefined */
-#define _$prefix$_bt_piecewise_rshift(_v, _shift)				\\
+#define _$prefix$bt_piecewise_rshift(_v, _shift) \\
 ({									\\
-	typeof(_v) ___v = (_v);						\\
-	typeof(_shift) ___shift = (_shift);				\\
+	__typeof__(_v) ___v = (_v);					\\
+	__typeof__(_shift) ___shift = (_shift);				\\
 	unsigned long sb = (___shift) / (sizeof(___v) * CHAR_BIT - 1);	\\
 	unsigned long final = (___shift) % (sizeof(___v) * CHAR_BIT - 1); \\
 									\\
@@ -131,10 +415,10 @@ BITFIELD = """#ifndef _$PREFIX$_BITFIELD_H
 	___v >>= final;							\\
 })
 
-#define _$prefix$_bt_piecewise_lshift(_v, _shift)				\\
+#define _$prefix$bt_piecewise_lshift(_v, _shift) \\
 ({									\\
-	typeof(_v) ___v = (_v);						\\
-	typeof(_shift) ___shift = (_shift);				\\
+	__typeof__(_v) ___v = (_v);					\\
+	__typeof__(_shift) ___shift = (_shift);				\\
 	unsigned long sb = (___shift) / (sizeof(___v) * CHAR_BIT - 1);	\\
 	unsigned long final = (___shift) % (sizeof(___v) * CHAR_BIT - 1); \\
 									\\
@@ -143,9 +427,9 @@ BITFIELD = """#ifndef _$PREFIX$_BITFIELD_H
 	___v <<= final;							\\
 })
 
-#define _$prefix$_bt_is_signed_type(type)	((type) -1 < (type) 0)
+#define _$prefix$bt_is_signed_type(type)	((type) -1 < (type) 0)
 
-#define _$prefix$_bt_unsigned_cast(type, v)					\\
+#define _$prefix$bt_unsigned_cast(type, v) \\
 ({									\\
 	(sizeof(v) < sizeof(type)) ?					\\
 		((type) (v)) & (~(~(type) 0 << (sizeof(v) * CHAR_BIT))) : \\
@@ -153,7 +437,7 @@ BITFIELD = """#ifndef _$PREFIX$_BITFIELD_H
 })
 
 /*
- * $prefix$_bt_bitfield_write - write integer to a bitfield in native endianness
+ * $prefix$bt_bitfield_write - write integer to a bitfield in native endianness
  *
  * Save integer to the bitfield, which starts at the "start" bit, has "len"
  * bits.
@@ -170,9 +454,9 @@ BITFIELD = """#ifndef _$PREFIX$_BITFIELD_H
  * Also, consecutive bitfields are placed from higher to lower bits.
  */
 
-#define _$prefix$_bt_bitfield_write_le(_ptr, type, _start, _length, _v)		\\
+#define _$prefix$bt_bitfield_write_le(_ptr, type, _start, _length, _v) \\
 do {									\\
-	typeof(_v) __v = (_v);						\\
+	__typeof__(_v) __v = (_v);					\\
 	type *__ptr = (void *) (_ptr);					\\
 	unsigned long __start = (_start), __length = (_length);		\\
 	type mask, cmask;						\\
@@ -189,7 +473,7 @@ do {									\\
 									\\
 	/* Trim v high bits */						\\
 	if (__length < sizeof(__v) * CHAR_BIT)				\\
-		__v &= ~((~(typeof(__v)) 0) << __length);		\\
+		__v &= ~((~(__typeof__(__v)) 0) << __length);		\\
 									\\
 	/* We can now append v with a simple "or", shift it piece-wise */ \\
 	this_unit = start_unit;						\\
@@ -210,13 +494,13 @@ do {									\\
 		cmask &= ~mask;						\\
 		__ptr[this_unit] &= mask;				\\
 		__ptr[this_unit] |= cmask;				\\
-		__v = _$prefix$_bt_piecewise_rshift(__v, ts - cshift);		\\
+		__v = _$prefix$bt_piecewise_rshift(__v, ts - cshift); \\
 		__start += ts - cshift;					\\
 		this_unit++;						\\
 	}								\\
 	for (; this_unit < end_unit - 1; this_unit++) {			\\
 		__ptr[this_unit] = (type) __v;				\\
-		__v = _$prefix$_bt_piecewise_rshift(__v, ts);			\\
+		__v = _$prefix$bt_piecewise_rshift(__v, ts); \\
 		__start += ts;						\\
 	}								\\
 	if (end % ts) {							\\
@@ -229,9 +513,9 @@ do {									\\
 		__ptr[this_unit] = (type) __v;				\\
 } while (0)
 
-#define _$prefix$_bt_bitfield_write_be(_ptr, type, _start, _length, _v)		\\
+#define _$prefix$bt_bitfield_write_be(_ptr, type, _start, _length, _v) \\
 do {									\\
-	typeof(_v) __v = (_v);						\\
+	__typeof__(_v) __v = (_v);					\\
 	type *__ptr = (void *) (_ptr);					\\
 	unsigned long __start = (_start), __length = (_length);		\\
 	type mask, cmask;						\\
@@ -248,7 +532,7 @@ do {									\\
 									\\
 	/* Trim v high bits */						\\
 	if (__length < sizeof(__v) * CHAR_BIT)				\\
-		__v &= ~((~(typeof(__v)) 0) << __length);		\\
+		__v &= ~((~(__typeof__(__v)) 0) << __length);		\\
 									\\
 	/* We can now append v with a simple "or", shift it piece-wise */ \\
 	this_unit = end_unit - 1;					\\
@@ -269,13 +553,13 @@ do {									\\
 		cmask &= ~mask;						\\
 		__ptr[this_unit] &= mask;				\\
 		__ptr[this_unit] |= cmask;				\\
-		__v = _$prefix$_bt_piecewise_rshift(__v, cshift);		\\
+		__v = _$prefix$bt_piecewise_rshift(__v, cshift); \\
 		end -= cshift;						\\
 		this_unit--;						\\
 	}								\\
 	for (; (long) this_unit >= (long) start_unit + 1; this_unit--) { \\
 		__ptr[this_unit] = (type) __v;				\\
-		__v = _$prefix$_bt_piecewise_rshift(__v, ts);			\\
+		__v = _$prefix$bt_piecewise_rshift(__v, ts); \\
 		end -= ts;						\\
 	}								\\
 	if (__start % ts) {						\\
@@ -289,62 +573,31 @@ do {									\\
 } while (0)
 
 /*
- * $prefix$_bt_bitfield_write - write integer to a bitfield in native endianness
- * $prefix$_bt_bitfield_write_le - write integer to a bitfield in little endian
- * $prefix$_bt_bitfield_write_be - write integer to a bitfield in big endian
+ * $prefix$bt_bitfield_write_le - write integer to a bitfield in little endian
+ * $prefix$bt_bitfield_write_be - write integer to a bitfield in big endian
  */
 
-#if ($PREFIX$_BYTE_ORDER == LITTLE_ENDIAN)
+#if ($PREFIX$BYTE_ORDER == LITTLE_ENDIAN)
 
-#define $prefix$_bt_bitfield_write(ptr, type, _start, _length, _v)		\\
-	_$prefix$_bt_bitfield_write_le(ptr, type, _start, _length, _v)
+#define $prefix$bt_bitfield_write_le(ptr, type, _start, _length, _v) \\
+	_$prefix$bt_bitfield_write_le(ptr, type, _start, _length, _v)
 
-#define $prefix$_bt_bitfield_write_le(ptr, type, _start, _length, _v)		\\
-	_$prefix$_bt_bitfield_write_le(ptr, type, _start, _length, _v)
+#define $prefix$bt_bitfield_write_be(ptr, type, _start, _length, _v) \\
+	_$prefix$bt_bitfield_write_be(ptr, unsigned char, _start, _length, _v)
 
-#define $prefix$_bt_bitfield_write_be(ptr, type, _start, _length, _v)		\\
-	_$prefix$_bt_bitfield_write_be(ptr, unsigned char, _start, _length, _v)
+#elif ($PREFIX$BYTE_ORDER == BIG_ENDIAN)
 
-#elif ($PREFIX$_BYTE_ORDER == BIG_ENDIAN)
+#define $prefix$bt_bitfield_write_le(ptr, type, _start, _length, _v) \\
+	_$prefix$bt_bitfield_write_le(ptr, unsigned char, _start, _length, _v)
 
-#define $prefix$_bt_bitfield_write(ptr, type, _start, _length, _v)		\\
-	_$prefix$_bt_bitfield_write_be(ptr, type, _start, _length, _v)
+#define $prefix$bt_bitfield_write_be(ptr, type, _start, _length, _v) \\
+	_$prefix$bt_bitfield_write_be(ptr, type, _start, _length, _v)
 
-#define $prefix$_bt_bitfield_write_le(ptr, type, _start, _length, _v)		\\
-	_$prefix$_bt_bitfield_write_le(ptr, unsigned char, _start, _length, _v)
-
-#define $prefix$_bt_bitfield_write_be(ptr, type, _start, _length, _v)		\\
-	_$prefix$_bt_bitfield_write_be(ptr, type, _start, _length, _v)
-
-#else /* ($PREFIX$_BYTE_ORDER == PDP_ENDIAN) */
+#else /* ($PREFIX$BYTE_ORDER == PDP_ENDIAN) */
 
 #error "Byte order not supported"
 
 #endif
 
-static
-void $prefix$_write_integer_signed_le(void *ptr, uint32_t at, uint32_t len, int64_t v)
-{
-	$prefix$_bt_bitfield_write_le(ptr, uint8_t, at, len, v);
-}
-
-static
-void $prefix$_write_integer_unsigned_le(void *ptr, uint32_t at, uint32_t len, uint64_t v)
-{
-	$prefix$_bt_bitfield_write_le(ptr, uint8_t, at, len, v);
-}
-
-static
-void $prefix$_write_integer_signed_be(void *ptr, uint32_t at, uint32_t len, int64_t v)
-{
-	$prefix$_bt_bitfield_write_be(ptr, uint8_t, at, len, v);
-}
-
-static
-void $prefix$_write_integer_unsigned_be(void *ptr, uint32_t at, uint32_t len, uint64_t v)
-{
-	$prefix$_bt_bitfield_write_be(ptr, uint8_t, at, len, v);
-}
-
-#endif /* _$PREFIX$_BITFIELD_H */
-"""
+#endif /* _$PREFIX$BITFIELD_H */
+'''

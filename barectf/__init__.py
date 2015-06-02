@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2014-2015 Philippe Proulx <philippe.proulx@efficios.com>
+# Copyright (c) 2014-2015 Philippe Proulx <pproulx@efficios.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,4 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__version__ = '0.3.1'
+__version__ = '2.0.0-dev'
+
+
+def _split_version_suffix():
+    return __version__.split('-')
+
+
+def get_version_tuple():
+    version, suffix = _split_version_suffix()
+    parts = version.split('.')
+
+    return (int(parts[0]), int(parts[1]), int(parts[2]))
+
+
+def get_version_suffix():
+    return _split_version_suffix()[1]

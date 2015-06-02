@@ -1,0 +1,149 @@
+version: '2.0'
+metadata:
+  type-aliases:
+    uint8:
+      class: integer
+      size: 8
+    uint6:
+      class: integer
+      size: 6
+    uint16:
+      class: integer
+      size: 16
+    uint32:
+      class: integer
+      size: 32
+    uint64:
+      class: integer
+      size: 64
+    int8:
+      inherit: uint8
+      signed: true
+    int16:
+      inherit: int8
+      size: 16
+    int32:
+      inherit: int8
+      size: 32
+    int64:
+      inherit: int8
+      size: 64
+    float:
+      class: floating-point
+      size:
+        exp: 8
+        mant: 24
+      align: 32
+    double:
+      class: floating-point
+      size:
+        exp: 11
+        mant: 53
+      align: 64
+    byte: uint8
+    uuid:
+      class: array
+      length: 16
+      element-type: byte
+    clock_int:
+      inherit: uint64
+      property-mappings:
+        - type: clock
+          name: default
+          property: value
+    state:
+      class: enum
+      value-type: uint8
+      members:
+        - NEW
+        - TERMINATED
+        - READY
+        - RUNNING
+        - WAITING
+    str:
+      class: string
+  log-levels:
+    EMERG: 0
+    ALERT: 1
+    CRIT: 2
+    ERR: 3
+    WARNING: 4
+    NOTICE: 5
+    INFO: 6
+    DEBUG_SYSTEM: 7
+    DEBUG_PROGRAM: 8
+    DEBUG_PROCESS: 9
+    DEBUG_MODULE: 10
+    DEBUG_UNIT: 11
+    DEBUG_FUNCTION: 12
+    DEBUG_LINE: 13
+    DEBUG: 14
+  clocks:
+    default:
+      freq: 1000000000
+      offset:
+        seconds: 1434580186
+      return-ctype: uint64_t
+  trace:
+    byte-order: le
+    uuid: auto
+    packet-header-type:
+      class: struct
+      min-align: 8
+      fields:
+        magic: uint32
+        uuid: uuid
+        stream_id: uint8
+  streams:
+    default:
+      packet-context-type:
+        class: struct
+        fields:
+          timestamp_begin: clock_int
+          timestamp_end: clock_int
+          packet_size: uint32
+          content_size: uint32
+          events_discarded: uint32
+          row: uint6
+          col: uint6
+      event-header-type:
+        class: struct
+        fields:
+          timestamp: clock_int
+          id: uint16
+      events:
+        bit_packed_integers:
+          payload-type:
+            class: struct
+            min-align: 8
+            fields:
+              uint1:
+                inherit: uint8
+                size: 1
+                align: 1
+              int1:
+                inherit: int8
+                size: 1
+                align: 1
+              uint2:
+                inherit: uint8
+                size: 2
+                align: 1
+              int3:
+                inherit: int8
+                size: 3
+                align: 1
+              uint4:
+                inherit: uint8
+                size: 4
+                align: 1
+              int5:
+                inherit: int8
+                size: 5
+                align: 1
+        string_and_float:
+          payload-type:
+            class: struct
+            fields:
+              the_string: str
+              the_float: float

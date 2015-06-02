@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2014 Philippe Proulx <philippe.proulx@efficios.com>
+# Copyright (c) 2014-2015 Philippe Proulx <pproulx@efficios.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,46 +21,40 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-import os
-import sys
-import subprocess
+
 from setuptools import setup
+import sys
 
 
-# make sure we run Python 3+ here
-v = sys.version_info
+def _check_python3():
+  # make sure we run Python 3+ here
+  v = sys.version_info
 
-if v.major < 3:
-    sys.stderr.write('Sorry, barectf needs Python 3\n')
-    sys.exit(1)
-
-
-install_requires = [
-    'termcolor',
-    'pytsdl',
-]
+  if v.major < 3:
+      sys.stderr.write('Sorry, barectf needs Python 3\n')
+      sys.exit(1)
 
 
-packages = [
-    'barectf',
-]
-
-
-entry_points = {
-    'console_scripts': [
-        'barectf = barectf.cli:run'
-    ],
-}
+_check_python3()
 
 
 setup(name='barectf',
-      version='0.3.1',
+      version='2.0.0',
       description='Generator of C99 code that can write native CTF',
       author='Philippe Proulx',
       author_email='eeppeliteloop@gmail.com',
       license='MIT',
       keywords='ctf generator tracing bare-metal bare-machine',
       url='https://github.com/efficios/barectf',
-      packages=packages,
-      install_requires=install_requires,
-      entry_points=entry_points)
+      packages=[
+          'barectf',
+      ],
+      install_requires=[
+          'termcolor',
+          'pyyaml',
+      ],
+      entry_points={
+          'console_scripts': [
+              'barectf = barectf.cli:run'
+          ],
+      })
