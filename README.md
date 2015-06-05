@@ -37,7 +37,7 @@ barectf is written in Python 3 and currently uses
 provided by the user.
 
 
-installing
+Installing
 ----------
 
 Make sure you have `pip` for Python 3. On the latest Ubuntu releases,
@@ -56,7 +56,7 @@ Install barectf:
     sudo pip3 install barectf
 
 
-using
+Using
 -----
 
 Using barectf involves:
@@ -73,7 +73,7 @@ Also, have a look at the [`doc/examples`](doc/examples) directory which
 contains a few complete examples.
 
 
-### writing the CTF metadata
+### Writing the CTF metadata
 
 The **Common Trace Format** is a specialized file format for recording
 trace data. CTF is designed to be very fast to write and very flexible.
@@ -318,7 +318,7 @@ The following subsections describe the features of CTF metadata supported
 by barectf.
 
 
-#### types
+#### Types
 
 The supported structure field types are:
 
@@ -336,7 +336,7 @@ but barectf **does not**. Any detected variant will throw an error when
 running `barectf`.
 
 
-##### integers
+##### Integers
 
 CTF integers are defined like this:
 
@@ -397,7 +397,7 @@ when defining the integer used to carry the value of a specified
 clock. You may always follow the example above.
 
 
-##### floating point numbers
+##### Floating point numbers
 
 CTF floating point numbers are defined like this:
 
@@ -432,7 +432,7 @@ will produce a `uint64_t` function parameter (you will need to cast your
 custom floating point number to this when calling the tracing function).
 
 
-##### strings
+##### Strings
 
 CTF strings are pretty simple to define:
 
@@ -457,7 +457,7 @@ until a byte of value 0 is found (which will also be written to the
 buffer to mark the end of the recorded string).
 
 
-##### enumerations
+##### Enumerations
 
 CTF enumerations associate labels to ranges of integer values. They
 are a great way to trace named states using an integer. Here's an
@@ -486,7 +486,7 @@ A CTF enumeration field will make barectf produce a corresponding C
 integer function parameter compatible with the associated CTF integer type.
 
 
-##### static arrays
+##### Static arrays
 
 Structure field names may be followed by a subscripted constant to
 define a static array of the field type:
@@ -520,7 +520,7 @@ as long as the very first 5-bit, 1-bit aligned integer element starts
 on an 8-bit boundary.
 
 
-##### dynamic arrays
+##### Dynamic arrays
 
 Just like static arrays, dynamic arrays are defined using a subscripted
 length, albeit in this case, this length refers to another field using
@@ -583,7 +583,7 @@ barectf has a few limitations concerning dynamic arrays:
     with a native byte order.
 
 
-##### structures
+##### Structures
 
 Structures contain fields associating a name to a type. The fields
 are recorded in the specified order within the CTF binary stream.
@@ -698,7 +698,7 @@ it fast to record. Bits will be unpacked properly and values displayed
 in a human-readable form by the CTF reader thanks to the CTF metadata.
 
 
-#### type aliases
+#### Type aliases
 
 Type aliases associate a name with a type definition. Any type may have
 any name. They are similar to C `typedef`s.
@@ -752,7 +752,7 @@ typealias struct {
 ```
 
 
-### running the `barectf` command
+### Running the `barectf` command
 
 Using the `barectf` command-line utility is easy. In its simplest form,
 it outputs a few C99 files out of a CTF metadata file:
@@ -779,7 +779,7 @@ You may also output the files elsewhere:
 
     barectf --output /custom/path metadata
 
-### using the generated C99 code
+### Using the generated C99 code
 
 This section assumes you ran `barectf` with no options:
 
@@ -877,7 +877,7 @@ CTF packet, as long as you call `barectf_open_packet()` before calling any
 tracing function.
 
 
-### reading CTF traces
+### Reading CTF traces
 
 To form a complete CTF trace, put your CTF metadata file (it should be
 named `metadata`) and your binary stream files (concatenations of CTF
