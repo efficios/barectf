@@ -361,7 +361,7 @@ class BarectfCodeGenerator:
             try:
                 self._validate_integer(fields['content_size'], 64, 64, False)
             except:
-                _perror('stream {}: packet context: "content_size": expecting unsigned 32-bit/64-bit integer'.format(sid))
+                _perror('stream {}: packet context: "content_size": expecting a 32-bit-aligned 32-bit integer, or a 64-bit-aligned 64-bit integer'.format(sid))
 
         # packet_size must exist and be an unsigned integer
         if 'packet_size' not in fields:
@@ -373,7 +373,7 @@ class BarectfCodeGenerator:
             try:
                 self._validate_integer(fields['packet_size'], 64, 64, False)
             except:
-                _perror('stream {}: packet context: "packet_size": expecting unsigned 32-bit/64-bit integer'.format(sid))
+                _perror('stream {}: packet context: "packet_size": expecting a 32-bit-aligned 32-bit integer, or a 64-bit-aligned 64-bit integer'.format(sid))
 
         # if cpu_id exists, must be an unsigned integer
         if 'cpu_id' in fields:
