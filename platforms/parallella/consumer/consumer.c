@@ -40,7 +40,6 @@
 
 #include "barectf-platform-parallella-common.h"
 
-#define TARGET_EXECUTABLE_FILENAME	"./e_barectf_tracing_2.srec"
 #define mb()		__asm__ __volatile__("dmb" : : : "memory")
 
 struct ctx {
@@ -101,8 +100,8 @@ static int try_consume_core_packet(struct ctx *ctx, unsigned int row,
 	if (ctx->verbose) {
 		printf("Consuming one packet from ring buffer of core (%u, %u):\n",
 			row, col);
-		printf("  Producer index:	%u\n", producer_index);
-		printf("  Consumer index:	%u\n", consumer_index);
+		printf("  Producer index:	 %u\n", producer_index);
+		printf("  Consumer index:	 %u\n", consumer_index);
 		printf("  Consumer packet index: %u\n", cons_packet_index);
 	}
 
@@ -193,7 +192,8 @@ static void close_stream_fds(struct ctx *ctx)
 
 			if (close(fd) == -1) {
 				fprintf(stderr,
-					"Error: could not close FD %d:\n", fd);
+					"Warning: could not close FD %d:\n",
+					fd);
 				perror("close");
 			}
 
@@ -276,7 +276,7 @@ static int init(struct ctx *ctx)
 
 	if (ret != E_OK) {
 		if (ctx->verbose) {
-			printf("Attaching to shared memory region \"%s\"\n",
+			printf("Allocation failed; attaching to shared memory region \"%s\"\n",
 				SMEM_NAME);
 		}
 
@@ -299,7 +299,7 @@ static int init(struct ctx *ctx)
 	init_stream_fds(ctx);
 
 	if (open_stream_fds(ctx)) {
-		fprintf(stderr, "Error: failed to create CTF streams\n");
+		fprintf(stderr, "Error: failed to create CTF stream files\n");
 		ret = -1;
 		goto error_finalize;
 	}
