@@ -230,6 +230,9 @@ int tracing_init(void)
 	/* open first packet */
 	open_packet(&g_tracing_ctx);
 
+	/* acknowledge initalization */
+	g_tracing_ctx.initialized = 1;
+
 	return 0;
 }
 
