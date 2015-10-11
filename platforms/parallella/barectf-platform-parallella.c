@@ -76,7 +76,7 @@ static uint64_t get_clock(void* data)
 {
 	struct tracing_ctx *tracing_ctx = data;
 
-	uint64_t low = (uint64_t) ((uint32_t) -e_ctimer_get(E_CTIMER_1));
+	uint64_t low = (uint64_t) ((uint32_t)(E_CTIMER_MAX-e_ctimer_get(E_CTIMER_1)));
 
 	return tracing_ctx->clock_high | low;
 }
@@ -85,7 +85,7 @@ static int is_backend_full(void *data)
 {
 	struct tracing_ctx *tracing_ctx = data;
 	int check_shared = 0;
-	int full;
+	int full = 0;
 
 	/* are we in a back-end checking waiting period? */
 	if (tracing_ctx->backend_wait_period) {
@@ -141,7 +141,7 @@ static void close_packet(void *data)
 	 * buffer) for this packet, so "upload" it to shared memory now.
 	 */
 	index = get_prod_index(tracing_ctx) & (RINGBUF_SZ - 1);
-	dst = (void *) tracing_ctx->ringbuf->packets[index];
+	dst = (void *) &(tracing_ctx->ringbuf->packets[index]);
 	memcpy(dst, tracing_ctx->local_packet, PACKET_SZ);
 
 	/* update producer index after copy */
@@ -229,6 +229,9 @@ int tracing_init(void)
 
 	/* open first packet */
 	open_packet(&g_tracing_ctx);
+
+	/* acknowledge initialization */
+	g_tracing_ctx.initialized = 1;
 
 	return 0;
 }
