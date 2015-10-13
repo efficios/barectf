@@ -76,7 +76,8 @@ static uint64_t get_clock(void* data)
 {
 	struct tracing_ctx *tracing_ctx = data;
 
-	uint64_t low = (uint64_t) ((uint32_t)(E_CTIMER_MAX-e_ctimer_get(E_CTIMER_1)));
+	uint64_t low = (uint64_t)
+		((uint32_t) (E_CTIMER_MAX - e_ctimer_get(E_CTIMER_1)));
 
 	return tracing_ctx->clock_high | low;
 }
