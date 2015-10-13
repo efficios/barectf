@@ -86,7 +86,7 @@ static int is_backend_full(void *data)
 {
 	struct tracing_ctx *tracing_ctx = data;
 	int check_shared = 0;
-	int full = 0;
+	int full;
 
 	/* are we in a back-end checking waiting period? */
 	if (tracing_ctx->backend_wait_period) {
