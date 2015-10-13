@@ -142,7 +142,7 @@ static void close_packet(void *data)
 	 * buffer) for this packet, so "upload" it to shared memory now.
 	 */
 	index = get_prod_index(tracing_ctx) & (RINGBUF_SZ - 1);
-	dst = (void *) &(tracing_ctx->ringbuf->packets[index]);
+	dst = (void *) &(tracing_ctx->ringbuf->packets[index][0]);
 	memcpy(dst, tracing_ctx->local_packet, PACKET_SZ);
 
 	/* update producer index after copy */
