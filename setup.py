@@ -38,8 +38,11 @@ def _check_python3():
 _check_python3()
 
 
+import barectf
+
+
 setup(name='barectf',
-      version='2.0.0',
+      version=barectf.__version__,
       description='Generator of C99 code that can write native CTF',
       author='Philippe Proulx',
       author_email='eeppeliteloop@gmail.com',
