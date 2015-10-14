@@ -1,5 +1,7 @@
 # barectf
 
+[![](https://img.shields.io/pypi/v/barectf.svg)](https://pypi.python.org/pypi/barectf)
+
 **barectf** is a command-line utility which generates pure C99
 code that is able to write native [Common Trace Format](http://diamon.org/ctf)
 (CTF) binary streams.
