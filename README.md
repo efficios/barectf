@@ -91,7 +91,7 @@ installing globally).
 
 **Arch Linux**:
 
-    sudo install python-pip
+    sudo pacman -S python-pip
     sudo pip install barectf
 
 **OS X**
