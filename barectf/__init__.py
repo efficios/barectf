@@ -24,7 +24,14 @@ __version__ = '2.0.1'
 
 
 def _split_version_suffix():
-    return __version__.split('-')
+    parts = __version__.split('-')
+    version = parts[0]
+    suffix = None
+
+    if len(parts) == 2:
+        suffix = parts[1]
+
+    return version, suffix
 
 
 def get_version_tuple():
