@@ -55,6 +55,13 @@ As of this version:
     synchronization mechanism is used.
   * CTF compound types (array, sequence, structure, variant) are not supported
     yet, except at some very specific locations in the metadata.
+  * The current generated C code is not strictly C99 compliant:
+    [statement expressions](https://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html)
+    and the
+    [`typeof` keyword](https://gcc.gnu.org/onlinedocs/gcc/Typeof.html)
+    GCC extensions are used in the generated bitfield macros. The
+    generated C code is known to be compiled with no warnings using
+    both GCC and Clang.
 
 barectf is written in Python 3.
 
