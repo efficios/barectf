@@ -1,4 +1,4 @@
-version: '2.0'
+version: '2.1'
 metadata:
   type-aliases:
     uint8:
@@ -78,7 +78,7 @@ metadata:
       freq: 1000000000
       offset:
         seconds: 1434072888
-      return-ctype: uint64_t
+      $return-ctype: uint64_t
   trace:
     byte-order: le
     uuid: auto

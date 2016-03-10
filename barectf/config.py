@@ -1704,8 +1704,7 @@ class _YamlConfigParser:
     def _create_clock(self, node):
         # create clock object
         clock = metadata.Clock()
-
-        unk_prop = _get_first_unknown_prop(node, [
+        known_props = [
             'uuid',
             'description',
             'freq',
@@ -1713,7 +1712,12 @@ class _YamlConfigParser:
             'offset',
             'absolute',
             'return-ctype',
-        ])
+        ]
+
+        if self._version >= 201:
+            known_props.append('$return-ctype')
+
+        unk_prop = _get_first_unknown_prop(node, known_props)
 
         if unk_prop:
             raise ConfigError('unknown clock object property: "{}"'.format(unk_prop))
@@ -1810,14 +1814,29 @@ class _YamlConfigParser:
 
             clock.absolute = absolute
 
-        # return C type
-        if 'return-ctype' in node:
-            ctype = node['return-ctype']
+        # return C type:
+        #   v2.0:  "return-ctype"
+        #   v2.1+: "$return-ctype"
+        return_ctype_node = None
 
-            if not _is_str_prop(ctype):
-                raise ConfigError('"return-ctype" property of clock object must be a string')
+        if self._version >= 200:
+            if 'return-ctype' in node:
+                return_ctype_prop = 'return-ctype'
+                return_ctype_node = node[return_ctype_prop]
 
-            clock.return_ctype = ctype
+        if self._version >= 201:
+            if '$return-ctype' in node:
+                if return_ctype_node is not None:
+                    raise ConfigError('cannot specify both "return-ctype" and "$return-ctype" properties of clock object: prefer "$return-ctype"')
+
+                return_ctype_prop = '$return-ctype'
+                return_ctype_node = node[return_ctype_prop]
+
+        if return_ctype_node is not None:
+            if not _is_str_prop(return_ctype_node):
+                raise ConfigError('"{}" property of clock object must be a string'.format(return_ctype_prop))
+
+            clock.return_ctype = return_ctype_node
 
         return clock
 

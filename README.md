@@ -346,7 +346,7 @@ clocks:
     freq: 1000000000
     offset:
       seconds: 1434072888
-    return-ctype: uint64_t
+    $return-ctype: uint64_t
 env:
   my_system_version: '0.3.2-2015.03'
   bID: 15
@@ -407,9 +407,9 @@ A CTF clock.
 | `error-cycles` | Integer (zero or positive) | Error (uncertainty) of clock in clock cycles | Optional | 0 |
 | `offset` | [Clock offset object](#clock-offset-object) | Offset | Optional | Default clock offset object |
 | `absolute` | Boolean | Absolute clock | Optional | `false` |
-| `return-ctype` | String | Return C type of the associated clock callback | Optional | `uint32_t` |
+| `$return-ctype` | String | Return C type of the associated clock callback | Optional | `uint32_t` |
 
-The `return-ctype` property must be set to a valid C integer type
+The `$return-ctype` property must be set to a valid C integer type
 (or valid type definition). This is not currently validated by barectf
 itself, but the C compiler will fail to compile the generated C code
 if the clock's return type is not a valid C integer type.
@@ -425,7 +425,7 @@ offset:
   seconds: 1434072888
   cycles: 2003912
 absolute: false
-return-ctype: unsigned long long
+$return-ctype: unsigned long long
 ```
 
 
