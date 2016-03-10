@@ -470,6 +470,14 @@ class Clock:
     def absolute(self, value):
         self._absolute = value
 
+    @property
+    def return_ctype(self):
+        return self._return_ctype
+
+    @return_ctype.setter
+    def return_ctype(self, value):
+        self._return_ctype = value
+
 
 class Event:
     def __init__(self):
