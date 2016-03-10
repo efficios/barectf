@@ -404,7 +404,7 @@ _BITFIELD = '''#ifndef _$PREFIX$BITFIELD_H
 
 /* We can't shift a int from 32 bit, >> 32 and << 32 on int is undefined */
 #define _$prefix$bt_piecewise_rshift(_v, _shift) \\
-({									\\
+__extension__ ({									\\
 	__typeof__(_v) ___v = (_v);					\\
 	__typeof__(_shift) ___shift = (_shift);				\\
 	unsigned long sb = (___shift) / (sizeof(___v) * CHAR_BIT - 1);	\\
@@ -416,7 +416,7 @@ _BITFIELD = '''#ifndef _$PREFIX$BITFIELD_H
 })
 
 #define _$prefix$bt_piecewise_lshift(_v, _shift) \\
-({									\\
+__extension__ ({									\\
 	__typeof__(_v) ___v = (_v);					\\
 	__typeof__(_shift) ___shift = (_shift);				\\
 	unsigned long sb = (___shift) / (sizeof(___v) * CHAR_BIT - 1);	\\
@@ -430,7 +430,7 @@ _BITFIELD = '''#ifndef _$PREFIX$BITFIELD_H
 #define _$prefix$bt_is_signed_type(type)	((type) -1 < (type) 0)
 
 #define _$prefix$bt_unsigned_cast(type, v) \\
-({									\\
+__extension__ ({									\\
 	(sizeof(v) < sizeof(type)) ?					\\
 		((type) (v)) & (~(~(type) 0 << (sizeof(v) * CHAR_BIT))) : \\
 		(type) (v);						\\
