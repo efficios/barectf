@@ -250,6 +250,16 @@ _C_SRC = '''/*
 #define _BITS_TO_BYTES(_x)	((_x) >> 3)
 #define _BYTES_TO_BITS(_x)	((_x) << 3)
 
+union f2u {{
+	float f;
+	uint32_t u;
+}};
+
+union d2u {{
+	double f;
+	uint64_t u;
+}};
+
 uint32_t {prefix}packet_size(void *ctx)
 {{
 	return ((struct {prefix}ctx *) ctx)->packet_size;

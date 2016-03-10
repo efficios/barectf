@@ -103,6 +103,8 @@ class CCodeGenerator:
             metadata.String: self._generate_serialize_string,
         }
         self._saved_byte_offsets = {}
+        self._uf_written = False
+        self._ud_written = False
         self._sasa = _StaticAlignSizeAutomaton()
 
     def _generate_ctx_parent(self):
@@ -417,6 +419,7 @@ class CCodeGenerator:
         self._cg.add_empty_line()
 
     def _generate_func_get_event_size(self, stream, event):
+        self._reset_per_func_state()
         self._generate_func_get_event_size_proto(stream, event)
         tmpl = templates._FUNC_GET_EVENT_SIZE_BODY_BEGIN
         self._cg.add_lines(tmpl)
@@ -468,13 +471,34 @@ class CCodeGenerator:
     def _generate_serialize_float(self, var, ctx, t):
         ctype = self._get_type_ctype(t)
 
-        if ctype == 'float':
-            ctype = 'uint32_t'
-        elif ctype == 'double':
-            ctype = 'uint64_t'
+        if ctype == 'float' or ctype == 'double':
+            gen_union_var = False
 
-        var_casted = '*(({}*) &{})'.format(ctype, var)
-        self._generate_bitfield_write(var_casted, ctx, t)
+            if ctype == 'float':
+                if not self._uf_written:
+                    self._uf_written = True
+                    gen_union_var = True
+
+                union_name = 'f2u'
+            elif ctype == 'double':
+                if not self._ud_written:
+                    self._ud_written = True
+                    gen_union_var = True
+
+                union_name = 'd2u'
+
+            if gen_union_var:
+                # union for reading the bytes of the floating point number
+
+                self._cg.add_line('union {name} {name};'.format(name=union_name))
+                self._cg.add_empty_line()
+
+            self._cg.add_line('{}.f = {};'.format(union_name, var))
+            bf_var = '{}.u'.format(union_name)
+        else:
+            bf_var = '({}) {}'.format(ctype, var)
+
+        self._generate_bitfield_write(bf_var, ctx, t)
         self._generate_incr_pos('{}->at'.format(ctx), t.size)
 
     def _generate_serialize_enum(self, var, ctx, t):
@@ -513,6 +537,7 @@ class CCodeGenerator:
         self._cg.add_empty_line()
 
     def _generate_func_serialize_event(self, stream, event):
+        self._reset_per_func_state()
         self._generate_func_serialize_event_proto(stream, event)
         tmpl = templates._FUNC_SERIALIZE_EVENT_BODY_BEGIN
         self._cg.add_lines(tmpl)
@@ -581,6 +606,7 @@ class CCodeGenerator:
         self._cg.add_lines(tmpl)
 
     def _generate_func_serialize_stream_event_header(self, stream):
+        self._reset_per_func_state()
         self._generate_func_serialize_stream_event_header_proto(stream)
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_HEADER_BODY_BEGIN
         self._cg.add_lines(tmpl)
@@ -617,6 +643,7 @@ class CCodeGenerator:
         self._cg.add_lines(tmpl)
 
     def _generate_func_serialize_stream_event_context(self, stream):
+        self._reset_per_func_state()
         self._generate_func_serialize_stream_event_context_proto(stream)
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_BEGIN
         self._cg.add_lines(tmpl)
@@ -631,6 +658,7 @@ class CCodeGenerator:
         self._cg.add_lines(tmpl)
 
     def _generate_func_trace(self, stream, event):
+        self._reset_per_func_state()
         self._generate_func_trace_proto(stream, event)
         params = self._get_call_event_param_list(stream, event)
         tmpl = templates._FUNC_TRACE_BODY
@@ -638,6 +666,7 @@ class CCodeGenerator:
                                        params=params))
 
     def _generate_func_init(self):
+        self._reset_per_func_state()
         self._generate_func_init_proto()
         tmpl = templates._FUNC_INIT_BODY
         self._cg.add_lines(tmpl.format(prefix=self._cfg.prefix))
@@ -651,12 +680,17 @@ class CCodeGenerator:
     def _restore_byte_offset(self, name):
         self._sasa.byte_offset = self._saved_byte_offsets[name]
 
+    def _reset_per_func_state(self):
+        self._uf_written = False
+        self._ud_written = False
+
     def _generate_func_open(self, stream):
         def generate_save_offset(name):
             tmpl = 'ctx->off_spc_{} = ctx->parent.at;'.format(name)
             self._cg.add_line(tmpl)
             self._save_byte_offset(name)
 
+        self._reset_per_func_state()
         self._generate_func_open_proto(stream)
         tmpl = templates._FUNC_OPEN_BODY_BEGIN
         self._cg.add_lines(tmpl)
@@ -778,6 +812,7 @@ class CCodeGenerator:
             tmpl = 'ctx->parent.at = ctx->off_spc_{};'.format(name)
             self._cg.add_line(tmpl)
 
+        self._reset_per_func_state()
         self._generate_func_close_proto(stream)
         tmpl = templates._FUNC_CLOSE_BODY_BEGIN
         self._cg.add_lines(tmpl)
