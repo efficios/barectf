@@ -2120,10 +2120,16 @@ class _YamlConfigParser:
         if not _is_str_prop(version_node):
             raise ConfigError('"version" property (root) must be a string')
 
-        if version_node != '2.0':
-            raise ConfigError('unsupported version: {}'.format(version_node))
+        version_node = version_node.strip()
 
-        return version_node
+        if version_node not in ['2.0', '2.1']:
+            raise ConfigError('unsupported version ({}): versions 2.0 and 2.1 are supported'.format(version_node))
+
+        # convert version string to comparable version integer
+        parts = version_node.split('.')
+        version = int(parts[0]) * 100 + int(parts[1])
+
+        return version
 
     def _get_prefix(self, root):
         if 'prefix' not in root:
