@@ -323,7 +323,7 @@ type-aliases:
     class: integer
     size: 64
   clock-int:
-    inherit: uint64
+    $inherit: uint64
     property-mappings:
       - type: clock
         name: my_clock
@@ -388,7 +388,7 @@ streams:
           class: struct
           fields:
             value:
-              inherit: uint16
+              $inherit: uint16
               signed: true
 ```
 
@@ -627,8 +627,8 @@ Type objects represent CTF types.
 
 | Property | Type | Description | Required? | Default value |
 |---|---|---|---|---|
-| `class` | String | Type class | Required if `inherit` property is absent | N/A |
-| `inherit` | String | Name of type alias from which to inherit properties | Required if `class` property is absent | N/A |
+| `class` | String | Type class | Required if `$inherit` property is absent | N/A |
+| `$inherit` | String | Name of type alias from which to inherit properties | Required if `class` property is absent | N/A |
 
 The accepted values for the `class` property are:
 
@@ -642,7 +642,7 @@ The accepted values for the `class` property are:
 | `array` | Array/sequence types |
 | `var`<br>`variant` | Variant type |
 
-The `inherit` property accepts the name of any previously defined
+The `$inherit` property accepts the name of any previously defined
 type alias. Any propery in a type object that inherits from another
 type object overrides the parent properties as follows:
 

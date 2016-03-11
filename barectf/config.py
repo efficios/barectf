@@ -187,12 +187,6 @@ def _get_first_unknown_prop(node, known_props):
         return prop_name
 
 
-def _get_first_unknown_type_prop(type_node, known_props):
-    kp = known_props + ['inherit', 'class']
-
-    return _get_first_unknown_prop(type_node, kp)
-
-
 # This validator validates the configured metadata for barectf specific
 # needs.
 #
@@ -1207,12 +1201,20 @@ class _YamlConfigParser:
         mapped_clock = self._clocks[clock_name]
         int_obj.property_mappings.append(metadata.PropertyMapping(mapped_clock, prop))
 
+    def _get_first_unknown_type_prop(self, type_node, known_props):
+        kp = known_props + ['inherit', 'class']
+
+        if self._version >= 201:
+            kp.append('$inherit')
+
+        return _get_first_unknown_prop(type_node, kp)
+
     def _create_integer(self, obj, node):
         if obj is None:
             # create integer object
             obj = metadata.Integer()
 
-        unk_prop = _get_first_unknown_type_prop(node, [
+        unk_prop = self._get_first_unknown_type_prop(node, [
             'size',
             'align',
             'signed',
@@ -1342,7 +1344,7 @@ class _YamlConfigParser:
             # create floating point number object
             obj = metadata.FloatingPoint()
 
-        unk_prop = _get_first_unknown_type_prop(node, [
+        unk_prop = self._get_first_unknown_type_prop(node, [
             'size',
             'align',
             'byte-order',
@@ -1417,7 +1419,7 @@ class _YamlConfigParser:
             # create enumeration object
             obj = metadata.Enum()
 
-        unk_prop = _get_first_unknown_type_prop(node, [
+        unk_prop = self._get_first_unknown_type_prop(node, [
             'value-type',
             'members',
         ])
@@ -1491,7 +1493,7 @@ class _YamlConfigParser:
             # create string object
             obj = metadata.String()
 
-        unk_prop = _get_first_unknown_type_prop(node, [
+        unk_prop = self._get_first_unknown_type_prop(node, [
             'encoding',
         ])
 
@@ -1519,7 +1521,7 @@ class _YamlConfigParser:
             # create structure object
             obj = metadata.Struct()
 
-        unk_prop = _get_first_unknown_type_prop(node, [
+        unk_prop = self._get_first_unknown_type_prop(node, [
             'min-align',
             'fields',
         ])
@@ -1562,7 +1564,7 @@ class _YamlConfigParser:
             # create array object
             obj = metadata.Array()
 
-        unk_prop = _get_first_unknown_type_prop(node, [
+        unk_prop = self._get_first_unknown_type_prop(node, [
             'length',
             'element-type',
         ])
@@ -1596,7 +1598,7 @@ class _YamlConfigParser:
             # create variant object
             obj = metadata.Variant()
 
-        unk_prop = _get_first_unknown_type_prop(node, [
+        unk_prop = self._get_first_unknown_type_prop(node, [
             'tag',
             'types',
         ])
@@ -1647,19 +1649,35 @@ class _YamlConfigParser:
         if not _is_assoc_array_prop(type_node):
             raise ConfigError('type objects must be associative arrays')
 
-        if 'inherit' in type_node and 'class' in type_node:
-            raise ConfigError('cannot specify both "inherit" and "class" properties in type object')
+        # inherit:
+        #   v2.0:  "inherit"
+        #   v2.1+: "$inherit"
+        inherit_node = None
 
-        if 'inherit' in type_node:
-            inherit = type_node['inherit']
+        if self._version >= 200:
+            if 'inherit' in type_node:
+                inherit_prop = 'inherit'
+                inherit_node = type_node[inherit_prop]
 
-            if not _is_str_prop(inherit):
-                raise ConfigError('"inherit" property of type object must be a string')
+        if self._version >= 201:
+            if '$inherit' in type_node:
+                if inherit_node is not None:
+                    raise ConfigError('cannot specify both "inherit" and "$inherit" properties of type object: prefer "$inherit"')
 
-            base = self._lookup_type_alias(inherit)
+                inherit_prop = '$inherit'
+                inherit_node = type_node[inherit_prop]
+
+        if inherit_node is not None and 'class' in type_node:
+            raise ConfigError('cannot specify both "{}" and "class" properties in type object'.format(inherit_prop))
+
+        if inherit_node is not None:
+            if not _is_str_prop(inherit_node):
+                raise ConfigError('"{}" property of type object must be a string'.format(inherit_prop))
+
+            base = self._lookup_type_alias(inherit_node)
 
             if base is None:
-                raise ConfigError('cannot inherit from type alias "{}": type alias does not exist'.format(inherit))
+                raise ConfigError('cannot inherit from type alias "{}": type alias does not exist at this point'.format(inherit_node))
 
             func = self._type_to_create_type_func[type(base)]
         else:

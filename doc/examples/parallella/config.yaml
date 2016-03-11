@@ -17,16 +17,16 @@ metadata:
       class: integer
       size: 64
     int8:
-      inherit: uint8
+      $inherit: uint8
       signed: true
     int16:
-      inherit: int8
+      $inherit: int8
       size: 16
     int32:
-      inherit: int8
+      $inherit: int8
       size: 32
     int64:
-      inherit: int8
+      $inherit: int8
       size: 64
     float:
       class: floating-point
@@ -46,7 +46,7 @@ metadata:
       length: 16
       element-type: byte
     clock_int:
-      inherit: uint64
+      $inherit: uint64
       property-mappings:
         - type: clock
           name: default
@@ -118,27 +118,27 @@ metadata:
             min-align: 8
             fields:
               uint1:
-                inherit: uint8
+                $inherit: uint8
                 size: 1
                 align: 1
               int1:
-                inherit: int8
+                $inherit: int8
                 size: 1
                 align: 1
               uint2:
-                inherit: uint8
+                $inherit: uint8
                 size: 2
                 align: 1
               int3:
-                inherit: int8
+                $inherit: int8
                 size: 3
                 align: 1
               uint4:
-                inherit: uint8
+                $inherit: uint8
                 size: 4
                 align: 1
               int5:
-                inherit: int8
+                $inherit: int8
                 size: 5
                 align: 1
         string_and_float:
