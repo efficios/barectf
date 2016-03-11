@@ -1722,6 +1722,10 @@ class _YamlConfigParser:
     def _create_clock(self, node):
         # create clock object
         clock = metadata.Clock()
+
+        if not _is_assoc_array_prop(env_node):
+            raise ConfigError('clock objects must be associative arrays')
+
         known_props = [
             'uuid',
             'description',
@@ -1933,6 +1937,10 @@ class _YamlConfigParser:
         # create trace object
         trace = metadata.Trace()
         trace_node = metadata_node['trace']
+
+        if not _is_assoc_array_prop(trace_node):
+            raise ConfigError('"trace" property (metadata) must be an associative array')
+
         unk_prop = _get_first_unknown_prop(trace_node, [
             'byte-order',
             'uuid',
@@ -1981,6 +1989,10 @@ class _YamlConfigParser:
 
     def _create_event(self, event_node):
         event = metadata.Event()
+
+        if not _is_assoc_array_prop(event_node):
+            raise ConfigError('event objects must be associative arrays')
+
         unk_prop = _get_first_unknown_prop(event_node, [
             'log-level',
             'context-type',
@@ -1989,9 +2001,6 @@ class _YamlConfigParser:
 
         if unk_prop:
             raise ConfigError('unknown event object property: "{}"'.format(unk_prop))
-
-        if not _is_assoc_array_prop(event_node):
-            raise ConfigError('event objects must be associative arrays')
 
         if 'log-level' in event_node:
             ll = self._lookup_log_level(event_node['log-level'])
@@ -2023,6 +2032,10 @@ class _YamlConfigParser:
 
     def _create_stream(self, stream_node):
         stream = metadata.Stream()
+
+        if not _is_assoc_array_prop(stream_node):
+            raise ConfigError('stream objects must be associative arrays')
+
         unk_prop = _get_first_unknown_prop(stream_node, [
             'packet-context-type',
             'event-header-type',
@@ -2032,9 +2045,6 @@ class _YamlConfigParser:
 
         if unk_prop:
             raise ConfigError('unknown stream object property: "{}"'.format(unk_prop))
-
-        if not _is_assoc_array_prop(stream_node):
-            raise ConfigError('stream objects must be associative arrays')
 
         if 'packet-context-type' in stream_node:
             try:
@@ -2121,6 +2131,9 @@ class _YamlConfigParser:
         if 'metadata' not in root:
             raise ConfigError('missing "metadata" property (root)')
 
+        if not _is_assoc_array_prop(metadata_node):
+            raise ConfigError('"metadata" property (root) must be an associative array')
+
         metadata_node = root['metadata']
         unk_prop = _get_first_unknown_prop(metadata_node, [
             'type-aliases',
@@ -2133,9 +2146,6 @@ class _YamlConfigParser:
 
         if unk_prop:
             raise ConfigError('unknown metadata property: "{}"'.format(unk_prop))
-
-        if not _is_assoc_array_prop(metadata_node):
-            raise ConfigError('"metadata" property (root) must be an associative array')
 
         self._set_byte_order(metadata_node)
         self._register_clocks(metadata_node)
