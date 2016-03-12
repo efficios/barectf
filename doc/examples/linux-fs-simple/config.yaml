@@ -106,6 +106,7 @@ metadata:
           id: uint16
       events:
         simple_uint32:
+          log-level: CRIT
           payload-type:
             class: struct
             fields:
@@ -121,6 +122,7 @@ metadata:
             fields:
               value: float
         simple_string:
+          log-level: WARNING
           payload-type:
             class: struct
             fields:
@@ -142,6 +144,7 @@ metadata:
                 class: string
               state: state
         bit_packed_integers:
+          log-level: 513
           payload-type:
             class: struct
             min-align: 8

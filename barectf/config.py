@@ -2028,10 +2028,17 @@ class _YamlConfigParser:
             raise ConfigError('unknown event object property: "{}"'.format(unk_prop))
 
         if 'log-level' in event_node:
-            ll = self._lookup_log_level(event_node['log-level'])
+            ll_node = event_node['log-level']
 
-            if ll is None:
-                raise ConfigError('invalid "log-level" property')
+            if _is_str_prop(ll_node):
+                ll = self._lookup_log_level(event_node['log-level'])
+
+                if ll is None:
+                    raise ConfigError('cannot find log level "{}"'.format(ll_node))
+            elif _is_int_prop(ll_node):
+                ll = ll_node
+            else:
+                raise ConfigError('"log-level" property must be either a string or an integer')
 
             event.log_level = ll
 
