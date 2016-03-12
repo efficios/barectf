@@ -2138,12 +2138,12 @@ class _YamlConfigParser:
         meta = metadata.Metadata()
 
         if 'metadata' not in root:
-            raise ConfigError('missing "metadata" property (root)')
+            raise ConfigError('missing "metadata" property (configuration)')
 
         metadata_node = root['metadata']
 
         if not _is_assoc_array_prop(metadata_node):
-            raise ConfigError('"metadata" property (root) must be an associative array')
+            raise ConfigError('"metadata" property (configuration) must be an associative array')
 
         unk_prop = _get_first_unknown_prop(metadata_node, [
             'type-aliases',
@@ -2175,12 +2175,12 @@ class _YamlConfigParser:
 
     def _get_version(self, root):
         if 'version' not in root:
-            raise ConfigError('missing "version" property (root)')
+            raise ConfigError('missing "version" property (configuration)')
 
         version_node = root['version']
 
         if not _is_str_prop(version_node):
-            raise ConfigError('"version" property (root) must be a string')
+            raise ConfigError('"version" property (configuration) must be a string')
 
         version_node = version_node.strip()
 
@@ -2200,10 +2200,10 @@ class _YamlConfigParser:
         prefix_node = root['prefix']
 
         if not _is_str_prop(prefix_node):
-            raise ConfigError('"prefix" property (root) must be a string')
+            raise ConfigError('"prefix" property (configuration) must be a string')
 
         if not is_valid_identifier(prefix_node):
-            raise ConfigError('"prefix" property (root) must be a valid C identifier')
+            raise ConfigError('"prefix" property (configuration) must be a valid C identifier')
 
         return prefix_node
 
@@ -2484,7 +2484,16 @@ class _YamlConfigParser:
             raise ConfigError('cannot parse YAML file "{}"'.format(yaml_path), e)
 
         if not _is_assoc_array_prop(root):
-            raise ConfigError('root must be an associative array')
+            raise ConfigError('configuration must be an associative array')
+
+        unk_prop = _get_first_unknown_prop(root, [
+            'version',
+            'prefix',
+            'metadata',
+        ])
+
+        if unk_prop:
+            raise ConfigError('unknown configuration property: "{}"'.format(unk_prop))
 
         # get the config version
         self._version = self._get_version(root)
