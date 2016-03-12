@@ -57,7 +57,7 @@ metadata:
         - READY
         - RUNNING
         - WAITING
-  log-levels:
+  $log-levels:
     EMERG: 0
     ALERT: 1
     CRIT: 2

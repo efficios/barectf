@@ -1921,13 +1921,29 @@ class _YamlConfigParser:
     def _register_log_levels(self, metadata_node):
         self._log_levels = dict()
 
-        if 'log-levels' not in metadata_node:
+        # log levels:
+        #   v2.0:  "log-levels"
+        #   v2.1+: "$log-levels"
+        log_levels_node = None
+
+        if self._version >= 200:
+            if 'log-levels' in metadata_node:
+                log_levels_prop = 'log-levels'
+                log_levels_node = metadata_node[log_levels_prop]
+
+        if self._version >= 201:
+            if '$log-levels' in metadata_node:
+                if log_levels_node is not None:
+                    raise ConfigError('cannot specify both "log-levels" and "$log-levels" properties of metadata object: prefer "$log-levels"')
+
+                log_levels_prop = '$log-levels'
+                log_levels_node = metadata_node[log_levels_prop]
+
+        if log_levels_node is None:
             return
 
-        log_levels_node = metadata_node['log-levels']
-
         if not _is_assoc_array_prop(log_levels_node):
-            raise ConfigError('"log-levels" property (metadata) must be an associative array')
+            raise ConfigError('"{}" property (metadata) must be an associative array'.format(log_levels_prop))
 
         for ll_name, ll_value in log_levels_node.items():
             if ll_name in self._log_levels:
@@ -2145,14 +2161,19 @@ class _YamlConfigParser:
         if not _is_assoc_array_prop(metadata_node):
             raise ConfigError('"metadata" property (configuration) must be an associative array')
 
-        unk_prop = _get_first_unknown_prop(metadata_node, [
+        known_props = [
             'type-aliases',
             'log-levels',
             'trace',
             'env',
             'clocks',
             'streams',
-        ])
+        ]
+
+        if self._version >= 201:
+            known_props.append('$log-levels')
+
+        unk_prop = _get_first_unknown_prop(metadata_node, known_props)
 
         if unk_prop:
             add = ''

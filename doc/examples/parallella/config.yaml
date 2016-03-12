@@ -62,7 +62,7 @@ metadata:
         - WAITING
     str:
       class: string
-  log-levels:
+  $log-levels:
     EMERG: 0
     ALERT: 1
     CRIT: 2

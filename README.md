@@ -288,7 +288,7 @@ as well as a corresponding CTF metadata file.
 | Property | Type | Description | Required? | Default value |
 |---|---|---|---|---|
 | `type-aliases` | Associative array of strings (alias names) to [type objects](#type-objects) or strings (previous alias names) | Type aliases to be used in trace, stream, and event objects | Optional | `{}` |
-| `log-levels` | Associative array of strings (log level names) to log level constant integers | Log levels to be used in event objects | Optional | `{}` |
+| `$log-levels` | Associative array of strings (log level names) to log level constant integers | Log levels to be used in event objects | Optional | `{}` |
 | `clocks` | Associative array of strings (clock names) to [clock objects](#clock-object) | Trace clocks | Optional | `{}` |
 | `env` | Associative array of strings (names) to strings or integers (values) | Trace environment variables | Optional | `{}` |
 | `trace` | [Trace object](#trace-object) | Metadata common to the whole trace | Required | N/A |
@@ -333,7 +333,7 @@ type-aliases:
     class: array
     length: 16
     element-type: byte
-log-levels:
+$log-levels:
   emerg: 0
   alert: 1
   critical: 2
@@ -585,7 +585,7 @@ A CTF event.
 | `payload-type` | [Type object](#type-objects) or string (alias name) | Type of event payload (must be a [structure type object](#structure-type-object)) | Required | N/A |
 
 Available log level names, for a given event, are defined by the
-`log-levels` property of the [metadata object](#metadata-object)
+`$log-levels` property of the [metadata object](#metadata-object)
 containing it.
 
 Each field of the event context structure type (`context-type` property)
