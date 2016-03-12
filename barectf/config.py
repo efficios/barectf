@@ -1952,6 +1952,9 @@ class _YamlConfigParser:
             if not _is_int_prop(ll_value):
                 raise ConfigError('invalid log level entry ("{}"): expecting an integer'.format(ll_name))
 
+            if ll_value < 0:
+                raise ConfigError('invalid log level entry ("{}"): log level value must be positive'.format(ll_name))
+
             self._log_levels[ll_name] = ll_value
 
     def _create_trace(self, metadata_node):
@@ -2036,6 +2039,9 @@ class _YamlConfigParser:
                 if ll is None:
                     raise ConfigError('cannot find log level "{}"'.format(ll_node))
             elif _is_int_prop(ll_node):
+                if ll_node < 0:
+                    raise ConfigError('invalid log level value {}: value must be positive'.format(ll_node))
+
                 ll = ll_node
             else:
                 raise ConfigError('"log-level" property must be either a string or an integer')
