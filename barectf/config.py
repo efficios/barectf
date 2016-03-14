@@ -376,13 +376,16 @@ class _MetadataSpecialFieldsValidator:
                 element_type = field_type.element_type
 
                 if type(element_type) is not metadata.Integer:
-                    raise ConfigError('"uuid" field in trace packet header type must be an array of 16 bytes')
+                    raise ConfigError('"uuid" field in trace packet header type must be an array of 16 unsigned bytes')
 
                 if element_type.size != 8:
-                    raise ConfigError('"uuid" field in trace packet header type must be an array of 16 bytes')
+                    raise ConfigError('"uuid" field in trace packet header type must be an array of 16 unsigned bytes')
+
+                if element_type.signed:
+                    raise ConfigError('"uuid" field in trace packet header type must be an array of 16 unsigned bytes')
 
                 if element_type.align != 8:
-                    raise ConfigError('"uuid" field in trace packet header type must be an array of 16 byte-aligned bytes')
+                    raise ConfigError('"uuid" field in trace packet header type must be an array of 16 unsigned, byte-aligned bytes')
 
     def _validate_trace(self, meta):
         self._validate_trace_packet_header_type(meta.trace.packet_header_type)
