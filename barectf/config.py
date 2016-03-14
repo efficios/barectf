@@ -1470,6 +1470,14 @@ class _YamlConfigParser:
                     value = (cur, cur)
                     cur += 1
                 else:
+                    unk_prop = _get_first_unknown_prop(m_node, [
+                        'label',
+                        'value',
+                    ])
+
+                    if unk_prop:
+                        raise ConfigError('unknown enumeration type member object property: "{}"'.format(unk_prop))
+
                     if 'label' not in m_node:
                         raise ConfigError('missing "label" property in enumeration member #{}'.format(index))
 
