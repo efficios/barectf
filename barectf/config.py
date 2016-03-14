@@ -1665,7 +1665,7 @@ class _YamlConfigParser:
             return t
 
         if not _is_assoc_array_prop(type_node):
-            raise ConfigError('type objects must be associative arrays')
+            raise ConfigError('type objects must be associative arrays or strings (type alias name)')
 
         # inherit:
         #   v2.0:  "inherit"
