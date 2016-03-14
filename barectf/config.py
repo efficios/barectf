@@ -994,13 +994,29 @@ class _MetadataTypesHistologyValidator:
         if not t.members:
             raise ConfigError('enumeration type needs at least one member')
 
-        # no overlapping values
+        # no overlapping values and all values are valid considering
+        # the value type
         ranges = []
+
+        if t.value_type.signed:
+            value_min = -(1 << t.value_type.size - 1)
+            value_max = (1 << (t.value_type.size - 1)) - 1
+        else:
+            value_min = 0
+            value_max = (1 << t.value_type.size) - 1
 
         for label, value in t.members.items():
             for rg in ranges:
                 if value[0] <= rg[1] and rg[0] <= value[1]:
                     raise ConfigError('enumeration type\'s member "{}" overlaps another member'.format(label))
+
+            fmt = 'enumeration type\'s member "{}": value {} is outside the value type range [{}, {}]'
+
+            if value[0] < value_min or value[0] > value_max:
+                raise ConfigError(fmt.format(label, value[0], value_min, value_max))
+
+            if value[1] < value_min or value[1] > value_max:
+                raise ConfigError(fmt.format(label, value[1], value_min, value_max))
 
             ranges.append(value)
 
