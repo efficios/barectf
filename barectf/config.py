@@ -988,7 +988,7 @@ class _MetadataTypesHistologyValidator:
     def _validate_enum_histology(self, t):
         # integer type is set
         if t.value_type is None:
-            raise ConfigError('missing enumeration type\'s integer type')
+            raise ConfigError('missing enumeration type\'s value type')
 
         # there's at least one member
         if not t.members:
