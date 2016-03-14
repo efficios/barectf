@@ -1375,7 +1375,10 @@ class _YamlConfigParser:
             if not _is_assoc_array_prop(size):
                 raise ConfigError('"size" property of floating point number type object must be an associative array')
 
-            unk_prop = _get_first_unknown_prop(node, ['exp', 'mant'])
+            unk_prop = _get_first_unknown_prop(size, ['exp', 'mant'])
+
+            if unk_prop:
+                raise ConfigError('unknown floating point number type object\'s "size" property: "{}"'.format(unk_prop))
 
             if 'exp' in size:
                 exp = size['exp']
