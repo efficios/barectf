@@ -1170,7 +1170,12 @@ class _YamlConfigParser:
         if 'byte-order' not in trace_node:
             raise ConfigError('missing "byte-order" property (trace)')
 
-        self._bo = _byte_order_str_to_bo(trace_node['byte-order'])
+        bo_node = trace_node['byte-order']
+
+        if not _is_str_prop(bo_node):
+            raise ConfigError('"byte-order" property of trace object must be a string ("le" or "be")')
+
+        self._bo = _byte_order_str_to_bo(bo_node)
 
         if self._bo is None:
             raise ConfigError('invalid "byte-order" property (trace): must be "le" or "be"')
