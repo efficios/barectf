@@ -1304,6 +1304,8 @@ class _YamlConfigParser:
                 base = 10
             elif base == 'hex':
                 base = 16
+            else:
+                raise ConfigError('unknown "base" property value: "{}" ("bin", "oct", "dec", and "hex" are accepted)'.format(base))
 
             obj.base = base
 

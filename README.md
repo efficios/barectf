@@ -665,7 +665,7 @@ A CTF integer type.
 | `size` | Integer (positive) | Size (bits) (1 to 64) | Required | N/A |
 | `align` | Integer (positive) | Alignment (bits) (power of two) | Optional | 8 if `size` property is a multiple of 8, else 1 |
 | `signed` | Boolean | Signedness | Optional | `false` (unsigned) |
-| `base` | Integer | Display radix (2, 8, 10, or 16) | Optional | 10 |
+| `base` | Integer | Display radix (`bin`, `oct`, `dec`, or `hex`) | Optional | `dec` |
 | `byte-order` | String | Byte order (`le` for little-endian, `be` for big-endian, or `native` to use the byte order defined at the trace level) | Optional | `native` |
 | `property-mappings` | Array of [property mapping objects](#property-mapping-object) | Property mappings of this integer type | Optional | N/A |
 
@@ -677,7 +677,7 @@ The `property-mappings` array property currently accepts only one element.
 class: int
 size: 12
 signed: false
-base: 8
+base: oct
 byte-order: le
 property-mappings:
   - type: clock
