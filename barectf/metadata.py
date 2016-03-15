@@ -40,15 +40,15 @@ class Encoding(enum.Enum):
 class Type:
     @property
     def align(self):
-        raise NotImplementedError()
+        return None
 
     @property
     def size(self):
-        raise NotImplementedError()
+        pass
 
-    @size.setter
-    def size(self, value):
-        self._size = value
+    @property
+    def is_dynamic(self):
+        raise NotImplementedError()
 
 
 class PropertyMapping:
@@ -119,7 +119,7 @@ class Integer(Type):
     def align(self):
         if self._align is None:
             if self._size is None:
-                return None
+                return
             else:
                 if self._size % 8 == 0:
                     return 8
@@ -143,6 +143,10 @@ class Integer(Type):
     @property
     def property_mappings(self):
         return self._property_mappings
+
+    @property
+    def is_dynamic(self):
+        return False
 
 
 class FloatingPoint(Type):
@@ -188,6 +192,10 @@ class FloatingPoint(Type):
     def align(self, value):
         self._align = value
 
+    @property
+    def is_dynamic(self):
+        return False
+
 
 class Enum(Type):
     def __init__(self):
@@ -230,14 +238,14 @@ class Enum(Type):
 
         raise TypeError('wrong subscript type')
 
+    @property
+    def is_dynamic(self):
+        return False
+
 
 class String(Type):
     def __init__(self):
         self._encoding = Encoding.UTF8
-
-    @property
-    def size(self):
-        return None
 
     @property
     def align(self):
@@ -250,6 +258,10 @@ class String(Type):
     @encoding.setter
     def encoding(self, value):
         self._encoding = value
+
+    @property
+    def is_dynamic(self):
+        return True
 
 
 class Array(Type):
@@ -278,21 +290,15 @@ class Array(Type):
         self._length = value
 
     @property
-    def is_static(self):
-        return type(self._length) is int
+    def is_variable_length(self):
+        return type(self._length) is not int
 
     @property
-    def size(self):
-        if self.length == 0:
-            return 0
+    def is_dynamic(self):
+        if self.is_variable_length:
+            return True
 
-        element_sz = self.element_type.size
-
-        if element_sz is None:
-            return None
-
-        # TODO: compute static size here
-        return None
+        return self.element_type.is_dynamic
 
 
 class Struct(Type):
@@ -310,14 +316,24 @@ class Struct(Type):
 
     @property
     def align(self):
-        fields_max = max([f.align for f in self.fields.values()] + [1])
+        align = self.min_align
 
-        return max(fields_max, self._min_align)
+        for field in self.fields.values():
+            if field.align is None:
+                return
+
+            if field.align > align:
+                align = field.align
+
+        return align
 
     @property
-    def size(self):
-        # TODO: compute static size here (if available)
-        return None
+    def is_dynamic(self):
+        for field in self.fields.values():
+            if field.is_dynamic:
+                return True
+
+        return False
 
     @property
     def fields(self):
@@ -334,14 +350,34 @@ class Variant(Type):
 
     @property
     def align(self):
-        return 1
+        single_type = self.get_single_type()
+
+        if single_type is not None:
+            return single_type.align
+
+        # if all the possible types have the same alignment, then
+        # there's only one possible alignment
+        align = None
+
+        for t in self.types.values():
+            if t.align is None:
+                return
+
+            if align is None:
+                # first
+                align = t.align
+            else:
+                if t.align != align:
+                    return
+
+        return align
 
     @property
     def size(self):
-        if len(self.members) == 1:
-            return list(self.members.values())[0].size
+        single_type = self.get_single_type()
 
-        return None
+        if single_type is not None:
+            return single_type.size
 
     @property
     def tag(self):
@@ -357,6 +393,19 @@ class Variant(Type):
 
     def __getitem__(self, key):
         return self.types[key]
+
+    def get_single_type(self):
+        if len(self.members) == 1:
+            return list(self.members.values())[0]
+
+    @property
+    def is_dynamic(self):
+        single_type = self.get_single_type()
+
+        if single_type is not None:
+            return single_type.is_dynamic
+
+        return True
 
 
 class Trace:

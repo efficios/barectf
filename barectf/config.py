@@ -813,7 +813,7 @@ class _MetadataDynamicTypesValidator:
         self._stack_pop()
 
     def _visit_array_type(self, t):
-        if not t.is_static:
+        if t.is_variable_length:
             # find length type
             try:
                 length_type = self._lookup_path(t.length, t)
