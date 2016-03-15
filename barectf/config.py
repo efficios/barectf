@@ -1170,7 +1170,6 @@ class _YamlConfigParser:
             metadata.Variant: self._create_variant,
         }
         self._include_dirs = include_dirs
-        self._include_dirs.append(os.getcwd())
         self._ignore_include_not_found = ignore_include_not_found
         self._dump_config = dump_config
 

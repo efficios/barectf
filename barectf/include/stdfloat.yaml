@@ -1,0 +1,19 @@
+# Include this in the metadata object of your configuration to have
+# access to basic floating point number type aliases.
+
+type-aliases:
+  # IEEE 754-2008 binary32 (single-precision)
+  float:
+    class: floating-point
+    size:
+      exp: 8
+      mant: 24
+    align: 32
+
+  # IEEE 754-2008 binary64 (double-precision)
+  double:
+    class: floating-point
+    size:
+      exp: 11
+      mant: 53
+    align: 64

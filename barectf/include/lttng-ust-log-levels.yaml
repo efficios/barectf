@@ -1,0 +1,23 @@
+# Include this in the metadata object to have access to the LTTng-UST
+# log level values by name.
+#
+# Note that the values from 0 to 7 are compatible with syslog log
+# levels, although the debug severity in syslog is named DEBUG_SYSTEM
+# here.
+
+$log-levels:
+  EMERG: 0
+  ALERT: 1
+  CRIT: 2
+  ERR: 3
+  WARNING: 4
+  NOTICE: 5
+  INFO: 6
+  DEBUG_SYSTEM: 7
+  DEBUG_PROGRAM: 8
+  DEBUG_PROCESS: 9
+  DEBUG_MODULE: 10
+  DEBUG_UNIT: 11
+  DEBUG_FUNCTION: 12
+  DEBUG_LINE: 13
+  DEBUG: 14

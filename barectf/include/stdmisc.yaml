@@ -1,0 +1,21 @@
+# Include this in the metadata object of your configuration to have
+# access to various useful type aliases.
+
+type-aliases:
+  # UUID array
+  uuid:
+    class: array
+    length: 16
+    element-type:
+      class: int
+      size: 8
+
+  # CTF magic number type
+  ctf-magic:
+    class: int
+    size: 32
+    align: 32
+
+  # a simple string
+  string:
+    class: string

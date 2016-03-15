@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+from pkg_resources import resource_filename
 from termcolor import cprint, colored
 import barectf.tsdl182gen
 import barectf.config
@@ -105,6 +106,9 @@ def _parse_args():
     # validate that configuration file exists
     if not os.path.isfile(args.config):
         _perror('"{}" is not an existing file'.format(args.config))
+
+    # append current working directory and provided include directory
+    args.include_dir += [os.getcwd(), resource_filename(__name__, 'include')]
 
     return args
 

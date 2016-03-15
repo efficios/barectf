@@ -52,6 +52,11 @@ setup(name='barectf',
       packages=[
           'barectf',
       ],
+      package_data={
+          'barectf': [
+              'include/*.yaml',
+          ],
+      },
       install_requires=[
           'termcolor',
           'pyyaml',
