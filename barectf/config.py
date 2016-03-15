@@ -954,7 +954,8 @@ class _MetadataDynamicTypesValidator:
 
 # Since type inheritance allows types to be only partially defined at
 # any place in the configuration, this validator validates that actual
-# trace, stream, and event types are all complete and valid.
+# trace, stream, and event types are all complete and valid. Therefore
+# an invalid, but unusued type alias is accepted.
 class _MetadataTypesHistologyValidator:
     def __init__(self):
         self._type_to_validate_type_histology_func = {
