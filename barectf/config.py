@@ -1073,9 +1073,8 @@ class _MetadataTypesHistologyValidator:
         if t is None:
             return
 
-        # entity cannot be an array
-        if type(t) is metadata.Array:
-            raise ConfigError('cannot use an array here')
+        if type(t) is not metadata.Struct:
+            raise ConfigError('expecting a structure type')
 
         self._validate_type_histology(t)
 
