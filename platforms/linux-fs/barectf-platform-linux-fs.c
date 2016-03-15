@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <assert.h>
 #include <barectf.h>
 #include <time.h>
@@ -114,6 +115,8 @@ struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(
 		free(ctx);
 		return NULL;
 	}
+
+	memset(buf, 0, buf_size);
 
 	sprintf(stream_path, "%s/stream", trace_dir);
 	ctx->fh = fopen(stream_path, "wb");
