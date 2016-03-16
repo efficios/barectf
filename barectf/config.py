@@ -401,6 +401,8 @@ class _MetadataSpecialFieldsValidator:
 
         # "timestamp_begin", if exists, is an unsigned integer type,
         # mapped to a clock
+        ts_begin = None
+
         if 'timestamp_begin' in t.fields:
             ts_begin = t.fields['timestamp_begin']
 
@@ -415,6 +417,8 @@ class _MetadataSpecialFieldsValidator:
 
         # "timestamp_end", if exists, is an unsigned integer type,
         # mapped to a clock
+        ts_end = None
+
         if 'timestamp_end' in t.fields:
             ts_end = t.fields['timestamp_end']
 
@@ -430,6 +434,11 @@ class _MetadataSpecialFieldsValidator:
         # "timestamp_begin" and "timestamp_end" exist together
         if (('timestamp_begin' in t.fields) ^ ('timestamp_end' in t.fields)):
             raise ConfigError('"timestamp_begin" and "timestamp_end" fields must be defined together in stream packet context type')
+
+        # "timestamp_begin" and "timestamp_end" are mapped to the same clock
+        if ts_begin is not None and ts_end is not None:
+            if ts_begin.property_mappings[0].object.name != ts_end.property_mappings[0].object.name:
+                raise ConfigError('"timestamp_begin" and "timestamp_end" fields must be mapped to the same clock object in stream packet context type')
 
         # "events_discarded", if exists, is an unsigned integer type
         if 'events_discarded' in t.fields:
