@@ -394,10 +394,10 @@ class _MetadataSpecialFieldsValidator:
         t = stream.packet_context_type
 
         if type(t) is None:
-            return
+            raise ConfigError('missing "packet-context-type" property in stream object')
 
         if type(t) is not metadata.Struct:
-            return
+            raise ConfigError('"packet-context-type": expecting a structure type')
 
         # "timestamp_begin", if exists, is an unsigned integer type,
         # mapped to a clock
