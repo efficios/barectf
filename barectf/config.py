@@ -467,6 +467,10 @@ class _MetadataSpecialFieldsValidator:
         if content_size.signed:
             raise ConfigError('"content_size" field in stream packet context type must be an unsigned integer type')
 
+        # "packet_size" size should be greater than or equal to "content_size" size
+        if content_size.size > packet_size.size:
+            raise ConfigError('"content_size" field size must be lesser than or equal to "packet_size" field size')
+
     def _validate_stream_event_header(self, stream):
         t = stream.event_header_type
 
