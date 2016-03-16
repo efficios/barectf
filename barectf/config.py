@@ -363,6 +363,10 @@ class _MetadataSpecialFieldsValidator:
 
                 if field_type.signed:
                     raise ConfigError('"stream_id" field in trace packet header type must be an unsigned integer type')
+
+                # "id" size can fit all event IDs
+                if len(self._meta.streams) > (1 << field_type.size):
+                    raise ConfigError('"stream_id" field\' size in trace packet header type is too small for the number of trace streams')
             elif field_name == 'uuid':
                 if self._meta.trace.uuid is None:
                     raise ConfigError('"uuid" field in trace packet header type specified, but no trace UUID provided')
@@ -513,15 +517,19 @@ class _MetadataSpecialFieldsValidator:
             if not ts.property_mappings:
                 raise ConfigError('"timestamp" field in stream event header type must be mapped to a clock')
 
-        # "id" is an unsigned integer type
         if 'id' in t.fields:
             eid = t.fields['id']
 
+            # "id" is an unsigned integer type
             if type(eid) is not metadata.Integer:
                 raise ConfigError('"id" field in stream event header type must be an integer type')
 
             if eid.signed:
                 raise ConfigError('"id" field in stream event header type must be an unsigned integer type')
+
+            # "id" size can fit all event IDs
+            if len(stream.events) > (1 << eid.size):
+                raise ConfigError('"id" field\' size in stream event header type is too small for the number of stream events')
 
     def _validate_stream(self, stream):
         self._validate_stream_packet_context(stream)
