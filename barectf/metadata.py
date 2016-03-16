@@ -528,6 +528,9 @@ class Clock:
         self._return_ctype = value
 
 
+LogLevel = collections.namedtuple('LogLevel', ['name', 'value'])
+
+
 class Event:
     def __init__(self):
         self._id = None

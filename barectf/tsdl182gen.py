@@ -298,7 +298,14 @@ def _gen_event_block(stream, ev, cg):
     cg.append_cc_to_last_line(stream.name.replace('/', ''))
 
     if ev.log_level is not None:
-        cg.add_line('loglevel = {};'.format(ev.log_level))
+        add_fmt = ''
+
+        if ev.log_level.name is not None:
+            name = ev.log_level.name.replace('*/', '')
+            add_fmt = ' /* {} */'.format(name)
+
+        fmt = 'loglevel = {};' + add_fmt
+        cg.add_line(fmt.format(ev.log_level.value))
 
     if ev.context_type is not None:
         _gen_entity('context', ev.context_type, cg)

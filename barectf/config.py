@@ -2091,15 +2091,17 @@ class _YamlConfigParser:
             ll_node = event_node['log-level']
 
             if _is_str_prop(ll_node):
-                ll = self._lookup_log_level(event_node['log-level'])
+                ll_value = self._lookup_log_level(event_node['log-level'])
 
-                if ll is None:
+                if ll_value is None:
                     raise ConfigError('cannot find log level "{}"'.format(ll_node))
+
+                ll = metadata.LogLevel(event_node['log-level'], ll_value)
             elif _is_int_prop(ll_node):
                 if ll_node < 0:
                     raise ConfigError('invalid log level value {}: value must be positive'.format(ll_node))
 
-                ll = ll_node
+                ll = metadata.LogLevel(None, ll_node)
             else:
                 raise ConfigError('"log-level" property must be either a string or an integer')
 
