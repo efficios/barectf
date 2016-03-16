@@ -505,13 +505,13 @@ class _MetadataSpecialFieldsValidator:
             ts = t.fields['timestamp']
 
             if type(ts) is not metadata.Integer:
-                raise ConfigError('"ts" field in stream event header type must be an integer type')
+                raise ConfigError('"timestamp" field in stream event header type must be an integer type')
 
             if ts.signed:
-                raise ConfigError('"ts" field in stream event header type must be an unsigned integer type')
+                raise ConfigError('"timestamp" field in stream event header type must be an unsigned integer type')
 
             if not ts.property_mappings:
-                raise ConfigError('"ts" field in stream event header type must be mapped to a clock')
+                raise ConfigError('"timestamp" field in stream event header type must be mapped to a clock')
 
         # "id" is an unsigned integer type
         if 'id' in t.fields:
