@@ -1,0 +1,9 @@
+version: '2.1'
+metadata:
+  type-aliases:
+    uint16:
+      class: int
+      size: 16
+  trace:
+    byte-order: le
+  streams: -17

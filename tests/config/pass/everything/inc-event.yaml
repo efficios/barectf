@@ -1,0 +1,5 @@
+log-level: WARNING
+context-type:
+  class: struct
+  fields:
+    fff: float

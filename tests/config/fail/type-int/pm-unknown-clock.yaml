@@ -1,0 +1,20 @@
+version: '2.1'
+metadata:
+  trace:
+    byte-order: le
+  clocks:
+    my_clock: {}
+  streams:
+    my_stream:
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field:
+                class: int
+                size: 8
+                property-mappings:
+                  - type: clock
+                    name: zala
+                    property: value

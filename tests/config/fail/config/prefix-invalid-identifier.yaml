@@ -1,0 +1,24 @@
+version: '2.1'
+prefix: 'some prefix'
+metadata:
+  type-aliases:
+    uint16:
+      class: int
+      size: 16
+  trace:
+    byte-order: le
+  streams:
+    my_stream:
+      packet-context-type:
+        class: struct
+        fields:
+          packet_size: uint16
+          content_size: uint16
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field:
+                class: int
+                size: 8

@@ -1,0 +1,50 @@
+version: '2.1'
+metadata:
+  clocks:
+    my_clock: {}
+  type-aliases:
+    uint16:
+      class: int
+      size: 16
+  trace:
+    byte-order: le
+  streams:
+    my_stream:
+      packet-context-type:
+        class: struct
+        fields:
+          content_size: uint16
+          packet_size: uint16
+      event-header-type:
+        class: struct
+        min-align: 8
+        fields:
+          id:
+            class: int
+            size: 2
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field: uint16
+        my_event2:
+          payload-type:
+            class: struct
+            fields:
+              my_field: uint16
+        my_event3:
+          payload-type:
+            class: struct
+            fields:
+              my_field: uint16
+        my_event4:
+          payload-type:
+            class: struct
+            fields:
+              my_field: uint16
+        my_event5:
+          payload-type:
+            class: struct
+            fields:
+              my_field: uint16

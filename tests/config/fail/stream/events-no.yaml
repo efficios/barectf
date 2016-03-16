@@ -1,0 +1,15 @@
+version: '2.1'
+metadata:
+  trace:
+    byte-order: le
+  streams:
+    my_stream:
+      packet-context-type:
+        class: struct
+        fields:
+          packet_size:
+            class: int
+            size: 16
+          content_size:
+            class: int
+            size: 16

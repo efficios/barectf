@@ -1,0 +1,22 @@
+version: '2.1'
+metadata:
+  trace:
+    byte-order: le
+  streams:
+    my_stream:
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field:
+                class: enum
+                value-type:
+                  class: int
+                  size: 8
+                  signed: true
+                members:
+                  - HELLO
+                  - label: label
+                    value: -129
+                  - ZOOM

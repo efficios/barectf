@@ -1,0 +1,103 @@
+version: '2.1'
+metadata:
+  clocks:
+    my_clock: {}
+  type-aliases:
+    uint16:
+      class: int
+      size: 16
+  trace:
+    byte-order: le
+    packet-header-type:
+      class: struct
+      min-align: 8
+      fields:
+        stream_id:
+          class: int
+          size: 2
+  streams:
+    my_stream:
+      packet-context-type:
+        class: struct
+        fields:
+          content_size: uint16
+          packet_size: uint16
+      event-header-type:
+        class: struct
+        min-align: 8
+        fields:
+          id: uint16
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field: uint16
+    my_stream2:
+      packet-context-type:
+        class: struct
+        fields:
+          content_size: uint16
+          packet_size: uint16
+      event-header-type:
+        class: struct
+        min-align: 8
+        fields:
+          id: uint16
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field: uint16
+    my_stream3:
+      packet-context-type:
+        class: struct
+        fields:
+          content_size: uint16
+          packet_size: uint16
+      event-header-type:
+        class: struct
+        min-align: 8
+        fields:
+          id: uint16
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field: uint16
+    my_stream4:
+      packet-context-type:
+        class: struct
+        fields:
+          content_size: uint16
+          packet_size: uint16
+      event-header-type:
+        class: struct
+        min-align: 8
+        fields:
+          id: uint16
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field: uint16
+    my_stream5:
+      packet-context-type:
+        class: struct
+        fields:
+          content_size: uint16
+          packet_size: uint16
+      event-header-type:
+        class: struct
+        min-align: 8
+        fields:
+          id: uint16
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field: uint16

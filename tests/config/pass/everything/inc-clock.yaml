@@ -1,0 +1,5 @@
+freq: 123456789
+offset:
+  seconds: 18
+absolute: true
+$return-ctype: unsigned long

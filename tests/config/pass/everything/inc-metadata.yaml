@@ -1,0 +1,33 @@
+$include:
+  - stdint.yaml
+  - stdfloat.yaml
+type-aliases:
+  my-special-int:
+    class: int
+    size: 23
+    align: 2
+  struct32:
+    class: struct
+    min-align: 32
+  def-payload-type:
+    $inherit: struct32
+    fields:
+      haha: float
+      hihi: uint32
+      huhu: uint16
+      hoho: double
+streams:
+  my_other_stream:
+    events:
+      this_event:
+        payload-type:
+          class: struct
+          fields:
+            special: my-special-int
+            more_special:
+              $inherit: my-special-int
+              align: 32
+$log-levels:
+  couch: 23
+  tv: 199
+  thread: 0x28aff

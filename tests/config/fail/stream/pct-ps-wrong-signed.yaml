@@ -1,0 +1,28 @@
+version: '2.1'
+metadata:
+  clocks:
+    my_clock: {}
+  type-aliases:
+    uint16:
+      class: int
+      size: 16
+  trace:
+    byte-order: le
+  streams:
+    my_stream:
+      packet-context-type:
+        class: struct
+        fields:
+          packet_size:
+            class: int
+            size: 16
+            signed: true
+          content_size: uint16
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field:
+                class: int
+                size: 8

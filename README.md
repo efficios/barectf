@@ -140,3 +140,27 @@ CTF type. barectf requires them to be structure types.
 
 See the [project's wiki](https://github.com/efficios/barectf/wiki) which
 contains all the information needed to use barectf.
+
+
+## Testing
+
+Bash is required for testing barectf.
+
+The barectf tests execute the `barectf` command available in your
+`$PATH`. The best way to test a specific version of barectf is to create
+a Python 3 [virtual environment](https://virtualenv.pypa.io/en/latest/),
+install the appropriate version, and then run the tests.
+
+In the barectf source tree root, do:
+
+    virtualenv virt
+    . ./virt/bin/activate
+    rehash # if using zsh
+    ./setup.py install
+    (cd tests && ./test.bash)
+
+You can specify [Bats](https://github.com/sstephenson/bats) options to
+`./test.bash`, like `--tap` to get a [TAP](https://testanything.org/)
+output.
+
+You can exit the virtual environment by running `deactivate`.

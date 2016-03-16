@@ -1,0 +1,11 @@
+version: '2.1'
+metadata:
+  trace:
+    byte-order: le
+  streams:
+    my_stream:
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            min-align: 0

@@ -1,0 +1,77 @@
+version: '2.1'
+prefix: bctf_
+metadata:
+  $include:
+    - inc-metadata.yaml
+    - stdmisc.yaml
+    - lttng-ust-log-levels.yaml
+  type-aliases:
+    my-clock-int:
+      $inherit: uint32
+      property-mappings:
+        - type: clock
+          name: some_clock
+          property: value
+    my-special-int:
+      size: 19
+      base: hex
+  $log-levels:
+    couch: 0755
+  trace:
+    $include: inc-trace.yaml
+    byte-order: be
+  clocks:
+    some_clock:
+      $include: inc-clock.yaml
+      description: this is my favorite clock
+      offset:
+        cycles: 91827439187
+      absolute: null
+  streams:
+    my_stream:
+      packet-context-type:
+        class: struct
+        fields:
+          packet_size: uint16
+          content_size: uint16
+          timestamp_begin: my-clock-int
+          timestamp_end: my-clock-int
+      events:
+        my_event:
+          payload-type:
+            class: struct
+            fields:
+              my_field:
+                class: int
+                size: 8
+    my_other_stream:
+      $include: inc-stream.yaml
+      packet-context-type:
+        class: struct
+        fields:
+          packet_size: uint32
+          content_size: uint32
+          events_discarded: uint16
+      event-header-type:
+        class: struct
+        fields:
+          id: uint8
+          timestamp: my-clock-int
+      events:
+        my_event:
+          $include: inc-event.yaml
+          context-type: null
+          payload-type:
+            class: struct
+            fields:
+              my_field:
+                class: int
+                size: 8
+        oh_henry_event:
+          payload-type:
+            class: struct
+            fields:
+              s1: string
+              s2: string
+              s3: string
+              s4: string

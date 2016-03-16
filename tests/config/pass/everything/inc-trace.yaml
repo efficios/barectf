@@ -1,0 +1,4 @@
+$include: trace-basic.yaml
+packet-header-type:
+  fields:
+    soy_sauce: uint64
