@@ -2100,7 +2100,7 @@ class _YamlConfigParser:
         trace.byte_order = self._bo
 
         # UUID
-        if 'uuid' in trace_node:
+        if 'uuid' in trace_node and trace_node['uuid'] is not None:
             uuidp = trace_node['uuid']
 
             if not _is_str_prop(uuidp):
@@ -2117,7 +2117,7 @@ class _YamlConfigParser:
             trace.uuid = uuidp
 
         # packet header type
-        if 'packet-header-type' in trace_node:
+        if 'packet-header-type' in trace_node and trace_node['packet-header-type'] is not None:
             try:
                 ph_type = self._create_type(trace_node['packet-header-type'])
             except Exception as e:
