@@ -2207,7 +2207,7 @@ class _YamlConfigParser:
         if unk_prop:
             raise ConfigError('unknown stream object property: "{}"'.format(unk_prop))
 
-        if 'packet-context-type' in stream_node:
+        if 'packet-context-type' in stream_node and stream_node['packet-context-type'] is not None:
             try:
                 t = self._create_type(stream_node['packet-context-type'])
             except Exception as e:
@@ -2215,7 +2215,7 @@ class _YamlConfigParser:
 
             stream.packet_context_type = t
 
-        if 'event-header-type' in stream_node:
+        if 'event-header-type' in stream_node and stream_node['event-header-type'] is not None:
             try:
                 t = self._create_type(stream_node['event-header-type'])
             except Exception as e:
@@ -2223,7 +2223,7 @@ class _YamlConfigParser:
 
             stream.event_header_type = t
 
-        if 'event-context-type' in stream_node:
+        if 'event-context-type' in stream_node and stream_node['event-context-type'] is not None:
             try:
                 t = self._create_type(stream_node['event-context-type'])
             except Exception as e:
@@ -2236,24 +2236,25 @@ class _YamlConfigParser:
 
         events = stream_node['events']
 
-        if not _is_assoc_array_prop(events):
-            raise ConfigError('"events" property of stream object must be an associative array')
+        if events is not None:
+            if not _is_assoc_array_prop(events):
+                raise ConfigError('"events" property of stream object must be an associative array')
 
-        if not events:
-            raise ConfigError('at least one event is needed within a stream object')
+            if not events:
+                raise ConfigError('at least one event is needed within a stream object')
 
-        cur_id = 0
+            cur_id = 0
 
-        for ev_name, ev_node in events.items():
-            try:
-                ev = self._create_event(ev_node)
-            except Exception as e:
-                raise ConfigError('cannot create event "{}"'.format(ev_name), e)
+            for ev_name, ev_node in events.items():
+                try:
+                    ev = self._create_event(ev_node)
+                except Exception as e:
+                    raise ConfigError('cannot create event "{}"'.format(ev_name), e)
 
-            ev.id = cur_id
-            ev.name = ev_name
-            stream.events[ev_name] = ev
-            cur_id += 1
+                ev.id = cur_id
+                ev.name = ev_name
+                stream.events[ev_name] = ev
+                cur_id += 1
 
         return stream
 
