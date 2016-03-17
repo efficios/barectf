@@ -1626,29 +1626,35 @@ class _YamlConfigParser:
         if 'min-align' in node:
             min_align = node['min-align']
 
-            if not _is_int_prop(min_align):
-                raise ConfigError('"min-align" property of structure type object must be an integer')
+            if min_align is None:
+                obj.set_default_min_align()
+            else:
+                if not _is_int_prop(min_align):
+                    raise ConfigError('"min-align" property of structure type object must be an integer')
 
-            if not _is_valid_alignment(min_align):
-                raise ConfigError('invalid minimum alignment: {}'.format(min_align))
+                if not _is_valid_alignment(min_align):
+                    raise ConfigError('invalid minimum alignment: {}'.format(min_align))
 
-            obj.min_align = min_align
+                obj.min_align = min_align
 
         # fields
         if 'fields' in node:
             fields = node['fields']
 
-            if not _is_assoc_array_prop(fields):
-                raise ConfigError('"fields" property of structure type object must be an associative array')
+            if fields is None:
+                obj.set_default_fields()
+            else:
+                if not _is_assoc_array_prop(fields):
+                    raise ConfigError('"fields" property of structure type object must be an associative array')
 
-            for field_name, field_node in fields.items():
-                if not is_valid_identifier(field_name):
-                    raise ConfigError('"{}" is not a valid field name for structure type'.format(field_name))
+                for field_name, field_node in fields.items():
+                    if not is_valid_identifier(field_name):
+                        raise ConfigError('"{}" is not a valid field name for structure type'.format(field_name))
 
-                try:
-                    obj.fields[field_name] = self._create_type(field_node)
-                except Exception as e:
-                    raise ConfigError('cannot create structure type\'s field "{}"'.format(field_name), e)
+                    try:
+                        obj.fields[field_name] = self._create_type(field_node)
+                    except Exception as e:
+                        raise ConfigError('cannot create structure type\'s field "{}"'.format(field_name), e)
 
         return obj
 

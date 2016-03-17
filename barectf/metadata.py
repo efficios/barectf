@@ -361,7 +361,13 @@ class Array(Type):
 
 class Struct(Type):
     def __init__(self):
+        self.set_default_min_align()
+        self.set_default_fields()
+
+    def set_default_min_align(self):
         self._min_align = 1
+
+    def set_default_fields(self):
         self._fields = collections.OrderedDict()
 
     @property
