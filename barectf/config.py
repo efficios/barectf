@@ -1458,29 +1458,33 @@ class _YamlConfigParser:
         if 'align' in node:
             align = node['align']
 
-            if not _is_int_prop(align):
-                raise ConfigError('"align" property of floating point number type object must be an integer')
+            if align is None:
+                obj.set_default_align()
+            else:
+                if not _is_int_prop(align):
+                    raise ConfigError('"align" property of floating point number type object must be an integer')
 
-            if not _is_valid_alignment(align):
-                raise ConfigError('invalid alignment: {}'.format(align))
+                if not _is_valid_alignment(align):
+                    raise ConfigError('invalid alignment: {}'.format(align))
 
-            obj.align = align
+                obj.align = align
 
         # byte order
         if 'byte-order' in node:
             byte_order = node['byte-order']
 
-            if not _is_str_prop(byte_order):
-                raise ConfigError('"byte-order" property of floating point number type object must be a string ("le" or "be")')
-
-            byte_order = _byte_order_str_to_bo(byte_order)
-
             if byte_order is None:
-                raise ConfigError('invalid "byte-order" property in floating point number type object')
-        else:
-            byte_order = self._bo
+                obj.byte_order = self._bo
+            else:
+                if not _is_str_prop(byte_order):
+                    raise ConfigError('"byte-order" property of floating point number type object must be a string ("le" or "be")')
 
-        obj.byte_order = byte_order
+                byte_order = _byte_order_str_to_bo(byte_order)
+
+                if byte_order is None:
+                    raise ConfigError('invalid "byte-order" property in floating point number type object')
+        else:
+            obj.byte_order = self._bo
 
         return obj
 

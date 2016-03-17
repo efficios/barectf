@@ -172,9 +172,21 @@ class Integer(Type):
 
 class FloatingPoint(Type):
     def __init__(self):
+        self.set_default_exp_size()
+        self.set_default_mant_size()
+        self.set_default_align()
+        self.set_default_byte_order()
+
+    def set_default_exp_size(self):
         self._exp_size = None
+
+    def set_default_mant_size(self):
         self._mant_size = None
+
+    def set_default_align(self):
         self._align = 8
+
+    def set_default_byte_order(self):
         self._byte_order = None
 
     @property
@@ -195,6 +207,9 @@ class FloatingPoint(Type):
 
     @property
     def size(self):
+        if self._exp_size is None or self._mant_size is None:
+            return
+
         return self._exp_size + self._mant_size
 
     @property
