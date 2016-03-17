@@ -515,14 +515,41 @@ class Env(collections.OrderedDict):
 
 class Clock:
     def __init__(self):
+        self.set_default_name()
+        self.set_default_uuid()
+        self.set_default_description()
+        self.set_default_freq()
+        self.set_default_error_cycles()
+        self.set_default_offset_seconds()
+        self.set_default_offset_cycles()
+        self.set_default_absolute()
+        self.set_default_return_ctype()
+
+    def set_default_name(self):
         self._name = None
+
+    def set_default_uuid(self):
         self._uuid = None
+
+    def set_default_description(self):
         self._description = None
+
+    def set_default_freq(self):
         self._freq = 1000000000
+
+    def set_default_error_cycles(self):
         self._error_cycles = 0
+
+    def set_default_offset_seconds(self):
         self._offset_seconds = 0
+
+    def set_default_offset_cycles(self):
         self._offset_cycles = 0
+
+    def set_default_absolute(self):
         self._absolute = False
+
+    def set_default_return_ctype(self):
         self._return_ctype = 'uint32_t'
 
     @property

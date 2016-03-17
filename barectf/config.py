@@ -1849,93 +1849,112 @@ class _YamlConfigParser:
         if 'uuid' in node:
             uuidp = node['uuid']
 
-            if not _is_str_prop(uuidp):
-                raise ConfigError('"uuid" property of clock object must be a string')
+            if uuidp is None:
+                clock.set_default_uuid()
+            else:
+                if not _is_str_prop(uuidp):
+                    raise ConfigError('"uuid" property of clock object must be a string')
 
-            try:
-                uuidp = uuid.UUID(uuidp)
-            except:
-                raise ConfigError('malformed UUID (clock object): "{}"'.format(uuidp))
+                try:
+                    uuidp = uuid.UUID(uuidp)
+                except:
+                    raise ConfigError('malformed UUID (clock object): "{}"'.format(uuidp))
 
-            clock.uuid = uuidp
+                clock.uuid = uuidp
 
         # description
         if 'description' in node:
             desc = node['description']
 
-            if not _is_str_prop(desc):
-                raise ConfigError('"description" property of clock object must be a string')
+            if desc is None:
+                clock.set_default_description()
+            else:
+                if not _is_str_prop(desc):
+                    raise ConfigError('"description" property of clock object must be a string')
 
-            clock.description = desc
+                clock.description = desc
 
         # frequency
         if 'freq' in node:
             freq = node['freq']
 
-            if not _is_int_prop(freq):
-                raise ConfigError('"freq" property of clock object must be an integer')
+            if freq is None:
+                clock.set_default_freq()
+            else:
+                if not _is_int_prop(freq):
+                    raise ConfigError('"freq" property of clock object must be an integer')
 
-            if freq < 1:
-                raise ConfigError('invalid clock frequency: {}'.format(freq))
+                if freq < 1:
+                    raise ConfigError('invalid clock frequency: {}'.format(freq))
 
-            clock.freq = freq
+                clock.freq = freq
 
         # error cycles
         if 'error-cycles' in node:
             error_cycles = node['error-cycles']
 
-            if not _is_int_prop(error_cycles):
-                raise ConfigError('"error-cycles" property of clock object must be an integer')
+            if error_cycles is None:
+                clock.set_default_error_cycles()
+            else:
+                if not _is_int_prop(error_cycles):
+                    raise ConfigError('"error-cycles" property of clock object must be an integer')
 
-            if error_cycles < 0:
-                raise ConfigError('invalid clock error cycles: {}'.format(error_cycles))
+                if error_cycles < 0:
+                    raise ConfigError('invalid clock error cycles: {}'.format(error_cycles))
 
-            clock.error_cycles = error_cycles
+                clock.error_cycles = error_cycles
 
         # offset
         if 'offset' in node:
             offset = node['offset']
 
-            if not _is_assoc_array_prop(offset):
-                raise ConfigError('"offset" property of clock object must be an associative array')
+            if offset is None:
+                self.set_default_offset_seconds()
+                self.set_default_offset_cycles()
+            else:
+                if not _is_assoc_array_prop(offset):
+                    raise ConfigError('"offset" property of clock object must be an associative array')
 
-            unk_prop = _get_first_unknown_prop(offset, ['cycles', 'seconds'])
+                unk_prop = _get_first_unknown_prop(offset, ['cycles', 'seconds'])
 
-            if unk_prop:
-                raise ConfigError('unknown clock object\'s offset property: "{}"'.format(unk_prop))
+                if unk_prop:
+                    raise ConfigError('unknown clock object\'s offset property: "{}"'.format(unk_prop))
 
-            # cycles
-            if 'cycles' in offset:
-                offset_cycles = offset['cycles']
+                # cycles
+                if 'cycles' in offset:
+                    offset_cycles = offset['cycles']
 
-                if not _is_int_prop(offset_cycles):
-                    raise ConfigError('"cycles" property of clock object\'s offset property must be an integer')
+                    if not _is_int_prop(offset_cycles):
+                        raise ConfigError('"cycles" property of clock object\'s offset property must be an integer')
 
-                if offset_cycles < 0:
-                    raise ConfigError('invalid clock offset cycles: {}'.format(offset_cycles))
+                    if offset_cycles < 0:
+                        raise ConfigError('invalid clock offset cycles: {}'.format(offset_cycles))
 
-                clock.offset_cycles = offset_cycles
+                    clock.offset_cycles = offset_cycles
 
-            # seconds
-            if 'seconds' in offset:
-                offset_seconds = offset['seconds']
+                # seconds
+                if 'seconds' in offset:
+                    offset_seconds = offset['seconds']
 
-                if not _is_int_prop(offset_seconds):
-                    raise ConfigError('"seconds" property of clock object\'s offset property must be an integer')
+                    if not _is_int_prop(offset_seconds):
+                        raise ConfigError('"seconds" property of clock object\'s offset property must be an integer')
 
-                if offset_seconds < 0:
-                    raise ConfigError('invalid clock offset seconds: {}'.format(offset_seconds))
+                    if offset_seconds < 0:
+                        raise ConfigError('invalid clock offset seconds: {}'.format(offset_seconds))
 
-                clock.offset_seconds = offset_seconds
+                    clock.offset_seconds = offset_seconds
 
         # absolute
         if 'absolute' in node:
             absolute = node['absolute']
 
-            if not _is_bool_prop(absolute):
-                raise ConfigError('"absolute" property of clock object must be a boolean')
+            if absolute is None:
+                clock.set_default_absolute()
+            else:
+                if not _is_bool_prop(absolute):
+                    raise ConfigError('"absolute" property of clock object must be a boolean')
 
-            clock.absolute = absolute
+                clock.absolute = absolute
 
         # return C type:
         #   v2.0:  "return-ctype"
@@ -1956,10 +1975,13 @@ class _YamlConfigParser:
                 return_ctype_node = node[return_ctype_prop]
 
         if return_ctype_node is not None:
-            if not _is_str_prop(return_ctype_node):
-                raise ConfigError('"{}" property of clock object must be a string'.format(return_ctype_prop))
+            if return_ctype_node is None:
+                clock.set_default_return_ctype()
+            else:
+                if not _is_str_prop(return_ctype_node):
+                    raise ConfigError('"{}" property of clock object must be a string'.format(return_ctype_prop))
 
-            clock.return_ctype = return_ctype_node
+                clock.return_ctype = return_ctype_node
 
         return clock
 
