@@ -75,12 +75,33 @@ class PropertyMapping:
 
 class Integer(Type):
     def __init__(self):
+        self.set_default_size()
+        self.set_default_align()
+        self.set_default_signed()
+        self.set_default_byte_order()
+        self.set_default_base()
+        self.set_default_encoding()
+        self.set_default_property_mappings()
+
+    def set_default_size(self):
         self._size = None
+
+    def set_default_align(self):
         self._align = None
+
+    def set_default_signed(self):
         self._signed = False
+
+    def set_default_byte_order(self):
         self._byte_order = None
+
+    def set_default_base(self):
         self._base = 10
+
+    def set_default_encoding(self):
         self._encoding = Encoding.NONE
+
+    def set_default_property_mappings(self):
         self._property_mappings = []
 
     @property

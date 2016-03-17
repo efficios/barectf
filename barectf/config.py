@@ -1292,101 +1292,117 @@ class _YamlConfigParser:
         if 'align' in node:
             align = node['align']
 
-            if not _is_int_prop(align):
-                raise ConfigError('"align" property of integer type object must be an integer')
+            if align is None:
+                obj.set_default_align()
+            else:
+                if not _is_int_prop(align):
+                    raise ConfigError('"align" property of integer type object must be an integer')
 
-            if not _is_valid_alignment(align):
-                raise ConfigError('invalid alignment: {}'.format(align))
+                if not _is_valid_alignment(align):
+                    raise ConfigError('invalid alignment: {}'.format(align))
 
-            obj.align = align
+                obj.align = align
 
         # signed
         if 'signed' in node:
             signed = node['signed']
 
-            if not _is_bool_prop(signed):
-                raise ConfigError('"signed" property of integer type object must be a boolean')
+            if signed is None:
+                obj.set_default_signed()
+            else:
+                if not _is_bool_prop(signed):
+                    raise ConfigError('"signed" property of integer type object must be a boolean')
 
-            obj.signed = signed
+                obj.signed = signed
 
         # byte order
         if 'byte-order' in node:
             byte_order = node['byte-order']
 
-            if not _is_str_prop(byte_order):
-                raise ConfigError('"byte-order" property of integer type object must be a string ("le" or "be")')
-
-            byte_order = _byte_order_str_to_bo(byte_order)
-
             if byte_order is None:
-                raise ConfigError('invalid "byte-order" property in integer type object')
-        else:
-            byte_order = self._bo
+                obj.byte_order = self._bo
+            else:
+                if not _is_str_prop(byte_order):
+                    raise ConfigError('"byte-order" property of integer type object must be a string ("le" or "be")')
 
-        obj.byte_order = byte_order
+                byte_order = _byte_order_str_to_bo(byte_order)
+
+                if byte_order is None:
+                    raise ConfigError('invalid "byte-order" property in integer type object')
+
+                obj.byte_order = byte_order
+        else:
+            obj.byte_order = self._bo
 
         # base
         if 'base' in node:
             base = node['base']
 
-            if not _is_str_prop(base):
-                raise ConfigError('"base" property of integer type object must be a string ("bin", "oct", "dec", or "hex")')
-
-            if base == 'bin':
-                base = 2
-            elif base == 'oct':
-                base = 8
-            elif base == 'dec':
-                base = 10
-            elif base == 'hex':
-                base = 16
+            if base is None:
+                obj.set_default_base()
             else:
-                raise ConfigError('unknown "base" property value: "{}" ("bin", "oct", "dec", and "hex" are accepted)'.format(base))
+                if not _is_str_prop(base):
+                    raise ConfigError('"base" property of integer type object must be a string ("bin", "oct", "dec", or "hex")')
 
-            obj.base = base
+                if base == 'bin':
+                    base = 2
+                elif base == 'oct':
+                    base = 8
+                elif base == 'dec':
+                    base = 10
+                elif base == 'hex':
+                    base = 16
+                else:
+                    raise ConfigError('unknown "base" property value: "{}" ("bin", "oct", "dec", and "hex" are accepted)'.format(base))
+
+                obj.base = base
 
         # encoding
         if 'encoding' in node:
             encoding = node['encoding']
 
-            if not _is_str_prop(encoding):
-                raise ConfigError('"encoding" property of integer type object must be a string ("none", "ascii", or "utf-8")')
-
-            encoding = _encoding_str_to_encoding(encoding)
-
             if encoding is None:
-                raise ConfigError('invalid "encoding" property in integer type object')
+                obj.set_default_encoding()
+            else:
+                if not _is_str_prop(encoding):
+                    raise ConfigError('"encoding" property of integer type object must be a string ("none", "ascii", or "utf-8")')
 
-            obj.encoding = encoding
+                encoding = _encoding_str_to_encoding(encoding)
+
+                if encoding is None:
+                    raise ConfigError('invalid "encoding" property in integer type object')
+
+                obj.encoding = encoding
 
         # property mappings
         if 'property-mappings' in node:
             prop_mappings = node['property-mappings']
 
-            if not _is_array_prop(prop_mappings):
-                raise ConfigError('"property-mappings" property of integer type object must be an array')
+            if prop_mappings is None:
+                obj.set_default_property_mappings()
+            else:
+                if not _is_array_prop(prop_mappings):
+                    raise ConfigError('"property-mappings" property of integer type object must be an array')
 
-            if len(prop_mappings) > 1:
-                raise ConfigError('length of "property-mappings" array in integer type object must be 1')
+                if len(prop_mappings) > 1:
+                    raise ConfigError('length of "property-mappings" array in integer type object must be 1')
 
-            del obj.property_mappings[:]
+                for index, prop_mapping in enumerate(prop_mappings):
+                    if not _is_assoc_array_prop(prop_mapping):
+                        raise ConfigError('elements of "property-mappings" property of integer type object must be associative arrays')
 
-            for index, prop_mapping in enumerate(prop_mappings):
-                if not _is_assoc_array_prop(prop_mapping):
-                    raise ConfigError('elements of "property-mappings" property of integer type object must be associative arrays')
+                    if 'type' not in prop_mapping:
+                        raise ConfigError('missing "type" property in integer type object\'s "property-mappings" array\'s element #{}'.format(index))
 
-                if 'type' not in prop_mapping:
-                    raise ConfigError('missing "type" property in integer type object\'s "property-mappings" array\'s element #{}'.format(index))
+                    prop_type = prop_mapping['type']
 
-                prop_type = prop_mapping['type']
+                    if not _is_str_prop(prop_type):
+                        raise ConfigError('"type" property of integer type object\'s "property-mappings" array\'s element #{} must be a string'.format(index))
 
-                if not _is_str_prop(prop_type):
-                    raise ConfigError('"type" property of integer type object\'s "property-mappings" array\'s element #{} must be a string'.format(index))
-
-                if prop_type == 'clock':
-                    self._set_int_clock_prop_mapping(obj, prop_mapping)
-                else:
-                    raise ConfigError('unknown property mapping type "{}" in integer type object\'s "property-mappings" array\'s element #{}'.format(prop_type, index))
+                    if prop_type == 'clock':
+                        self._set_int_clock_prop_mapping(obj, prop_mapping)
+                    else:
+                        raise ConfigError('unknown property mapping type "{}" in integer type object\'s "property-mappings" array\'s element #{}'.format(prop_type, index))
 
         return obj
 
