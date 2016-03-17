@@ -1518,6 +1518,12 @@ class _YamlConfigParser:
                 raise ConfigError('"members" property of enumeration type object must be an array')
 
             cur = 0
+            last_value = obj.last_value
+
+            if last_value is None:
+                cur = 0
+            else:
+                cur = last_value + 1
 
             for index, m_node in enumerate(members_node):
                 if not _is_str_prop(m_node) and not _is_assoc_array_prop(m_node):

@@ -264,6 +264,13 @@ class Enum(Type):
     def members(self):
         return self._members
 
+    @property
+    def last_value(self):
+        if not self._members:
+            return
+
+        return list(self._members.values())[-1][1]
+
     def value_of(self, label):
         return self._members[label]
 
