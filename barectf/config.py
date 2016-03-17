@@ -2148,7 +2148,7 @@ class _YamlConfigParser:
         if unk_prop:
             raise ConfigError('unknown event object property: "{}"'.format(unk_prop))
 
-        if 'log-level' in event_node:
+        if 'log-level' in event_node and event_node['log-level'] is not None:
             ll_node = event_node['log-level']
 
             if _is_str_prop(ll_node):
@@ -2168,7 +2168,9 @@ class _YamlConfigParser:
 
             event.log_level = ll
 
-        if 'context-type' in event_node:
+        if 'context-type' in event_node and event_node['context-type'] is not None:
+            ctx_type_node = event_node['context-type']
+
             try:
                 t = self._create_type(event_node['context-type'])
             except Exception as e:
@@ -2179,12 +2181,13 @@ class _YamlConfigParser:
         if 'payload-type' not in event_node:
             raise ConfigError('missing "payload-type" property in event object')
 
-        try:
-            t = self._create_type(event_node['payload-type'])
-        except Exception as e:
-            raise ConfigError('cannot create event\'s payload type object', e)
+        if event_node['payload-type'] is not None:
+            try:
+                t = self._create_type(event_node['payload-type'])
+            except Exception as e:
+                raise ConfigError('cannot create event\'s payload type object', e)
 
-        event.payload_type = t
+            event.payload_type = t
 
         return event
 
