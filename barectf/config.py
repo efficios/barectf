@@ -1806,6 +1806,9 @@ class _YamlConfigParser:
 
         ta_node = metadata_node['type-aliases']
 
+        if ta_node is None:
+            return
+
         if not _is_assoc_array_prop(ta_node):
             raise ConfigError('"type-aliases" property (metadata) must be an associative array')
 
@@ -1993,6 +1996,9 @@ class _YamlConfigParser:
 
         clocks_node = metadata_node['clocks']
 
+        if clocks_node is None:
+            return
+
         if not _is_assoc_array_prop(clocks_node):
             raise ConfigError('"clocks" property (metadata) must be an associative array')
 
@@ -2018,6 +2024,9 @@ class _YamlConfigParser:
             return env
 
         env_node = metadata_node['env']
+
+        if env_node is None:
+            return env
 
         if not _is_assoc_array_prop(env_node):
             raise ConfigError('"env" property (metadata) must be an associative array')
