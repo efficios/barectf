@@ -2361,10 +2361,15 @@ class _YamlConfigParser:
         return version
 
     def _get_prefix(self, root):
+        def_prefix = 'barectf_'
+
         if 'prefix' not in root:
-            return 'barectf_'
+            return def_prefix
 
         prefix_node = root['prefix']
+
+        if prefix_node is None:
+            return def_prefix
 
         if not _is_str_prop(prefix_node):
             raise ConfigError('"prefix" property (configuration) must be a string')
