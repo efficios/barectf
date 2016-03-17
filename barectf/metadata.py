@@ -235,7 +235,13 @@ class FloatingPoint(Type):
 
 class Enum(Type):
     def __init__(self):
+        self.set_default_value_type()
+        self.set_default_members()
+
+    def set_default_value_type(self):
         self._value_type = None
+
+    def set_default_members(self):
         self._members = collections.OrderedDict()
 
     @property

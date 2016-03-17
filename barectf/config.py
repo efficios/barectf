@@ -1503,8 +1503,10 @@ class _YamlConfigParser:
 
         # value type
         if 'value-type' in node:
+            value_type_node = node['value-type']
+
             try:
-                obj.value_type = self._create_type(node['value-type'])
+                obj.value_type = self._create_type(value_type_node)
             except Exception as e:
                 raise ConfigError('cannot create enumeration type\'s integer type', e)
 
