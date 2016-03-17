@@ -1679,6 +1679,8 @@ class _YamlConfigParser:
 
         # element type
         if 'element-type' in node:
+            element_type_node = node['element-type']
+
             try:
                 obj.element_type = self._create_type(node['element-type'])
             except Exception as e:

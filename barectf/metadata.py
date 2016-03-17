@@ -318,8 +318,14 @@ class String(Type):
 
 class Array(Type):
     def __init__(self):
-        self._element_type = None
-        self._length = None
+        self.set_default_element_type()
+        self.set_default_length()
+
+    def set_default_element_type(self):
+        self._default_element_type = None
+
+    def set_default_length(self):
+        self._default_length = None
 
     @property
     def align(self):
