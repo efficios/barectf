@@ -409,7 +409,13 @@ class Struct(Type):
 
 class Variant(Type):
     def __init__(self):
+        self.set_default_tag()
+        self.set_default_types()
+
+    def set_default_tag(self):
         self._tag = None
+
+    def set_default_types(self):
         self._types = collections.OrderedDict()
 
     @property
