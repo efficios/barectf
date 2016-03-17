@@ -1594,15 +1594,18 @@ class _YamlConfigParser:
         if 'encoding' in node:
             encoding = node['encoding']
 
-            if not _is_str_prop(encoding):
-                raise ConfigError('"encoding" property of string type object must be a string ("none", "ascii", or "utf-8")')
-
-            encoding = _encoding_str_to_encoding(encoding)
-
             if encoding is None:
-                raise ConfigError('invalid "encoding" property in string type object')
+                obj.set_default_encoding()
+            else:
+                if not _is_str_prop(encoding):
+                    raise ConfigError('"encoding" property of string type object must be a string ("none", "ascii", or "utf-8")')
 
-            obj.encoding = encoding
+                encoding = _encoding_str_to_encoding(encoding)
+
+                if encoding is None:
+                    raise ConfigError('invalid "encoding" property in string type object')
+
+                obj.encoding = encoding
 
         return obj
 

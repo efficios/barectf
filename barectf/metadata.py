@@ -294,6 +294,9 @@ class Enum(Type):
 
 class String(Type):
     def __init__(self):
+        self.set_default_encoding()
+
+    def set_default_encoding(self):
         self._encoding = Encoding.UTF8
 
     @property
