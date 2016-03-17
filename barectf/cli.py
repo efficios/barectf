@@ -74,9 +74,16 @@ def _parse_args():
     ap.add_argument('-c', '--code-dir', metavar='DIR', action='store',
                     default=os.getcwd(),
                     help='output directory of C source file')
+    ap.add_argument('--dump-config', action='store_true',
+                    help='also dump the effective YAML configuration file used for generation')
     ap.add_argument('-H', '--headers-dir', metavar='DIR', action='store',
                     default=os.getcwd(),
                     help='output directory of C header files')
+    ap.add_argument('-I', '--include-dir', metavar='DIR', action='append',
+                    default=[],
+                    help='add directory DIR to the list of directories to be searched for include files')
+    ap.add_argument('--ignore-include-not-found', action='store_true',
+                    help='continue to process the configuration file when included files are not found')
     ap.add_argument('-m', '--metadata-dir', metavar='DIR', action='store',
                     default=os.getcwd(),
                     help='output directory of CTF metadata')
@@ -91,7 +98,7 @@ def _parse_args():
     args = ap.parse_args()
 
     # validate output directories
-    for d in [args.code_dir, args.headers_dir, args.metadata_dir]:
+    for d in [args.code_dir, args.headers_dir, args.metadata_dir] + args.include_dir:
         if not os.path.isdir(d):
             _perror('"{}" is not an existing directory'.format(d))
 
@@ -113,7 +120,9 @@ def run():
 
     # create configuration
     try:
-        config = barectf.config.from_yaml_file(args.config)
+        config = barectf.config.from_yaml_file(args.config, args.include_dir,
+                                               args.ignore_include_not_found,
+                                               args.dump_config)
     except barectf.config.ConfigError as e:
         _pconfig_error(e)
     except Exception as e:

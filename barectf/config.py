@@ -29,6 +29,7 @@ import yaml
 import uuid
 import copy
 import re
+import os
 
 
 class ConfigError(RuntimeError):
@@ -1123,7 +1124,7 @@ class _MetadataTypesHistologyValidator:
 
 
 class _YamlConfigParser:
-    def __init__(self):
+    def __init__(self, include_dirs, ignore_include_not_found, dump_config):
         self._class_name_to_create_type_func = {
             'int': self._create_integer,
             'integer': self._create_integer,
@@ -1149,6 +1150,10 @@ class _YamlConfigParser:
             metadata.Array: self._create_array,
             metadata.Variant: self._create_variant,
         }
+        self._include_dirs = include_dirs
+        self._include_dirs.append(os.getcwd())
+        self._ignore_include_not_found = ignore_include_not_found
+        self._dump_config = dump_config
 
     def _set_byte_order(self, metadata_node):
         if 'trace' not in metadata_node:
@@ -1723,7 +1728,7 @@ class _YamlConfigParser:
         # create clock object
         clock = metadata.Clock()
 
-        if not _is_assoc_array_prop(env_node):
+        if not _is_assoc_array_prop(node):
             raise ConfigError('clock objects must be associative arrays')
 
         known_props = [
@@ -1936,6 +1941,10 @@ class _YamlConfigParser:
     def _create_trace(self, metadata_node):
         # create trace object
         trace = metadata.Trace()
+
+        if 'trace' not in metadata_node:
+            raise ConfigError('missing "trace" property (metadata)')
+
         trace_node = metadata_node['trace']
 
         if not _is_assoc_array_prop(trace_node):
@@ -2131,10 +2140,11 @@ class _YamlConfigParser:
         if 'metadata' not in root:
             raise ConfigError('missing "metadata" property (root)')
 
+        metadata_node = root['metadata']
+
         if not _is_assoc_array_prop(metadata_node):
             raise ConfigError('"metadata" property (root) must be an associative array')
 
-        metadata_node = root['metadata']
         unk_prop = _get_first_unknown_prop(metadata_node, [
             'type-aliases',
             'log-levels',
@@ -2145,7 +2155,12 @@ class _YamlConfigParser:
         ])
 
         if unk_prop:
-            raise ConfigError('unknown metadata property: "{}"'.format(unk_prop))
+            add = ''
+
+            if unk_prop == '$include':
+                add = ' (use version 2.1 or greater)'
+
+            raise ConfigError('unknown metadata property{}: "{}"'.format(add, unk_prop))
 
         self._set_byte_order(metadata_node)
         self._register_clocks(metadata_node)
@@ -2192,7 +2207,243 @@ class _YamlConfigParser:
 
         return prefix_node
 
-    def _yaml_ordered_load(self, stream):
+    def _get_last_include_file(self):
+        if self._include_stack:
+            return self._include_stack[-1]
+
+        return self._root_yaml_path
+
+    def _load_include(self, yaml_path):
+        for inc_dir in self._include_dirs:
+            # current include dir + file name path
+            # note: os.path.join() only takes the last arg if it's absolute
+            inc_path = os.path.join(inc_dir, yaml_path)
+
+            # real path (symbolic links resolved)
+            real_path = os.path.realpath(inc_path)
+
+            # normalized path (weird stuff removed!)
+            norm_path = os.path.normpath(real_path)
+
+            if not os.path.isfile(norm_path):
+                # file does not exist: skip
+                continue
+
+            if norm_path in self._include_stack:
+                base_path = self._get_last_include_file()
+                raise ConfigError('in "{}": cannot recursively include file "{}"'.format(base_path, norm_path))
+
+            self._include_stack.append(norm_path)
+
+            # load raw content
+            return self._yaml_ordered_load(norm_path)
+
+        if not self._ignore_include_not_found:
+            base_path = self._get_last_include_file()
+            raise ConfigError('in "{}": cannot include file "{}": file not found in include directories'.format(base_path, yaml_path))
+
+        return None
+
+    def _get_include_paths(self, include_node):
+        if _is_str_prop(include_node):
+            return [include_node]
+        elif _is_array_prop(include_node):
+            for include_path in include_node:
+                if not _is_str_prop(include_path):
+                    raise ConfigError('invalid include property: expecting array of strings')
+
+            return include_node
+
+        raise ConfigError('invalid include property: expecting string or array of strings')
+
+    def _update_node(self, base_node, overlay_node):
+        for olay_key, olay_value in overlay_node.items():
+            if olay_key in base_node:
+                base_value = base_node[olay_key]
+
+                if _is_assoc_array_prop(olay_value) and _is_assoc_array_prop(base_value):
+                    # merge dictionaries
+                    self._update_node(base_value, olay_value)
+                elif _is_array_prop(olay_value) and _is_array_prop(base_value):
+                    # append extension array items to base items
+                    base_value += olay_value
+                else:
+                    # fall back to replacing
+                    base_node[olay_key] = olay_value
+            else:
+                base_node[olay_key] = olay_value
+
+    def _process_node_include(self, last_overlay_node, name,
+                              process_base_include_cb,
+                              process_children_include_cb=None):
+        if not _is_assoc_array_prop(last_overlay_node):
+            raise ConfigError('{} objects must be associative arrays'.format(name))
+
+        # process children inclusions first
+        if process_children_include_cb:
+            process_children_include_cb(last_overlay_node)
+
+        if '$include' in last_overlay_node:
+            include_node = last_overlay_node['$include']
+        else:
+            # no includes!
+            return last_overlay_node
+
+        include_paths = self._get_include_paths(include_node)
+        cur_base_path = self._get_last_include_file()
+        base_node = None
+
+        # keep the include paths and remove the include property
+        include_paths = copy.deepcopy(include_paths)
+        del last_overlay_node['$include']
+
+        for include_path in include_paths:
+            # load raw YAML from included file
+            overlay_node = self._load_include(include_path)
+
+            if overlay_node is None:
+                # cannot find include file, but we're ignoring those
+                # errors, otherwise _load_include() itself raises
+                # a config error
+                continue
+
+            # recursively process includes
+            try:
+                overlay_node = process_base_include_cb(overlay_node)
+            except Exception as e:
+                raise ConfigError('in "{}"'.format(cur_base_path), e)
+
+            # pop include stack now that we're done including
+            del self._include_stack[-1]
+
+            # at this point, base_node is fully resolved (does not
+            # contain any include property)
+            if base_node is None:
+                base_node = overlay_node
+            else:
+                self._update_node(base_node, overlay_node)
+
+        # finally, we update the latest base node with our last overlay
+        # node
+        if base_node is None:
+            # nothing was included, which is possible when we're
+            # ignoring include errors
+            return last_overlay_node
+
+        self._update_node(base_node, last_overlay_node)
+
+        return base_node
+
+    def _process_event_include(self, event_node):
+        return self._process_node_include(event_node, 'event',
+                                          self._process_event_include)
+
+    def _process_stream_include(self, stream_node):
+        def process_children_include(stream_node):
+            if 'events' in stream_node:
+                events_node = stream_node['events']
+
+                if not _is_assoc_array_prop(events_node):
+                    raise ConfigError('"events" property must be an associative array')
+
+                events_node_keys = list(events_node.keys())
+
+                for key in events_node_keys:
+                    event_node = events_node[key]
+
+                    try:
+                        events_node[key] = self._process_event_include(event_node)
+                    except Exception as e:
+                        raise ConfigError('cannot process includes of event object "{}"'.format(key), e)
+
+        return self._process_node_include(stream_node, 'stream',
+                                          self._process_stream_include,
+                                          process_children_include)
+
+    def _process_trace_include(self, trace_node):
+        return self._process_node_include(trace_node, 'trace',
+                                          self._process_trace_include)
+
+    def _process_clock_include(self, clock_node):
+        return self._process_node_include(clock_node, 'clock',
+                                          self._process_clock_include)
+
+    def _process_metadata_include(self, metadata_node):
+        def process_children_include(metadata_node):
+            if 'trace' in metadata_node:
+                metadata_node['trace'] = self._process_trace_include(metadata_node['trace'])
+
+            if 'clocks' in metadata_node:
+                clocks_node = metadata_node['clocks']
+
+                if not _is_assoc_array_prop(clocks_node):
+                    raise ConfigError('"clocks" property (metadata) must be an associative array')
+
+                clocks_node_keys = list(clocks_node.keys())
+
+                for key in clocks_node_keys:
+                    clock_node = clocks_node[key]
+
+                    try:
+                        clocks_node[key] = self._process_clock_include(clock_node)
+                    except Exception as e:
+                        raise ConfigError('cannot process includes of clock object "{}"'.format(key), e)
+
+            if 'streams' in metadata_node:
+                streams_node = metadata_node['streams']
+
+                if not _is_assoc_array_prop(streams_node):
+                    raise ConfigError('"streams" property (metadata) must be an associative array')
+
+                streams_node_keys = list(streams_node.keys())
+
+                for key in streams_node_keys:
+                    stream_node = streams_node[key]
+
+                    try:
+                        streams_node[key] = self._process_stream_include(stream_node)
+                    except Exception as e:
+                        raise ConfigError('cannot process includes of stream object "{}"'.format(key), e)
+
+        return self._process_node_include(metadata_node, 'metadata',
+                                          self._process_metadata_include,
+                                          process_children_include)
+
+    def _process_root_includes(self, root):
+        # The following config objects support includes:
+        #
+        #   * Metadata object
+        #   * Trace object
+        #   * Stream object
+        #   * Event object
+        #
+        # We need to process the event includes first, then the stream
+        # includes, then the trace includes, and finally the metadata
+        # includes.
+        #
+        # In each object, only one of the $include and $include-replace
+        # special properties is allowed.
+        #
+        # We keep a stack of absolute paths to included files to detect
+        # recursion.
+        if 'metadata' in root:
+            root['metadata'] = self._process_metadata_include(root['metadata'])
+
+        return root
+
+    def _yaml_ordered_dump(self, node, **kwds):
+        class ODumper(yaml.Dumper):
+            pass
+
+        def dict_representer(dumper, node):
+            return dumper.represent_mapping(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+                                            node.items())
+
+        ODumper.add_representer(collections.OrderedDict, dict_representer)
+
+        return yaml.dump(node, Dumper=ODumper, **kwds)
+
+    def _yaml_ordered_load(self, yaml_path):
         class OLoader(yaml.Loader):
             pass
 
@@ -2204,34 +2455,62 @@ class _YamlConfigParser:
         OLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
                                 construct_mapping)
 
-        return yaml.load(stream, OLoader)
-
-    def parse(self, yml):
+        # YAML -> Python
         try:
-            root = self._yaml_ordered_load(yml)
+            with open(yaml_path, 'r') as f:
+                node = yaml.load(f, OLoader)
+        except (OSError, IOError) as e:
+            raise ConfigError('cannot open file "{}"'.format(yaml_path))
         except Exception as e:
-            raise ConfigError('cannot parse YAML input', e)
+            raise ConfigError('unknown error while trying to load file "{}"'.format(yaml_path), e)
+
+        # loaded node must be an associate array
+        if not _is_assoc_array_prop(node):
+            raise ConfigError('root of YAML file "{}" must be an associative array'.format(yaml_path))
+
+        return node
+
+    def _reset(self):
+        self._version = None
+        self._include_stack = []
+
+    def parse(self, yaml_path):
+        self._reset()
+        self._root_yaml_path = yaml_path
+
+        try:
+            root = self._yaml_ordered_load(yaml_path)
+        except Exception as e:
+            raise ConfigError('cannot parse YAML file "{}"'.format(yaml_path), e)
 
         if not _is_assoc_array_prop(root):
             raise ConfigError('root must be an associative array')
 
+        # get the config version
         self._version = self._get_version(root)
-        meta = self._create_metadata(root)
+
+        # process includes if supported
+        if self._version >= 201:
+            root = self._process_root_includes(root)
+
+        # dump config if required
+        if self._dump_config:
+            print(self._yaml_ordered_dump(root, indent=2,
+                                          default_flow_style=False))
+
+        # get prefix and metadata
         prefix = self._get_prefix(root)
+        meta = self._create_metadata(root)
 
         return Config(self._version, prefix, meta)
 
 
-def from_yaml(yml):
-    parser = _YamlConfigParser()
-    cfg = parser.parse(yml)
-
-    return cfg
-
-
-def from_yaml_file(path):
+def from_yaml_file(path, include_dirs, ignore_include_not_found, dump_config):
     try:
-        with open(path) as f:
-            return from_yaml(f.read())
+        parser = _YamlConfigParser(include_dirs, ignore_include_not_found,
+                                   dump_config)
+        cfg = parser.parse(path)
+
+        return cfg
     except Exception as e:
-        raise ConfigError('cannot create configuration from YAML file'.format(e), e)
+        raise ConfigError('cannot create configuration from YAML file "{}"'.format(path), e)
