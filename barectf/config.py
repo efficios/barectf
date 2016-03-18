@@ -2417,9 +2417,13 @@ class _YamlConfigParser:
         return None
 
     def _get_include_paths(self, include_node):
+        if include_node is None:
+            return []
+
         if _is_str_prop(include_node):
             return [include_node]
-        elif _is_array_prop(include_node):
+
+        if _is_array_prop(include_node):
             for include_path in include_node:
                 if not _is_str_prop(include_path):
                     raise ConfigError('invalid include property: expecting array of strings')
