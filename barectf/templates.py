@@ -330,7 +330,7 @@ int {prefix}packet_is_open(void *ctx)
 }}
 
 static
-void _write_cstring(struct barectf_ctx *ctx, const char *src)
+void _write_cstring(struct {prefix}ctx *ctx, const char *src)
 {{
 	uint32_t sz = strlen(src) + 1;
 
