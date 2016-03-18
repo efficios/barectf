@@ -3,7 +3,7 @@
 load ../../../common
 load ../../common
 
-@test 'unknown property in config object makes barectf fail' {
+@test 'config file using all features makes barectf pass' {
   barectf_assert_file_exists config.yaml
   [ $status -eq 0 ]
   [ -f metadata ]
