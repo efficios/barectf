@@ -1,5 +1,50 @@
 # barectf 2 changelog
 
+## barectf v2.1.0
+
+**Features**:
+
+  * Add `$include` property to metadata, clock, trace, stream, and
+    event objects to [include external YAML files](https://github.com/efficios/barectf/wiki/Including-external-YAML-files)
+  * Object properties which have a default value can force it
+    with `null`; this is especially useful when also using type
+    inheritance or including external YAML files
+
+**Bug fixes**:
+
+  * Fix a few error messages
+  * Use appropriate prefix for event context type parameters in
+    generated code
+  * `_write_cstring()`: use prefix
+  * Enumeration type object: start from current last value when
+    adding label-only members to parent object
+  * Check the size of the `id` (event header) and `stream_id`
+    (packet header) to make sure they can fit all events/streams
+  * Reduce the number of compiler warnings when using `-Wall` and
+    `-pedantic`
+  * Make sure all entity types are structure types
+  * Make sure all enumeration type object member values fit within
+    the enumeration's value type
+  * Check for unknown properties in enumeration type object
+  * Check for unknown properties in floating point number size object
+  * Check for unknown `base` values in integer type object
+  * Check the type of the `byte-order` property in trace object
+  * Check the signedness of the `uuid` field's element type in the
+    trace packet header type
+  * Check for unknown properties in configuration object
+  * Check node type before checking its properties
+  * Use unions to write floating point numbers to avoid aliasing warnings
+
+**Tests**:
+
+  * Add configuration file tests
+
+**README.md**:
+
+  * Add C99 compliance limitation
+  * Move documentation to the project's wiki
+
+
 ## barectf v2.0.2
 
 **README.md**:
