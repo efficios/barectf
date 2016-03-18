@@ -1,50 +1,14 @@
 version: '2.1'
 metadata:
+  $include:
+    - stdint.yaml
+    - stdfloat.yaml
+    - stdmisc.yaml
+    - lttng-ust-log-levels.yaml
   type-aliases:
-    uint8:
-      class: integer
-      size: 8
     uint6:
-      class: integer
+      $inherit: bit-packed-uint8
       size: 6
-    uint16:
-      class: integer
-      size: 16
-    uint32:
-      class: integer
-      size: 32
-    uint64:
-      class: integer
-      size: 64
-    int8:
-      $inherit: uint8
-      signed: true
-    int16:
-      $inherit: int8
-      size: 16
-    int32:
-      $inherit: int8
-      size: 32
-    int64:
-      $inherit: int8
-      size: 64
-    float:
-      class: floating-point
-      size:
-        exp: 8
-        mant: 24
-      align: 32
-    double:
-      class: floating-point
-      size:
-        exp: 11
-        mant: 53
-      align: 64
-    byte: uint8
-    uuid:
-      class: array
-      length: 16
-      element-type: byte
     clock_int:
       $inherit: uint64
       property-mappings:
@@ -60,24 +24,6 @@ metadata:
         - READY
         - RUNNING
         - WAITING
-    str:
-      class: string
-  $log-levels:
-    EMERG: 0
-    ALERT: 1
-    CRIT: 2
-    ERR: 3
-    WARNING: 4
-    NOTICE: 5
-    INFO: 6
-    DEBUG_SYSTEM: 7
-    DEBUG_PROGRAM: 8
-    DEBUG_PROCESS: 9
-    DEBUG_MODULE: 10
-    DEBUG_UNIT: 11
-    DEBUG_FUNCTION: 12
-    DEBUG_LINE: 13
-    DEBUG: 14
   clocks:
     default:
       freq: 1000000000
@@ -85,15 +31,8 @@ metadata:
         seconds: 1434580186
       $return-ctype: uint64_t
   trace:
+    $include: trace-basic.yaml
     byte-order: le
-    uuid: auto
-    packet-header-type:
-      class: struct
-      min-align: 8
-      fields:
-        magic: uint32
-        uuid: uuid
-        stream_id: uint8
   streams:
     default:
       packet-context-type:
@@ -145,5 +84,5 @@ metadata:
           payload-type:
             class: struct
             fields:
-              the_string: str
+              the_string: string
               the_float: float
