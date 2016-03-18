@@ -556,8 +556,8 @@ class CCodeGenerator:
 
         if stream.event_context_type is not None:
             t = stream.event_context_type
-            params = self._get_call_event_param_list_from_struct(t, _PREFIX_SEH,
-                                                                 exclude_list)
+            params = self._get_call_event_param_list_from_struct(t, _PREFIX_SEC,
+                                                                 [])
             tmpl = '_serialize_stream_event_context_{sname}(ctx{params});'
             self._cg.add_cc_line('stream event context')
             self._cg.add_line(tmpl.format(sname=stream.name, params=params))
