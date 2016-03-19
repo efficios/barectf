@@ -154,7 +154,7 @@ install the appropriate version, and then run the tests.
 
 In the barectf source tree root, do:
 
-    virtualenv virt
+    virtualenv --python=python3 virt
     . ./virt/bin/activate
     rehash # if using zsh
     ./setup.py install
