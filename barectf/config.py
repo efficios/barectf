@@ -1912,8 +1912,8 @@ class _YamlConfigParser:
             offset = node['offset']
 
             if offset is None:
-                self.set_default_offset_seconds()
-                self.set_default_offset_cycles()
+                clock.set_default_offset_seconds()
+                clock.set_default_offset_cycles()
             else:
                 if not _is_assoc_array_prop(offset):
                     raise ConfigError('"offset" property of clock object must be an associative array')
@@ -1927,25 +1927,31 @@ class _YamlConfigParser:
                 if 'cycles' in offset:
                     offset_cycles = offset['cycles']
 
-                    if not _is_int_prop(offset_cycles):
-                        raise ConfigError('"cycles" property of clock object\'s offset property must be an integer')
+                    if offset_cycles is None:
+                        clock.set_default_offset_cycles()
+                    else:
+                        if not _is_int_prop(offset_cycles):
+                            raise ConfigError('"cycles" property of clock object\'s offset property must be an integer')
 
-                    if offset_cycles < 0:
-                        raise ConfigError('invalid clock offset cycles: {}'.format(offset_cycles))
+                        if offset_cycles < 0:
+                            raise ConfigError('invalid clock offset cycles: {}'.format(offset_cycles))
 
-                    clock.offset_cycles = offset_cycles
+                        clock.offset_cycles = offset_cycles
 
                 # seconds
                 if 'seconds' in offset:
                     offset_seconds = offset['seconds']
 
-                    if not _is_int_prop(offset_seconds):
-                        raise ConfigError('"seconds" property of clock object\'s offset property must be an integer')
+                    if offset_seconds is None:
+                        clock.set_default_offset_seconds()
+                    else:
+                        if not _is_int_prop(offset_seconds):
+                            raise ConfigError('"seconds" property of clock object\'s offset property must be an integer')
 
-                    if offset_seconds < 0:
-                        raise ConfigError('invalid clock offset seconds: {}'.format(offset_seconds))
+                        if offset_seconds < 0:
+                            raise ConfigError('invalid clock offset seconds: {}'.format(offset_seconds))
 
-                    clock.offset_seconds = offset_seconds
+                        clock.offset_seconds = offset_seconds
 
         # absolute
         if 'absolute' in node:
