@@ -23,7 +23,7 @@ type-aliases:
 
   # 16-bit signed integer, 16-bit aligned
   int16:
-    $inherit: uint8
+    $inherit: uint16
     signed: true
 
   # 32-bit unsigned integer, 32-bit aligned
@@ -35,7 +35,7 @@ type-aliases:
 
   # 32-bit signed integer, 32-bit aligned
   int32:
-    $inherit: uint8
+    $inherit: uint32
     signed: true
 
   # 64-bit unsigned integer, 64-bit aligned
@@ -46,7 +46,7 @@ type-aliases:
 
   # 64-bit signed integer, 64-bit aligned
   int64:
-    $inherit: uint8
+    $inherit: uint64
     signed: true
 
   # byte-packed 8-bit unsigned integer
