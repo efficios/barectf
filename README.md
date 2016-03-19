@@ -16,7 +16,7 @@ You will find barectf interesting if:
      null-terminated UTF-8/ASCII strings (C strings).
   3. You need to be able to convert the recorded binary events to
      human-readable text, as well as analyze them with Python scripts
-     ([Babeltrace](http://www.efficios.com/babeltrace) does all that,
+     ([Babeltrace](http://diamon.org/babeltrace/) does all that,
      given a CTF input).
   4. You _cannot_ use [LTTng](http://lttng.org/), an efficient tracing
      framework for the Linux kernel and Linux/BSD user applications, which
