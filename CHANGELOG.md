@@ -1,5 +1,19 @@
 # barectf 2 changelog
 
+## barectf v2.1.1
+
+**Bug fixes**:
+
+  * Force clock offset object properties to their default values when
+    set to `null`
+
+**README.md**:
+
+  * Update Babeltrace's URL
+  * Add `--python=python3` option to virtualenv line in the
+    testing section
+
+
 ## barectf v2.1.0
 
 **Features**:
