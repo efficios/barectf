@@ -41,6 +41,7 @@
 
 **README.md**:
 
+  * Add CI badge
   * Add C99 compliance limitation
   * Move documentation to the project's wiki
 
