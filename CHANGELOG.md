@@ -1,5 +1,13 @@
 # barectf 2 changelog
 
+## barectf v2.1.2
+
+**Bug fixes**:
+
+  * Inherit from appropriate unsigned integer type aliases in
+    `stdint.yaml` for self-aligned, signed integer type aliases
+
+
 ## barectf v2.1.1
 
 **Bug fixes**:
