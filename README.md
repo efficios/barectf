@@ -1,4 +1,4 @@
-# barectf
+![Icon made by Freepik from www.flaticon.com](https://lttng.org/blog/images/barectf.png)
 
 [![](https://img.shields.io/pypi/v/barectf.svg)](https://pypi.python.org/pypi/barectf)
 [![Jenkins](https://img.shields.io/jenkins/s/https/ci.lttng.org/barectf.svg)](https://ci.lttng.org/job/barectf)
