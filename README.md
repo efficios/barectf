@@ -165,3 +165,20 @@ You can specify [Bats](https://github.com/sstephenson/bats) options to
 output.
 
 You can exit the virtual environment by running `deactivate`.
+
+
+## Community
+
+Since the barectf community is small, it's sharing the communication
+channels of the [LTTng](http://lttng.org/) project,
+as [EfficiOS](http://www.efficios.com/) is the main sponsor of both
+projects. It goes like this:
+
+| Item | Location | Notes |
+| --- | --- | --- |
+| Mailing list | [lttng-dev](https://lists.lttng.org/cgi-bin/mailman/listinfo/lttng-dev) (`lttng-dev@lists.lttng.org`) | Preferably, use the `[barectf]` subject prefix |
+| IRC | [`#lttng`](irc://irc.oftc.net/lttng) on the OFTC network | More specifically, query `eepp` (barectf's maintainer) on this network or on freenode |
+| Code contribution | Create a new GitHub [pull request](https://github.com/efficios/barectf/pulls) | |
+| Bug reporting | Create a new GitHub [issue](https://github.com/efficios/barectf/issues/new) | |
+| Continuous integration | [barectf item on LTTng's CI](https://ci.lttng.org/job/barectf/) | |
+| Blog | The [LTTng blog](http://lttng.org/blog/) contains many posts about barectf | |
