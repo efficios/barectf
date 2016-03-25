@@ -32,12 +32,14 @@ static void trace_stuff(struct barectf_default_ctx *ctx, int argc,
 		}
 
 		barectf_default_trace_simple_string(ctx, str);
+		barectf_default_trace_context_no_payload(ctx, i, "ctx");
 		barectf_default_trace_simple_enum(ctx, RUNNING);
 		barectf_default_trace_a_few_fields(ctx, -1, 301, -3.14159,
 						     str, NEW);
 		barectf_default_trace_bit_packed_integers(ctx, 1, -1, 3,
 							    -2, 2, 7, 23,
 							    -55, 232);
+		barectf_default_trace_no_context_no_payload(ctx);
 		barectf_default_trace_simple_enum(ctx, TERMINATED);
 	}
 }

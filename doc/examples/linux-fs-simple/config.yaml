@@ -74,6 +74,13 @@ metadata:
             class: struct
             fields:
               value: state
+        context_no_payload:
+          context-type:
+            class: struct
+            fields:
+              a: uint32
+              b: string
+        no_context_no_payload: {}
         a_few_fields:
           payload-type:
             class: struct
