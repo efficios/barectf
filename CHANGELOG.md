@@ -1,5 +1,23 @@
 # barectf 2 changelog
 
+## barectf v2.1.3
+
+**Minor improvements**:
+
+  * Allow no or empty event payload type, as long as the event is not
+    empty itself (contains at least one field in its 4 entities)
+
+**Tests**:
+
+  * Remove no/empty event payload type config tests
+  * Add config test for empty event
+
+**README.md**:
+
+  * Add image on top
+  * Add Community section
+
+
 ## barectf v2.1.2
 
 **Bug fixes**:
