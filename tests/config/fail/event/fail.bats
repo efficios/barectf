@@ -37,3 +37,8 @@ load ../../common
   barectf_assert_file_exists pt-not-struct.yaml
   barectf_config_check_fail
 }
+
+@test 'empty event object makes barectf fail' {
+  barectf_assert_file_exists no-fields-at-all.yaml
+  barectf_config_check_fail
+}
