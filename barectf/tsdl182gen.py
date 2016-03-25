@@ -312,6 +312,10 @@ def _gen_event_block(stream, ev, cg):
 
     if ev.payload_type is not None:
         _gen_entity('fields', ev.payload_type, cg)
+    else:
+        fake_payload = metadata.Struct()
+        fake_payload.min_align = 8
+        _gen_entity('fields', fake_payload, cg)
 
     _gen_end_block(cg)
 

@@ -406,6 +406,9 @@ class Struct(Type):
     def __getitem__(self, key):
         return self.fields[key]
 
+    def __len__(self):
+        return len(self._fields)
+
 
 class Variant(Type):
     def __init__(self):
@@ -735,6 +738,23 @@ class Stream:
     @property
     def events(self):
         return self._events
+
+    def is_event_empty(self, event):
+        total_fields = 0
+
+        if self.event_header_type:
+            total_fields += len(self.event_header_type)
+
+        if self.event_context_type:
+            total_fields += len(self.event_context_type)
+
+        if event.context_type:
+            total_fields += len(event.context_type)
+
+        if event.payload_type:
+            total_fields += len(event.payload_type)
+
+        return total_fields == 0
 
 
 class Metadata:

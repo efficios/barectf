@@ -33,17 +33,7 @@ load ../../common
   barectf_config_check_fail
 }
 
-@test 'no "payload-type" property in event object makes barectf fail' {
-  barectf_assert_file_exists pt-no.yaml
-  barectf_config_check_fail
-}
-
 @test 'invalid "payload-type" property field type (not a structure) in event object makes barectf fail' {
   barectf_assert_file_exists pt-not-struct.yaml
-  barectf_config_check_fail
-}
-
-@test 'empty struct type as "payload-type" property in event object makes barectf fail' {
-  barectf_assert_file_exists pt-empty.yaml
   barectf_config_check_fail
 }

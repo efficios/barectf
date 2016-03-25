@@ -309,16 +309,13 @@ class _BarectfMetadataValidator:
 
                     self._cur_entity = _Entity.EVENT_PAYLOAD
 
-                    if ev.payload_type is None:
-                        raise ConfigError('missing payload type in event "{}"'.format(ev_name), e)
-
                     try:
                         self._validate_entity(ev.payload_type)
                     except Exception as e:
                         raise ConfigError('invalid payload type in event "{}"'.format(ev_name), e)
 
-                    if not ev.payload_type.fields:
-                        raise ConfigError('empty payload type in event "{}"'.format(ev_name), e)
+                    if stream.is_event_empty(ev):
+                        raise ConfigError('event "{}" is empty'.format(ev_name))
             except Exception as e:
                 raise ConfigError('invalid stream "{}"'.format(stream_name), e)
 
@@ -1110,14 +1107,6 @@ class _MetadataTypesHistologyValidator:
             raise ConfigError('invalid event context type for event "{}"'.format(ev_name), e)
 
         # validate event payload type
-        if ev.payload_type is None:
-            raise ConfigError('event payload type must exist in event "{}"'.format(ev_name))
-
-        # TODO: also check arrays, sequences, and variants
-        if type(ev.payload_type) is metadata.Struct:
-            if not ev.payload_type.fields:
-                raise ConfigError('event payload type must have at least one field for event "{}"'.format(ev_name))
-
         try:
             self._validate_entity_type_histology(ev.payload_type)
         except Exception as e:
@@ -2193,10 +2182,7 @@ class _YamlConfigParser:
 
             event.context_type = t
 
-        if 'payload-type' not in event_node:
-            raise ConfigError('missing "payload-type" property in event object')
-
-        if event_node['payload-type'] is not None:
+        if 'payload-type' in event_node and event_node['payload-type'] is not None:
             try:
                 t = self._create_type(event_node['payload-type'])
             except Exception as e:
