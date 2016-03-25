@@ -9,3 +9,9 @@ event-context-type:
 events:
   evev:
     payload-type: def-payload-type
+  context_no_payload:
+    context-type:
+      class: struct
+      fields:
+        str: string
+  no_context_no_payload: {}

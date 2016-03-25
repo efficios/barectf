@@ -16,8 +16,10 @@ load ../../common
   nm bctf.o | grep bctf_init
   nm bctf.o | grep bctf_my_other_stream_close_packet
   nm bctf.o | grep bctf_my_other_stream_open_packet
+  nm bctf.o | grep bctf_my_other_stream_trace_context_no_payload
   nm bctf.o | grep bctf_my_other_stream_trace_evev
   nm bctf.o | grep bctf_my_other_stream_trace_my_event
+  nm bctf.o | grep bctf_my_other_stream_trace_no_context_no_payload
   nm bctf.o | grep bctf_my_other_stream_trace_oh_henry_event
   nm bctf.o | grep bctf_my_other_stream_trace_this_event
   nm bctf.o | grep bctf_my_stream_close_packet
