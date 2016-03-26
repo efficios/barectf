@@ -273,10 +273,13 @@ def _gen_clock_blocks(meta, cg):
         _gen_clock_block(clock, cg)
 
 
-def _gen_stream_block(stream, cg):
+def _gen_stream_block(meta, stream, cg):
     cg.add_cc_line(stream.name.replace('/', ''))
     _gen_start_block('stream', cg)
-    cg.add_line('id = {};'.format(stream.id))
+
+    if meta.trace.packet_header_type is not None:
+        if 'stream_id' in meta.trace.packet_header_type.fields:
+            cg.add_line('id = {};'.format(stream.id))
 
     if stream.packet_context_type is not None:
         _gen_entity('packet.context', stream.packet_context_type, cg)
@@ -290,11 +293,15 @@ def _gen_stream_block(stream, cg):
     _gen_end_block(cg)
 
 
-def _gen_event_block(stream, ev, cg):
+def _gen_event_block(meta, stream, ev, cg):
     _gen_start_block('event', cg)
     cg.add_line('name = "{}";'.format(ev.name))
     cg.add_line('id = {};'.format(ev.id))
-    cg.add_line('stream_id = {};'.format(stream.id))
+
+    if meta.trace.packet_header_type is not None:
+        if 'stream_id' in meta.trace.packet_header_type.fields:
+            cg.add_line('stream_id = {};'.format(stream.id))
+
     cg.append_cc_to_last_line(stream.name.replace('/', ''))
 
     if ev.log_level is not None:
@@ -322,10 +329,10 @@ def _gen_event_block(stream, ev, cg):
 
 def _gen_streams_events_blocks(meta, cg):
     for stream in meta.streams.values():
-        _gen_stream_block(stream, cg)
+        _gen_stream_block(meta, stream, cg)
 
         for ev in stream.events.values():
-            _gen_event_block(stream, ev, cg)
+            _gen_event_block(meta, stream, ev, cg)
 
 
 def from_metadata(meta):
