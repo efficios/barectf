@@ -66,15 +66,18 @@ class Config:
             raise ConfigError('barectf metadata error', e)
 
     def _augment_metadata_env(self, meta):
-        env = meta.env
-
-        env['domain'] = 'bare'
-        env['tracer_name'] = 'barectf'
         version_tuple = barectf.get_version_tuple()
-        env['tracer_major'] = version_tuple[0]
-        env['tracer_minor'] = version_tuple[1]
-        env['tracer_patch'] = version_tuple[2]
-        env['barectf_gen_date'] = str(datetime.datetime.now().isoformat())
+        base_env = {
+            'domain': 'bare',
+            'tracer_name': 'barectf'        ,
+            'tracer_major': version_tuple[0],
+            'tracer_minor': version_tuple[1],
+            'tracer_patch': version_tuple[2],
+            'barectf_gen_date': str(datetime.datetime.now().isoformat()),
+        }
+
+        base_env.update(meta.env)
+        meta.env = base_env
 
     @property
     def version(self):
