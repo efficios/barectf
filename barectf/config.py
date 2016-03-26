@@ -103,7 +103,7 @@ class Config:
 
     @prefix.setter
     def prefix(self, value):
-        if not is_valid_identifier(value):
+        if not _is_valid_identifier(value):
             raise ConfigError('prefix must be a valid C identifier')
 
         self._prefix = value
@@ -173,7 +173,7 @@ _ctf_keywords = set([
 ])
 
 
-def is_valid_identifier(iden):
+def _is_valid_identifier(iden):
     if not _re_iden.match(iden):
         return False
 
@@ -274,7 +274,7 @@ class _BarectfMetadataValidator:
             raise ConfigError('invalid trace packet header type', e)
 
         for stream_name, stream in meta.streams.items():
-            if not is_valid_identifier(stream_name):
+            if not _is_valid_identifier(stream_name):
                 raise ConfigError('stream name "{}" is not a valid C identifier'.format(stream_name))
 
             self._cur_entity = _Entity.STREAM_PACKET_CONTEXT
@@ -300,7 +300,7 @@ class _BarectfMetadataValidator:
 
             try:
                 for ev_name, ev in stream.events.items():
-                    if not is_valid_identifier(ev_name):
+                    if not _is_valid_identifier(ev_name):
                         raise ConfigError('event name "{}" is not a valid C identifier'.format(ev_name))
 
                     self._cur_entity = _Entity.EVENT_CONTEXT
@@ -1640,7 +1640,7 @@ class _YamlConfigParser:
                     raise ConfigError('"fields" property of structure type object must be an associative array')
 
                 for field_name, field_node in fields.items():
-                    if not is_valid_identifier(field_name):
+                    if not _is_valid_identifier(field_name):
                         raise ConfigError('"{}" is not a valid field name for structure type'.format(field_name))
 
                     try:
@@ -1720,7 +1720,7 @@ class _YamlConfigParser:
             # do not validate type names for the moment; will be done in a
             # second phase
             for type_name, type_node in types.items():
-                if not is_valid_identifier(type_name):
+                if not _is_valid_identifier(type_name):
                     raise ConfigError('"{}" is not a valid type name for variant type'.format(type_name))
 
                 try:
@@ -2001,7 +2001,7 @@ class _YamlConfigParser:
             raise ConfigError('"clocks" property (metadata) must be an associative array')
 
         for clock_name, clock_node in clocks_node.items():
-            if not is_valid_identifier(clock_name):
+            if not _is_valid_identifier(clock_name):
                 raise ConfigError('invalid clock name: "{}"'.format(clock_name))
 
             if clock_name in self._clocks:
@@ -2033,7 +2033,7 @@ class _YamlConfigParser:
             if env_name in env:
                 raise ConfigError('duplicate environment variable "{}"'.format(env_name))
 
-            if not is_valid_identifier(env_name):
+            if not _is_valid_identifier(env_name):
                 raise ConfigError('invalid environment variable name: "{}"'.format(env_name))
 
             if not _is_int_prop(env_value) and not _is_str_prop(env_value):
@@ -2369,7 +2369,7 @@ class _YamlConfigParser:
         if not _is_str_prop(prefix_node):
             raise ConfigError('"prefix" property (configuration) must be a string')
 
-        if not is_valid_identifier(prefix_node):
+        if not _is_valid_identifier(prefix_node):
             raise ConfigError('"prefix" property (configuration) must be a valid C identifier')
 
         return prefix_node
