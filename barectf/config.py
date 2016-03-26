@@ -332,13 +332,13 @@ class _MetadataSpecialFieldsValidator:
         if len(self._meta.streams) > 1:
             # yes
             if t is None:
-                raise ConfigError('need "stream_id" field in trace packet header type, but trace packet header type is missing')
+                raise ConfigError('need "stream_id" field in trace packet header type (more than one stream), but trace packet header type is missing')
 
             if type(t) is not metadata.Struct:
-                raise ConfigError('need "stream_id" field in trace packet header type, but trace packet header type is not a structure type')
+                raise ConfigError('need "stream_id" field in trace packet header type (more than one stream), but trace packet header type is not a structure type')
 
             if 'stream_id' not in t.fields:
-                raise ConfigError('need "stream_id" field in trace packet header type')
+                raise ConfigError('need "stream_id" field in trace packet header type (more than one stream)')
 
         # validate "magic" and "stream_id" types
         if type(t) is not metadata.Struct:
@@ -488,13 +488,13 @@ class _MetadataSpecialFieldsValidator:
         if len(stream.events) > 1:
             # yes
             if t is None:
-                raise ConfigError('need "id" field in stream event header type, but stream event header type is missing')
+                raise ConfigError('need "id" field in stream event header type (more than one event), but stream event header type is missing')
 
             if type(t) is not metadata.Struct:
-                raise ConfigError('need "id" field in stream event header type, but stream event header type is not a structure type')
+                raise ConfigError('need "id" field in stream event header type (more than one event), but stream event header type is not a structure type')
 
             if 'id' not in t.fields:
-                raise ConfigError('need "id" field in stream event header type')
+                raise ConfigError('need "id" field in stream event header type (more than one event)')
 
         # validate "id" and "timestamp" types
         if type(t) is not metadata.Struct:
