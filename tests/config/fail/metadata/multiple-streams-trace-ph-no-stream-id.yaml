@@ -1,0 +1,32 @@
+version: '2.1'
+metadata:
+  $include:
+    - stdint.yaml
+    - stdmisc.yaml
+  type-aliases:
+    pct:
+      class: struct
+      fields:
+        packet_size: uint32
+        content_size: uint32
+    pt:
+      class: struct
+      fields:
+        a: uint32
+  trace:
+    byte-order: le
+    packet-header-type:
+      class: struct
+      fields:
+        magic: ctf-magic
+  streams:
+    s1:
+      packet-context-type: pct
+      events:
+        ev1:
+          payload-type: pt
+    s2:
+      packet-context-type: pct
+      events:
+        ev2:
+          payload-type: pt

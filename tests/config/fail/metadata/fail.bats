@@ -82,3 +82,8 @@ load ../../common
   barectf_assert_file_exists streams-key-invalid-identifier.yaml
   barectf_config_check_fail
 }
+
+@test 'multiple streams in metadata object with missing "stream_id" packet header type field makes barectf fail' {
+  barectf_assert_file_exists multiple-streams-trace-ph-no-stream-id.yaml
+  barectf_config_check_fail
+}
