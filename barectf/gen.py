@@ -32,14 +32,18 @@ import os
 import re
 
 
-class _StaticAlignSizeAutomaton:
+def _align(v, align):
+    return (v + (align - 1)) & -align
+
+
+class _StaticAlignSizeAutomatonByteOffset:
     def __init__(self):
         self._byte_offset = 0
         self._type_to_update_byte_offset_func = {
-            metadata.Integer: self.write_static_size,
-            metadata.FloatingPoint: self.write_static_size,
-            metadata.Enum: self.write_static_size,
-            metadata.String: self.reset,
+            metadata.Integer: self._write_static_size,
+            metadata.FloatingPoint: self._write_static_size,
+            metadata.Enum: self._write_static_size,
+            metadata.String: self._write_string_size,
         }
 
     @property
@@ -55,7 +59,7 @@ class _StaticAlignSizeAutomaton:
 
     def align(self, align):
         # align byte offset
-        self._byte_offset = (self._byte_offset + (align - 1)) & -align
+        self._byte_offset = _align(self._byte_offset, align)
 
         # wrap on current byte
         self._wrap_byte_offset()
@@ -63,19 +67,61 @@ class _StaticAlignSizeAutomaton:
     def write_type(self, t):
         self._type_to_update_byte_offset_func[type(t)](t)
 
-    def write_static_size(self, t):
+    def _write_string_size(self, t):
+        self.reset()
+
+    def _write_static_size(self, t):
         # increment byte offset
         self._byte_offset += t.size
 
         # wrap on current byte
         self._wrap_byte_offset()
 
-    def reset(self, t=None):
-        # reset byte offset (strings are always byte-aligned)
+    def reset(self):
+        # reset byte offset
         self._byte_offset = 0
 
     def set_unknown(self):
         self._byte_offset = None
+
+
+class _StaticAlignSizeAutomatonPreSize:
+    def __init__(self):
+        self.reset(1)
+
+    def reset(self, initial_align):
+        self._max_align = initial_align
+        self._size = 0
+
+    def add_type(self, t):
+        if t.align > self._max_align:
+            # type alignment is greater than the maximum alignment we
+            # got so far since the last reset, so we don't know how many
+            # padding bits are needed between this type and the previous
+            # one, hence the static size is set to the type's size
+            # (since we're aligned) and our new alignment is saved
+            self._max_align = t.align
+
+            if type(t) is metadata.Struct:
+                self._size = 0
+            else:
+                self._size = t.size
+
+            return False
+        else:
+            # type alignment is lesser than or equal to the maximum
+            # alignment we got so far, so we just align the static size
+            # and add the type's size
+            self._size = _align(self._size, t.align)
+
+            if type(t) is not metadata.Struct:
+                self._size += t.size
+
+            return True
+
+    @property
+    def size(self):
+        return self._size
 
 
 _PREFIX_TPH = 'tph_'
@@ -105,7 +151,7 @@ class CCodeGenerator:
         self._saved_byte_offsets = {}
         self._uf_written = False
         self._ud_written = False
-        self._sasa = _StaticAlignSizeAutomaton()
+        self._sasa = _StaticAlignSizeAutomatonByteOffset()
 
     def _generate_ctx_parent(self):
         tmpl = templates._CTX_PARENT
@@ -399,20 +445,46 @@ class CCodeGenerator:
     def _generate_func_get_event_size_from_entity(self, prefix, t):
         self._cg.add_line('{')
         self._cg.indent()
-        self._cg.add_cc_line('align structure')
-        self._generate_align_type('at', t)
+        statically_aligned = self._pre_size_sasa.add_type(t)
+
+        if not statically_aligned:
+            # increment current position if needed
+            if self._last_basic_types_size > 0:
+                self._generate_incr_pos('at', self._last_basic_types_size)
+                self._last_basic_types_size = 0
+
+            self._cg.add_cc_line('align structure')
+            self._generate_align_type('at', t)
 
         for field_name, field_type in t.fields.items():
             self._cg.add_empty_line()
             self._generate_field_name_cc_line(field_name)
-            self._generate_align_type('at', field_type)
 
             if type(field_type) is metadata.String:
+                # increment current position if needed
+                if self._last_basic_types_size > 0:
+                    self._generate_incr_pos('at', self._last_basic_types_size)
+                    self._last_basic_types_size = 0
+
                 param = prefix + field_name
                 self._generate_incr_pos_bytes('at',
                                               'strlen({}) + 1'.format(param))
+                self._pre_size_sasa.reset(8)
             else:
-                self._generate_incr_pos('at', field_type.size)
+                statically_aligned = self._pre_size_sasa.add_type(field_type)
+
+                if not statically_aligned:
+                    # increment current position if needed
+                    if self._last_basic_types_size > 0:
+                        self._generate_incr_pos('at', self._last_basic_types_size)
+
+                    # realign dynamically
+                    self._cg.add_cc_line('align for field')
+                    self._generate_align_type('at', field_type)
+
+                fmt = 'field size: {} (partial total so far: {})'
+                self._cg.add_cc_line(fmt.format(field_type.size, self._pre_size_sasa.size))
+                self._last_basic_types_size = self._pre_size_sasa.size
 
         self._cg.unindent()
         self._cg.add_line('}')
@@ -426,6 +498,12 @@ class CCodeGenerator:
         self._cg.add_empty_line()
         self._cg.indent()
         func = self._generate_func_get_event_size_from_entity
+        self._pre_size_sasa = _StaticAlignSizeAutomatonPreSize()
+        self._cg.add_cc_line('byte-align entity')
+        self._generate_align('at', 8)
+        self._cg.add_empty_line()
+        self._pre_size_sasa.reset(8)
+        self._last_basic_types_size = 0
 
         if stream.event_header_type is not None:
             self._cg.add_cc_line('stream event header')
@@ -442,6 +520,11 @@ class CCodeGenerator:
         if event.payload_type is not None:
             self._cg.add_cc_line('event payload')
             func(_PREFIX_EP, event.payload_type)
+
+        # increment current position if needed
+        if self._last_basic_types_size > 0:
+            self._generate_incr_pos('at', self._last_basic_types_size)
+            self._cg.add_empty_line()
 
         self._cg.unindent()
         tmpl = templates._FUNC_GET_EVENT_SIZE_BODY_END
