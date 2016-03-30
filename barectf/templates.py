@@ -264,8 +264,8 @@ _C_SRC = '''/*
 
 #include "{header_filename}"
 
-#define _ALIGN(_at, _align)				\\
-	do {{						\\
+#define _ALIGN(_at, _align)					\\
+	do {{							\\
 		(_at) = ((_at) + ((_align) - 1)) & -(_align);	\\
 	}} while (0)
 
