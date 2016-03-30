@@ -100,6 +100,15 @@ installing globally).
 
 **Arch Linux**:
 
+It is recommended to use the
+[AUR package](https://aur.archlinux.org/packages/barectf/), which also
+installs the man page. If you have
+[yaourt](https://archlinux.fr/yaourt-en):
+
+    sudo yaourt -Sy barectf
+
+Otherwise, you can always use `pip`:
+
     sudo pacman -S python-pip
     sudo pip install barectf
 
