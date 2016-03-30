@@ -1,5 +1,29 @@
 # barectf 2 changelog
 
+## barectf v2.1.4
+
+**Minor improvements**:
+
+  * Override default metadata `env` entries with user entries instead of
+    the opposite
+  * Statically align and compute the size of event fields when possible
+    for the `_get_event_size_*()` functions when possible
+
+**Bug fixes**:
+
+  * Do not write event's `stream_id` or stream's `id` when the trace
+    packet header type has no `stream_id` field.
+
+**Tests**:
+
+  * Add config test for multiple streams, no `stream_id` field in packet
+    header type
+
+**README.md**:
+
+  * Indicate how to install the command's man page
+
+
 ## barectf v2.1.3
 
 **Minor improvements**:
