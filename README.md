@@ -111,6 +111,22 @@ With [Homebrew](http://brew.sh/):
     pip3 install barectf
 
 
+### Man page
+
+Since the philosphy of setuptools packages is to include everything
+within the package, the barectf man page is not installed on the system
+when installing barectf with `pip` or with `setup.py`. This would be the
+job of distribution packages.
+
+You can install it manually:
+
+    wget https://raw.githubusercontent.com/efficios/barectf/vVERSION/doc/man/barectf.1 -O /usr/local/man/man1/barectf.1
+
+Replace `VERSION` with the desired version, for example:
+
+    wget https://raw.githubusercontent.com/efficios/barectf/v2.1.4/doc/man/barectf.1 -O /usr/local/man/man1/barectf.1
+
+
 ## What is CTF?
 
 See the [CTF in a nutshell](http://diamon.org/ctf/#ctf-in-a-nutshell)

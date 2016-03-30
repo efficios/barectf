@@ -1,0 +1,185 @@
+'\" t
+.\"     Title: barectf
+.\"    Author: [see the "AUTHORS" section]
+.\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
+.\"      Date: 03/30/2016
+.\"    Manual: barectf manual
+.\"    Source: barectf 2.1.3
+.\"  Language: English
+.\"
+.TH "BARECTF" "1" "03/30/2016" "barectf 2\&.1\&.3" "barectf manual"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+barectf \- Generate C99 code that can write native CTF packets
+.SH "SYNOPSIS"
+.sp
+.nf
+\fBbarectf\fR [\fB--prefix\fR=\fIPREFIX\fR] [\fB--dump-config\fR]
+        [\fB--code-dir\fR=\fIPATH\fR] [\fB--headers-dir\fR=\fIPATH\fR] [\fB--metadata-dir\fR=\fIPATH\fR]
+        [\fB-I\fR \fIPATH\fR]\&... [\fB--ignore-include-not-found\fR] \fICONFIG\fR
+.fi
+.SH "DESCRIPTION"
+.sp
+The \fBbarectf\fR command generates C99 code, that itself can write Common Trace Format <http://diamon.org/ctf> packets natively, out of a YAML configuration input file \fICONFIG\fR\&. The full documentation of barectf is available on the project\(cqs website <http://barectf.org>\&.
+.sp
+A prefix is used to scope the generated file names, as well as the generated function names, macro names, structure names, and so on\&. By default, this prefix is \fBbarectf_\fR\&. It can be overridden by the configuration file, and ultimately by the \fB--prefix\fR option\&.
+.sp
+By default, all generated C and CTF metadata files are written to the current working directory\&. The \fB--code-dir\fR, \fB--headers-dir\fR, and \fB--metadata-dir\fR options are used to control where the generated files should go\&.
+.sp
+You can add directories to be searched into for inclusion files, before the default search directories, by using the \fB-I\fR option one or more times\&.
+.sp
+By default, if an inclusion file is not found while processing the configuration file \fICONFIG\fR, an error is emitted\&. You can instruct \fBbarectf\fR to continue silently instead by providing the \fB--ignore-include-not-found\fR option\&.
+.sp
+To view the effective YAML configuration file used for generating the C and CTF metadata files, after having processed all inclusion files, use the \fB--dump-config\fR option\&.
+.SH "OPTIONS"
+.PP
+\fB-c\fR, \fB--code-dir\fR=\fIPATH\fR
+.RS 4
+Write C source files to directory
+\fIPATH\fR
+instead of the current working directory\&.
+.RE
+.PP
+\fB--dump-config\fR
+.RS 4
+Dump the effective YAML configuration file, after all inclusions are processed, to the standard output\&.
+.RE
+.PP
+\fB-H\fR, \fB--headers-dir\fR=\fIPATH\fR
+.RS 4
+Write C header files to directory
+\fIPATH\fR
+instead of the current working directory\&.
+.RE
+.PP
+\fB--ignore-include-not-found\fR
+.RS 4
+Do not consider as an error inclusion files that are not found: continue silently\&.
+.RE
+.PP
+\fB-I\fR, \fB--include-dir\fR=\fIPATH\fR
+.RS 4
+Prepend
+\fIPATH\fR
+to the list of directories to search into for include files\&. The default list of directories is the current working directory, followed by the directory containing the provided, "standard" inclusion files\&.
+.RE
+.PP
+\fB-m\fR, \fB--metadata-dir\fR=\fIPATH\fR
+.RS 4
+Write CTF metadata file to directory
+\fIPATH\fR
+instead of the current working directory\&.
+.RE
+.PP
+\fB-p\fR, \fB--prefix\fR=\fIPREFIX\fR
+.RS 4
+Override the configuration file\(cqs prefix with
+\fIPREFIX\fR\&. This prefix is used in file names, function names, macro names, structure names, and the rest\&. When not specified in the configuration file, the default prefix is
+\fBbarectf_\fR\&.
+.RE
+.PP
+\fB-h\fR, \fB--help\fR
+.RS 4
+Show command help\&.
+.RE
+.PP
+\fB--version\fR
+.RS 4
+Show the command\(cqs version\&.
+.RE
+.SH "EXIT STATUS"
+.PP
+\fB0\fR
+.RS 4
+Success
+.RE
+.PP
+\fBNot 0\fR
+.RS 4
+Error
+.RE
+.SH "BUGS"
+.sp
+Please report any bug or usability issue as a GitHub issue <https://github.com/efficios/barectf/issues>\&.
+.SH "RESOURCES"
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Project\(cqs website <http://barectf.org>
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Continuous integration <http://ci.lttng.org/job/barectf>
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Mailing list <http://lists.lttng.org>
+for support and development:
+\fBlttng-dev@lists.lttng.org\fR
+(prefix the subject message with
+\fB[barectf]\fR)
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+IRC channel <irc://irc.oftc.net/lttng>:
+\fB#lttng\fR
+on
+\fBirc.oftc.net\fR
+(\fBeepp\fR
+is barectf\(cqs author and maintainer)
+.RE
+.SH "COPYRIGHT"
+.sp
+Copyright (c) 2014\-2016 Philippe Proulx <mailto:pproulx@efficios.com>\&.
+.sp
+barectf is distributed under the MIT License <https://github.com/efficios/barectf/blob/master/LICENSE>\&.
+.SH "AUTHORS"
+.sp
+barectf was originally written by and is maintained by, as of this version, Philippe Proulx <mailto:pproulx@efficios.com>\&. Other, nice people have since contributed to the project\&.
+.sp
+barectf is supported by EfficiOS <http://www.efficios.com/>\&.
