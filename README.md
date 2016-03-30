@@ -113,7 +113,7 @@ With [Homebrew](http://brew.sh/):
 
 ### Man page
 
-Since the philosphy of setuptools packages is to include everything
+Since the philosophy of setuptools packages is to include everything
 within the package, the barectf man page is not installed on the system
 when installing barectf with `pip` or with `setup.py`. This would be the
 job of distribution packages.
