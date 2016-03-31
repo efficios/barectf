@@ -77,7 +77,7 @@ Note that you may pass the `--user` argument to
 `pip install` to install the tool in your home directory (instead of
 installing globally).
 
-**Latest Ubuntu**:
+**Ubuntu 14.04 and 16.04**:
 
 It is recommended to use the
 [barectf PPA](https://launchpad.net/~lttng/+archive/ubuntu/barectf),
@@ -88,6 +88,11 @@ which also installs the man page:
     sudo apt-get install barectf
 
 Otherwise, you can always use `pip3`:
+
+    sudo apt-get install python3-pip
+    sudo pip3 install barectf
+
+**Other, recent Ubuntu**:
 
     sudo apt-get install python3-pip
     sudo pip3 install barectf
