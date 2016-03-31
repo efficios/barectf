@@ -79,6 +79,16 @@ installing globally).
 
 **Latest Ubuntu**:
 
+It is recommended to use the
+[barectf PPA](https://launchpad.net/~lttng/+archive/ubuntu/barectf),
+which also installs the man page:
+
+    sudo apt-add-repository ppa:lttng/barectf
+    sudo apt-get update
+    sudo apt-get install barectf
+
+Otherwise, you can always use `pip3`:
+
     sudo apt-get install python3-pip
     sudo pip3 install barectf
 
@@ -112,7 +122,7 @@ Otherwise, you can always use `pip`:
     sudo pacman -S python-pip
     sudo pip install barectf
 
-**OS X**
+**OS X**:
 
 With [Homebrew](http://brew.sh/):
 
