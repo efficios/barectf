@@ -21,9 +21,9 @@ static void trace_stuff(struct barectf_default_ctx *ctx, int argc,
 
 	/* record 40000 events */
 	for (i = 0; i < 5000; ++i) {
-		barectf_default_trace_simple_uint32(ctx, i * 1500);
-		barectf_default_trace_simple_int16(ctx, -i * 2);
-		barectf_default_trace_simple_float(ctx, (float) i / 1.23);
+		barectf_trace_simple_uint32(ctx, i * 1500);
+		barectf_trace_simple_int16(ctx, -i * 2);
+		barectf_trace_simple_float(ctx, (float) i / 1.23);
 
 		if (argc > 0) {
 			str = argv[i % argc];
@@ -31,16 +31,16 @@ static void trace_stuff(struct barectf_default_ctx *ctx, int argc,
 			str = "hello there!";
 		}
 
-		barectf_default_trace_simple_string(ctx, str);
-		barectf_default_trace_context_no_payload(ctx, i, "ctx");
-		barectf_default_trace_simple_enum(ctx, RUNNING);
-		barectf_default_trace_a_few_fields(ctx, -1, 301, -3.14159,
+		barectf_trace_simple_string(ctx, str);
+		barectf_trace_context_no_payload(ctx, i, "ctx");
+		barectf_trace_simple_enum(ctx, RUNNING);
+		barectf_trace_a_few_fields(ctx, -1, 301, -3.14159,
 						     str, NEW);
-		barectf_default_trace_bit_packed_integers(ctx, 1, -1, 3,
+		barectf_trace_bit_packed_integers(ctx, 1, -1, 3,
 							    -2, 2, 7, 23,
 							    -55, 232);
-		barectf_default_trace_no_context_no_payload(ctx);
-		barectf_default_trace_simple_enum(ctx, TERMINATED);
+		barectf_trace_no_context_no_payload(ctx);
+		barectf_trace_simple_enum(ctx, TERMINATED);
 	}
 }
 

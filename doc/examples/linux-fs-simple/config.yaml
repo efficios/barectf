@@ -1,4 +1,4 @@
-version: '2.1'
+version: '2.2'
 metadata:
   $include:
     - stdint.yaml
@@ -32,6 +32,7 @@ metadata:
     byte-order: le
   streams:
     default:
+      $default: true
       packet-context-type:
         class: struct
         fields:
