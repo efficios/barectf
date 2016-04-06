@@ -353,13 +353,30 @@ class CCodeGenerator:
             s_name = self._cfg.options.gen_default_stream_def
             default_stream_def = '#define _BARECTF_DEFAULT_STREAM {}'.format(s_name)
 
+        default_stream_trace_defs = ''
+        default_stream_name = self._cfg.metadata.default_stream_name
+
+        if default_stream_name is not None:
+            default_stream = self._cfg.metadata.streams[default_stream_name]
+            lines = []
+
+            for ev_name in default_stream.events.keys():
+                tmpl = templates._DEFINE_DEFAULT_STREAM_TRACE
+                define = tmpl.format(prefix=self._cfg.prefix,
+                                     sname=default_stream_name,
+                                     evname=ev_name)
+                lines.append(define)
+
+            default_stream_trace_defs = '\n'.join(lines)
+
         tmpl = templates._HEADER_BEGIN
         self._cg.add_lines(tmpl.format(prefix=self._cfg.prefix,
                                        ucprefix=self._cfg.prefix.upper(),
                                        bitfield_header_filename=bh_filename,
                                        version=barectf.__version__, date=dt,
                                        prefix_def=prefix_def,
-                                       default_stream_def=default_stream_def))
+                                       default_stream_def=default_stream_def,
+                                       default_stream_trace_defs=default_stream_trace_defs))
         self._cg.add_empty_line()
 
         # platform callbacks structure

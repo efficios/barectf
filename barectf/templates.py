@@ -139,6 +139,9 @@ _FUNC_CLOSE_BODY_END = '''
 }'''
 
 
+_DEFINE_DEFAULT_STREAM_TRACE = '#define {prefix}trace_{evname} {prefix}{sname}_trace_{evname}'
+
+
 _FUNC_TRACE_PROTO_BEGIN = '''/* trace (stream "{sname}", event "{evname}") */
 void {prefix}{sname}_trace_{evname}(
 	struct {prefix}{sname}_ctx *ctx'''
@@ -238,6 +241,7 @@ _HEADER_BEGIN = '''#ifndef _{ucprefix}H
 
 {prefix_def}
 {default_stream_def}
+{default_stream_trace_defs}
 
 struct {prefix}ctx;
 
