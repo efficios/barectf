@@ -763,6 +763,7 @@ class Metadata:
         self._env = collections.OrderedDict()
         self._clocks = collections.OrderedDict()
         self._streams = collections.OrderedDict()
+        self._default_stream_name = None
 
     @property
     def trace(self):
@@ -795,3 +796,16 @@ class Metadata:
     @streams.setter
     def streams(self, value):
         self._streams = value
+
+    @property
+    def default_stream_name(self):
+        return self._default_stream_name
+
+    @default_stream_name.setter
+    def default_stream_name(self, value):
+        self._default_stream_name = value
+
+    @property
+    def default_stream(self):
+        if self._default_stream_name in self._streams:
+            return self._streams[self._default_stream_name]

@@ -358,8 +358,14 @@ class _BarectfMetadataValidator:
             except Exception as e:
                 raise ConfigError('invalid stream "{}"'.format(stream_name), e)
 
+    def _validate_default_stream(self, meta):
+        if meta.default_stream_name:
+            if meta.default_stream_name not in meta.streams.keys():
+                raise ConfigError('default stream name ("{}") does not exist'.format(meta.default_stream_name))
+
     def validate(self, meta):
         self._validate_entities_and_names(meta)
+        self._validate_default_stream(meta)
 
 
 # This validator validates special fields of trace, stream, and event
@@ -2231,21 +2237,31 @@ class _YamlConfigParser:
 
         return event
 
-    def _create_stream(self, stream_node):
+    def _create_stream(self, stream_name, stream_node):
         stream = metadata.Stream()
 
         if not _is_assoc_array_prop(stream_node):
             raise ConfigError('stream objects must be associative arrays')
 
-        unk_prop = _get_first_unknown_prop(stream_node, [
+        known_props = [
             'packet-context-type',
             'event-header-type',
             'event-context-type',
             'events',
-        ])
+        ]
+
+        if self._version >= 202:
+            known_props.append('$default')
+
+        unk_prop = _get_first_unknown_prop(stream_node, known_props)
 
         if unk_prop:
-            raise ConfigError('unknown stream object property: "{}"'.format(unk_prop))
+            add = ''
+
+            if unk_prop == '$default':
+                add = ' (use version 2.2 or greater)'
+
+            raise ConfigError('unknown stream object property{}: "{}"'.format(add, unk_prop))
 
         if 'packet-context-type' in stream_node and stream_node['packet-context-type'] is not None:
             try:
@@ -2296,6 +2312,19 @@ class _YamlConfigParser:
                 stream.events[ev_name] = ev
                 cur_id += 1
 
+        if '$default' in stream_node and stream_node['$default'] is not None:
+            default_node = stream_node['$default']
+
+            if not _is_bool_prop(default_node):
+                raise ConfigError('invalid "$default" property in stream object: expecting a boolean')
+
+            if default_node:
+                if self._meta.default_stream_name is not None and self._meta.default_stream_name != stream_name:
+                    fmt = 'cannot specify more than one default stream (default stream already set to "{}")'
+                    raise ConfigError(fmt.format(self._meta.default_stream_name))
+
+                self._meta.default_stream_name = stream_name
+
         return stream
 
     def _create_streams(self, metadata_node):
@@ -2316,7 +2345,7 @@ class _YamlConfigParser:
 
         for stream_name, stream_node in streams_node.items():
             try:
-                stream = self._create_stream(stream_node)
+                stream = self._create_stream(stream_name, stream_node)
             except Exception as e:
                 raise ConfigError('cannot create stream "{}"'.format(stream_name), e)
 
@@ -2328,7 +2357,7 @@ class _YamlConfigParser:
         return streams
 
     def _create_metadata(self, root):
-        meta = metadata.Metadata()
+        self._meta = metadata.Metadata()
 
         if 'metadata' not in root:
             raise ConfigError('missing "metadata" property (configuration)')
@@ -2350,6 +2379,9 @@ class _YamlConfigParser:
         if self._version >= 201:
             known_props.append('$log-levels')
 
+        if self._version >= 202:
+            known_props.append('$default-stream')
+
         unk_prop = _get_first_unknown_prop(metadata_node, known_props)
 
         if unk_prop:
@@ -2358,18 +2390,29 @@ class _YamlConfigParser:
             if unk_prop == '$include':
                 add = ' (use version 2.1 or greater)'
 
+            if unk_prop == '$default-stream':
+                add = ' (use version 2.2 or greater)'
+
             raise ConfigError('unknown metadata property{}: "{}"'.format(add, unk_prop))
+
+        if '$default-stream' in metadata_node and metadata_node['$default-stream'] is not None:
+            default_stream_node = metadata_node['$default-stream']
+
+            if not _is_str_prop(default_stream_node):
+                raise ConfigError('invalid "$default-stream" property (metadata): expecting a string')
+
+            self._meta.default_stream_name = default_stream_node
 
         self._set_byte_order(metadata_node)
         self._register_clocks(metadata_node)
-        meta.clocks = self._clocks
+        self._meta.clocks = self._clocks
         self._register_type_aliases(metadata_node)
-        meta.env = self._create_env(metadata_node)
-        meta.trace = self._create_trace(metadata_node)
+        self._meta.env = self._create_env(metadata_node)
+        self._meta.trace = self._create_trace(metadata_node)
         self._register_log_levels(metadata_node)
-        meta.streams = self._create_streams(metadata_node)
+        self._meta.streams = self._create_streams(metadata_node)
 
-        return meta
+        return self._meta
 
     def _get_version(self, root):
         if 'version' not in root:
