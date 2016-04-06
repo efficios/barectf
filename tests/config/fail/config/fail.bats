@@ -23,8 +23,8 @@ load ../../common
   barectf_config_check_fail
 }
 
-@test 'invalid "version" property (2.2) in config object makes barectf fail' {
-  barectf_assert_file_exists version-invalid-22.yaml
+@test 'invalid "version" property (2.3) in config object makes barectf fail' {
+  barectf_assert_file_exists version-invalid-23.yaml
   barectf_config_check_fail
 }
 
@@ -45,5 +45,25 @@ load ../../common
 
 @test 'wrong "metadata" property type in config object makes barectf fail' {
   barectf_assert_file_exists metadata-invalid-type.yaml
+  barectf_config_check_fail
+}
+
+@test 'wrong "options" property type in config object makes barectf fail' {
+  barectf_assert_file_exists options-invalid-type.yaml
+  barectf_config_check_fail
+}
+
+@test 'wrong "gen-prefix-def" property type in config options object makes barectf fail' {
+  barectf_assert_file_exists options-gen-prefix-def-invalid-type.yaml
+  barectf_config_check_fail
+}
+
+@test 'wrong "gen-default-stream-def" property type in config options object makes barectf fail' {
+  barectf_assert_file_exists options-gen-default-stream-def-invalid-type.yaml
+  barectf_config_check_fail
+}
+
+@test 'non existing stream name in "gen-default-stream-def" property (config options object) makes barectf fail' {
+  barectf_assert_file_exists options-gen-default-stream-def-unknown-stream-name.yaml
   barectf_config_check_fail
 }
