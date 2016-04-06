@@ -236,6 +236,9 @@ _HEADER_BEGIN = '''#ifndef _{ucprefix}H
 
 #include "{bitfield_header_filename}"
 
+{prefix_def}
+{default_stream_def}
+
 struct {prefix}ctx;
 
 uint32_t {prefix}packet_size(void *ctx);

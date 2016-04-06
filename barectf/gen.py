@@ -343,11 +343,23 @@ class CCodeGenerator:
         self._cg.reset()
         dt = datetime.datetime.now().isoformat()
         bh_filename = self.get_bitfield_header_filename()
+        prefix_def = ''
+        default_stream_def = ''
+
+        if self._cfg.options.gen_prefix_def:
+            prefix_def = '#define _BARECTF_PREFIX {}'.format(self._cfg.prefix)
+
+        if self._cfg.options.gen_default_stream_def:
+            s_name = self._cfg.options.gen_default_stream_def
+            default_stream_def = '#define _BARECTF_DEFAULT_STREAM {}'.format(s_name)
+
         tmpl = templates._HEADER_BEGIN
         self._cg.add_lines(tmpl.format(prefix=self._cfg.prefix,
                                        ucprefix=self._cfg.prefix.upper(),
                                        bitfield_header_filename=bh_filename,
-                                       version=barectf.__version__, date=dt))
+                                       version=barectf.__version__, date=dt,
+                                       prefix_def=prefix_def,
+                                       default_stream_def=default_stream_def))
         self._cg.add_empty_line()
 
         # platform callbacks structure
@@ -999,7 +1011,6 @@ class CCodeGenerator:
                 self._cg.add_empty_line()
                 self._generate_func_trace(stream, ev)
                 self._cg.add_empty_line()
-
 
         return self._cg.code
 
