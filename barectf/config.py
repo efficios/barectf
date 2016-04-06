@@ -43,10 +43,11 @@ class ConfigError(RuntimeError):
 
 
 class Config:
-    def __init__(self, version, prefix, metadata):
+    def __init__(self, version, prefix, metadata, options):
         self.prefix = prefix
         self.version = version
         self.metadata = metadata
+        self.options = options
 
     def _validate_metadata(self, meta):
         try:
@@ -104,9 +105,44 @@ class Config:
     @prefix.setter
     def prefix(self, value):
         if not _is_valid_identifier(value):
-            raise ConfigError('prefix must be a valid C identifier')
+            raise ConfigError('configuration prefix must be a valid C identifier')
 
         self._prefix = value
+
+    @property
+    def options(self):
+        return self._options
+
+    @options.setter
+    def options(self, options):
+        if options.gen_default_stream_def:
+            if options.gen_default_stream_def not in self._metadata.streams.keys():
+                fmt = 'invalid configuration option "gen-default-stream-def": stream "{}" does not exist'
+                raise ConfigError(fmt.format(options.gen_default_stream_def))
+
+        self._options = options
+
+
+class ConfigOptions:
+    def __init__(self):
+        self._gen_prefix_def = False
+        self._gen_default_stream_def = False
+
+    @property
+    def gen_prefix_def(self):
+        return self._gen_prefix_def
+
+    @gen_prefix_def.setter
+    def gen_prefix_def(self, value):
+        self._gen_prefix_def = value
+
+    @property
+    def gen_default_stream_def(self):
+        return self._gen_default_stream_def
+
+    @gen_default_stream_def.setter
+    def gen_default_stream_def(self, value):
+        self._gen_default_stream_def = value
 
 
 def _is_assoc_array_prop(node):
@@ -2346,8 +2382,8 @@ class _YamlConfigParser:
 
         version_node = version_node.strip()
 
-        if version_node not in ['2.0', '2.1']:
-            raise ConfigError('unsupported version ({}): versions 2.0 and 2.1 are supported'.format(version_node))
+        if version_node not in ['2.0', '2.1', '2.2']:
+            raise ConfigError('unsupported version ({}): versions 2.0, 2.1, and 2.2 are supported'.format(version_node))
 
         # convert version string to comparable version integer
         parts = version_node.split('.')
@@ -2373,6 +2409,44 @@ class _YamlConfigParser:
             raise ConfigError('"prefix" property (configuration) must be a valid C identifier')
 
         return prefix_node
+
+    def _get_options(self, root):
+        cfg_options = ConfigOptions()
+
+        if 'options' not in root:
+            return cfg_options
+
+        options_node = root['options']
+
+        if not _is_assoc_array_prop(options_node):
+            raise ConfigError('"options" property (configuration) must be an associative array')
+
+        known_props = [
+            'gen-prefix-def',
+            'gen-default-stream-def',
+        ]
+        unk_prop = _get_first_unknown_prop(options_node, known_props)
+
+        if unk_prop:
+            raise ConfigError('unknown configuration option property: "{}"'.format(unk_prop))
+
+        if 'gen-prefix-def' in options_node and options_node['gen-prefix-def'] is not None:
+            gen_prefix_def_node = options_node['gen-prefix-def']
+
+            if not _is_bool_prop(gen_prefix_def_node):
+                raise ConfigError('invalid configuration option "gen-prefix-def": expecting a boolean')
+
+            cfg_options.gen_prefix_def = gen_prefix_def_node
+
+        if 'gen-default-stream-def' in options_node and options_node['gen-default-stream-def'] is not None:
+            gen_default_stream_def_node = options_node['gen-default-stream-def']
+
+            if not _is_str_prop(gen_default_stream_def_node):
+                raise ConfigError('invalid configuration option "gen-default-stream-def": expecting a string')
+
+            cfg_options.gen_default_stream_def = gen_default_stream_def_node
+
+        return cfg_options
 
     def _get_last_include_file(self):
         if self._include_stack:
@@ -2657,17 +2731,27 @@ class _YamlConfigParser:
         if not _is_assoc_array_prop(root):
             raise ConfigError('configuration must be an associative array')
 
-        unk_prop = _get_first_unknown_prop(root, [
+        # get the config version
+        self._version = self._get_version(root)
+
+        known_props = [
             'version',
             'prefix',
             'metadata',
-        ])
+        ]
+
+        if self._version >= 202:
+            known_props.append('options')
+
+        unk_prop = _get_first_unknown_prop(root, known_props)
 
         if unk_prop:
-            raise ConfigError('unknown configuration property: "{}"'.format(unk_prop))
+            add = ''
 
-        # get the config version
-        self._version = self._get_version(root)
+            if unk_prop == 'options':
+                add = ' (use version 2.2 or greater)'
+
+            raise ConfigError('unknown configuration property{}: "{}"'.format(add, unk_prop))
 
         # process includes if supported
         if self._version >= 201:
@@ -2681,8 +2765,9 @@ class _YamlConfigParser:
         # get prefix and metadata
         prefix = self._get_prefix(root)
         meta = self._create_metadata(root)
+        opts = self._get_options(root)
 
-        return Config(self._version, prefix, meta)
+        return Config(self._version, prefix, meta, opts)
 
 
 def from_yaml_file(path, include_dirs, ignore_include_not_found, dump_config):
