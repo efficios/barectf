@@ -115,11 +115,6 @@ class Config:
 
     @options.setter
     def options(self, options):
-        if options.gen_default_stream_def:
-            if options.gen_default_stream_def not in self._metadata.streams.keys():
-                fmt = 'invalid configuration option "gen-default-stream-def": stream "{}" does not exist'
-                raise ConfigError(fmt.format(options.gen_default_stream_def))
-
         self._options = options
 
 
@@ -2484,8 +2479,8 @@ class _YamlConfigParser:
         if 'gen-default-stream-def' in options_node and options_node['gen-default-stream-def'] is not None:
             gen_default_stream_def_node = options_node['gen-default-stream-def']
 
-            if not _is_str_prop(gen_default_stream_def_node):
-                raise ConfigError('invalid configuration option "gen-default-stream-def": expecting a string')
+            if not _is_bool_prop(gen_default_stream_def_node):
+                raise ConfigError('invalid configuration option "gen-default-stream-def": expecting a boolean')
 
             cfg_options.gen_default_stream_def = gen_default_stream_def_node
 

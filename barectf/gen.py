@@ -349,9 +349,8 @@ class CCodeGenerator:
         if self._cfg.options.gen_prefix_def:
             prefix_def = '#define _BARECTF_PREFIX {}'.format(self._cfg.prefix)
 
-        if self._cfg.options.gen_default_stream_def:
-            s_name = self._cfg.options.gen_default_stream_def
-            default_stream_def = '#define _BARECTF_DEFAULT_STREAM {}'.format(s_name)
+        if self._cfg.options.gen_default_stream_def and self._cfg.metadata.default_stream_name is not None:
+            default_stream_def = '#define _BARECTF_DEFAULT_STREAM {}'.format(self._cfg.metadata.default_stream_name)
 
         default_stream_trace_defs = ''
         default_stream_name = self._cfg.metadata.default_stream_name

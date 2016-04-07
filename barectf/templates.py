@@ -241,6 +241,7 @@ _HEADER_BEGIN = '''#ifndef _{ucprefix}H
 
 {prefix_def}
 {default_stream_def}
+
 {default_stream_trace_defs}
 
 struct {prefix}ctx;
