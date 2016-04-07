@@ -62,8 +62,3 @@ load ../../common
   barectf_assert_file_exists options-gen-default-stream-def-invalid-type.yaml
   barectf_config_check_fail
 }
-
-@test 'non existing stream name in "gen-default-stream-def" property (config options object) makes barectf fail' {
-  barectf_assert_file_exists options-gen-default-stream-def-unknown-stream-name.yaml
-  barectf_config_check_fail
-}

@@ -1,6 +1,6 @@
 version: '2.2'
 options:
-  gen-default-stream-def: true
+  gen-default-stream-def: 23
 metadata:
   type-aliases:
     uint16:
