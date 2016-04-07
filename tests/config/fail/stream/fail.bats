@@ -187,3 +187,8 @@ load ../../common
   barectf_assert_file_exists events-key-invalid-identifier.yaml
   barectf_config_check_fail
 }
+
+@test 'wrong "$default" property type in stream object makes barectf fail' {
+  barectf_assert_file_exists default-invalid-type.yaml
+  barectf_config_check_fail
+}
