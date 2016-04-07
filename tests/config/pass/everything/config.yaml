@@ -2,7 +2,7 @@ version: '2.2'
 prefix: bctf_
 options:
   gen-prefix-def: true
-  gen-default-stream-def: my_other_stream
+  gen-default-stream-def: true
 metadata:
   $include:
     - inc-metadata.yaml
