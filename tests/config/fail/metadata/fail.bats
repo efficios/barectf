@@ -87,3 +87,18 @@ load ../../common
   barectf_assert_file_exists multiple-streams-trace-ph-no-stream-id.yaml
   barectf_config_check_fail
 }
+
+@test 'wrong "$default-stream" property type in metadata object makes barectf fail' {
+  barectf_assert_file_exists default-stream-invalid-type.yaml
+  barectf_config_check_fail
+}
+
+@test 'non-existing stream name in "$default-stream" property makes barectf fail' {
+  barectf_assert_file_exists default-stream-unknown-stream.yaml
+  barectf_config_check_fail
+}
+
+@test 'coexisting "$default-stream" property (metadata) and "$default: true" property (stream) with different names make barectf fail' {
+  barectf_assert_file_exists default-stream-stream-default-duplicate.yaml
+  barectf_config_check_fail
+}
