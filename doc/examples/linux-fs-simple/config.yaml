@@ -1,4 +1,7 @@
 version: '2.2'
+options:
+  gen-prefix-def: true
+  gen-default-stream-def: true
 metadata:
   $include:
     - stdint.yaml
