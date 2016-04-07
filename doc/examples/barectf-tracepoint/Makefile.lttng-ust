@@ -1,0 +1,23 @@
+RM = rm -rf
+
+CFLAGS := -O2 -Wall -pedantic -std=gnu99 $(CFLAGS)
+LDFLAGS := -llttng-ust -ldl $(LDFLAGS)
+
+TARGET = barectf-tracepoint-lttng-ust
+OBJS = $(TARGET).o tp.o
+
+.PHONY: all clean
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+tp.o: tp.c
+	$(CC) -c $(CFLAGS) -I. $<
+
+$(TARGET).o: barectf-tracepoint.c tp.h
+	$(CC) -c -o $@ $(CFLAGS) -DWITH_LTTNG_UST=1 $<
+
+clean:
+	$(RM) $(TARGET) $(OBJS)

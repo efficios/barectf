@@ -1,0 +1,131 @@
+version: '2.2'
+options:
+  gen-prefix-def: true
+  gen-default-stream-def: true
+metadata:
+  $include:
+    - stdint.yaml
+    - stdfloat.yaml
+    - stdmisc.yaml
+    - lttng-ust-log-levels.yaml
+  type-aliases:
+    clock-int:
+      $inherit: uint64
+      property-mappings:
+        - type: clock
+          name: default
+          property: value
+    state:
+      class: enum
+      value-type: uint8
+      members:
+        - NEW
+        - TERMINATED
+        - READY
+        - RUNNING
+        - WAITING
+  clocks:
+    default:
+      freq: 1000000000
+      offset:
+        seconds: 1434072888
+      $return-ctype: uint64_t
+  trace:
+    $include: trace-basic.yaml
+    byte-order: le
+  streams:
+    default:
+      $default: true
+      packet-context-type:
+        class: struct
+        fields:
+          timestamp_begin: clock-int
+          timestamp_end: clock-int
+          packet_size: uint32
+          content_size: uint32
+          events_discarded: uint32
+      event-header-type:
+        class: struct
+        fields:
+          timestamp: clock-int
+          id: uint16
+      events:
+        barectf_tp_simple_uint32:
+          log-level: CRIT
+          payload-type:
+            class: struct
+            fields:
+              value: uint32
+        barectf_tp_simple_int16:
+          payload-type:
+            class: struct
+            fields:
+              value: int16
+        barectf_tp_simple_float:
+          payload-type:
+            class: struct
+            fields:
+              value: float
+        barectf_tp_simple_string:
+          log-level: WARNING
+          payload-type:
+            class: struct
+            fields:
+              value:
+                class: string
+        barectf_tp_simple_enum:
+          payload-type:
+            class: struct
+            fields:
+              value: state
+        barectf_tp_a_few_fields:
+          payload-type:
+            class: struct
+            fields:
+              int32: int32
+              uint16: uint16
+              dbl: double
+              str:
+                class: string
+              state: state
+        barectf_tp_bit_packed_integers:
+          log-level: 513
+          payload-type:
+            class: struct
+            min-align: 8
+            fields:
+              uint1:
+                $inherit: uint8
+                size: 1
+                align: 1
+              int1:
+                $inherit: int8
+                size: 1
+                align: 1
+              uint2:
+                $inherit: uint8
+                size: 2
+                align: 1
+              int3:
+                $inherit: int8
+                size: 3
+                align: 1
+              uint4:
+                $inherit: uint8
+                size: 4
+                align: 1
+              int5:
+                $inherit: int8
+                size: 5
+                align: 1
+              uint6:
+                $inherit: uint8
+                size: 6
+                align: 1
+              int7:
+                $inherit: int8
+                size: 7
+                align: 1
+              uint8:
+                $inherit: uint8
+                align: 1

@@ -1,2 +1,3 @@
-barectf*.c
-barectf*.h
+barectf.c
+barectf.h
+barectf-bitfield.h
