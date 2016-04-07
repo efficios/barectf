@@ -8,7 +8,7 @@ CFLAGS = -O2 -Wall -pedantic -std=gnu99 -I$(PLATFORM_DIR) -I.
 TARGET = linux-fs-simple
 OBJS = $(TARGET).o barectf.o barectf-platform-linux-fs.o
 
-.PHONY: all view clean
+.PHONY: all view
 
 all: $(TARGET)
 
@@ -19,7 +19,7 @@ $(TARGET): $(OBJS)
 	$(CC) -o $@ $^
 
 ctf/metadata barectf-bitfield.h barectf.h barectf.c: config.yaml ctf
-	barectf $< -m ctf
+	$(BARECTF) $< -m ctf
 
 barectf.o: barectf.c
 	$(CC) $(CFLAGS) -c $<
