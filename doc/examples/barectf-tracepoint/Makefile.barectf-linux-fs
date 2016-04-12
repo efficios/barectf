@@ -1,0 +1,38 @@
+BARECTF ?= barectf
+RM = rm -rf
+MKDIR = mkdir -p
+
+PLATFORM_DIR = ../../../platforms/linux-fs
+EXTRA_DIR = ../../../extra
+CFLAGS = -O2 -Wall -pedantic -std=gnu99 -I$(PLATFORM_DIR) -I$(EXTRA_DIR) -I.
+
+VERSION = linux-fs
+TARGET = barectf-tracepoint-barectf-$(VERSION)
+OBJS = $(TARGET).o barectf-$(VERSION).o barectf-platform-linux-fs.o
+TRACEDIR = ctf-$(VERSION)
+
+.PHONY: all clean
+
+all: $(TARGET)
+
+$(TRACEDIR):
+	$(MKDIR) $@
+
+$(TARGET): $(OBJS)
+	$(CC) -o $@ $^
+
+$(TRACEDIR)/metadata barectf-bitfield.h barectf.h barectf.c: config.yaml $(TRACEDIR)
+	$(BARECTF) $< -m $(TRACEDIR)
+
+barectf-$(VERSION).o: barectf.c
+	$(CC) -o $@ $(CFLAGS) -c $<
+
+barectf-platform-linux-fs.o: $(PLATFORM_DIR)/barectf-platform-linux-fs.c
+	$(CC) $(CFLAGS) -c $<
+
+$(TARGET).o: barectf-tracepoint.c barectf-tracepoint-$(VERSION).h barectf.h barectf-bitfield.h
+	$(CC) -o $@ $(CFLAGS) -c $<
+
+clean:
+	$(RM) $(TARGET) $(OBJS) $(TRACEDIR)
+	$(RM) barectf.h barectf-bitfield.h barectf.c

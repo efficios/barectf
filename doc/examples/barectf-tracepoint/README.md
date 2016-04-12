@@ -18,7 +18,7 @@ installed, and do:
 
 To build only the example using barectf:
 
-    make -f Makefile.barectf
+    make -f Makefile.barectf-linux-fs
 
 To build only the example using LTTng-UST:
 
@@ -29,14 +29,14 @@ To build only the example using LTTng-UST:
 
 Run this example:
 
-    ./barectf-tracepoint-barectf
+    ./barectf-tracepoint-barectf-linux-fs
 
-The complete CTF trace is written to the `ctf` directory.
+The complete CTF trace is written to the `ctf-linux-fs` directory.
 
 You may run the example with any arguments; they will be recorded,
 as string fields in the events of the binary stream, e.g.:
 
-    ./barectf-tracepoint-barectf this argument and this one will be recorded
+    ./barectf-tracepoint-barectf-linux-fs this argument and this one will be recorded
 
 
 ## LTTng-UST tracing
