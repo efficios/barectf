@@ -16,7 +16,7 @@ $(TARGET): $(OBJS)
 tp.o: tp.c
 	$(CC) -c $(CFLAGS) -I. $<
 
-$(TARGET).o: barectf-tracepoint.c tp.h
+$(TARGET).o: barectf-tracepoint.c barectf-tracepoint-lttng-ust.h tp.h
 	$(CC) -c -o $@ $(CFLAGS) -DWITH_LTTNG_UST=1 $<
 
 clean:

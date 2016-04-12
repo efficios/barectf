@@ -3,29 +3,11 @@
 #include <stdlib.h>
 #include <time.h>
 
-#ifdef WITH_LTTNG_UST
-#include "tp.h"
-#else /* #ifdef WITH_LTTNG_UST */
-#include <barectf-platform-linux-fs.h>
-
-/*
- * Include generated barectf header file: this contains the prefix and
- * default stream name to be used by the tracepoint() macro.
- */
-#include "barectf.h"
-
-/* define how the context is to be found by tracepoint() calls */
-#define BARECTF_TRACEPOINT_CTX	(global_barectf_ctx)
-
-/* then include this: */
-#include <barectf-tracepoint.h>
-
-/* global barectf context (default stream) */
-static struct barectf_default_ctx *global_barectf_ctx;
-
-/* global barectf platform context */
-struct barectf_platform_linux_fs_ctx *global_barectf_platform_ctx;
-#endif /* #ifdef WITH_LTTNG_UST */
+#if defined(WITH_LTTNG_UST)
+#include "barectf-tracepoint-lttng-ust.h"
+#else
+#include "barectf-tracepoint-linux-fs.h"
+#endif
 
 enum state_t {
 	NEW,
@@ -62,37 +44,11 @@ static void trace_stuff(int argc, char *argv[])
 	}
 }
 
-#ifdef WITH_LTTNG_UST
-#define init_barectf()
-#define fini_barectf()
-#else /* #ifdef WITH_LTTNG_UST */
-static void init_barectf(void)
-{
-	/* initialize platform */
-	global_barectf_platform_ctx =
-		barectf_platform_linux_fs_init(512, "ctf", 1, 2, 7);
-
-	if (!global_barectf_platform_ctx) {
-		fprintf(stderr, "Error: could not initialize platform\n");
-		exit(1);
-	}
-
-	global_barectf_ctx = barectf_platform_linux_fs_get_barectf_ctx(
-		global_barectf_platform_ctx);
-}
-
-static void fini_barectf(void)
-{
-	/* finalize platform */
-	barectf_platform_linux_fs_fini(global_barectf_platform_ctx);
-}
-#endif /* #ifdef WITH_LTTNG_UST */
-
 int main(int argc, char *argv[])
 {
-	init_barectf();
+	init_tracing();
 	trace_stuff(argc, argv);
-	fini_barectf();
+	fini_tracing();
 
 	return 0;
 }

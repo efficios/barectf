@@ -28,7 +28,7 @@ barectf.o: barectf.c
 barectf-platform-linux-fs.o: $(PLATFORM_DIR)/barectf-platform-linux-fs.c
 	$(CC) $(CFLAGS) -c $<
 
-$(TARGET).o: barectf-tracepoint.c barectf.h barectf-bitfield.h
+$(TARGET).o: barectf-tracepoint.c barectf-tracepoint-linux-fs.h barectf.h barectf-bitfield.h
 	$(CC) -o $@ $(CFLAGS) -c $<
 
 clean:
