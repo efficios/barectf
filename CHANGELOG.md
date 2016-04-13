@@ -1,5 +1,34 @@
 # barectf 2 changelog
 
+## barectf v2.2.0
+
+**Features**:
+
+  * Add `$default` boolean property to stream objects, and
+    `$default-stream` string property to the metadata object, to specify
+    a _default stream_: when a default stream exists, tracing function
+    aliases without the default stream name (`barectf_trace_my_event()`,
+    for example) are also generated
+  * Add `options` property to the configuration object, with:
+    * `gen-prefix-def`: true to generate a preprocessor definition
+      (`#define`) in `barectf.h` for the effective prefix
+    * `gen-default-stream-def`: true to generate a preprocessor
+      definition for the default stream name, if any
+  * Create `barectf-tracepoint.h`, a bridging C header file that
+    allows LTTng-UST tracepoints to be used as is with barectf by
+    providing the same `tracepoint()` macro
+
+**Tests**:
+
+  * Test the new `$default` (stream object), `$default-stream` (metadata
+    object), and `options` (configuration object) properties
+
+**README.md**:
+
+  * Add instructions for installing barectf on Arch Linux using the AUR
+  * Add instructions for installing barectf on Ubuntu using a PPA
+
+
 ## barectf v2.1.4
 
 **Minor improvements**:
