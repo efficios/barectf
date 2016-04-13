@@ -1,0 +1,5 @@
+barectf-tracepoint-barectf-linux-fs
+barectf-tracepoint-barectf-qemu-arm-uart
+barectf-tracepoint-lttng-ust
+ctf-linux-fs
+ctf-qemu-arm-uart
