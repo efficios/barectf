@@ -4,7 +4,7 @@
 /* tracepoint provider header */
 #include "tp.h"
 
-/* empty init() and fini() function for this version */
+/* empty init_tracing() and fini_tracing() function for this version */
 #define init_tracing()
 #define fini_tracing()
 
