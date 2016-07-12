@@ -85,7 +85,7 @@ which also installs the man page:
 
     sudo apt-add-repository ppa:lttng/barectf
     sudo apt-get update
-    sudo apt-get install barectf
+    sudo apt-get install python3-barectf
 
 Otherwise, you can always use `pip3`:
 
