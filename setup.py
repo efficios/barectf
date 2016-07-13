@@ -48,7 +48,7 @@ setup(name='barectf',
       author_email='eeppeliteloop@gmail.com',
       license='MIT',
       keywords='ctf generator tracing bare-metal bare-machine',
-      url='https://github.com/efficios/barectf',
+      url='http://barectf.org',
       packages=[
           'barectf',
       ],

@@ -373,7 +373,7 @@ def from_metadata(meta):
     line = ' * on {}.'.format(now)
     cg.add_line(line)
     cg.add_line(' *')
-    cg.add_line(' * For more details, see <https://github.com/efficios/barectf>.')
+    cg.add_line(' * For more details, see <http://barectf.org>.')
     cg.add_line(' */')
     cg.add_empty_line()
 
