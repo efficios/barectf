@@ -1,7 +1,7 @@
 ![Icon made by Freepik from www.flaticon.com](https://lttng.org/blog/images/barectf.png)
 
 [![](https://img.shields.io/pypi/v/barectf.svg)](https://pypi.python.org/pypi/barectf)
-[![Jenkins](https://img.shields.io/jenkins/s/https/ci.lttng.org/barectf.svg)](https://ci.lttng.org/job/barectf)
+[![Jenkins](https://img.shields.io/jenkins/s/https/ci.lttng.org/barectf_master_build.svg)](https://ci.lttng.org/job/barectf_master_build)
 
 **barectf** is a command-line utility which generates C99
 code that is able to write native [Common Trace Format](http://diamon.org/ctf)
