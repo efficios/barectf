@@ -33,6 +33,14 @@
 
 #include "barectf-platform-linux-fs.h"
 
+#ifdef __cplusplus
+# define TO_VOID_PTR(_value)		static_cast<void *>(_value)
+# define FROM_VOID_PTR(_type, _value)	static_cast<_type *>(_value)
+#else
+# define TO_VOID_PTR(_value)		((void *) (_value))
+# define FROM_VOID_PTR(_type, _value)	((_type *) (_value))
+#endif
+
 struct barectf_platform_linux_fs_ctx {
 	struct barectf_default_ctx ctx;
 	FILE *fh;
@@ -59,7 +67,8 @@ static void write_packet(struct barectf_platform_linux_fs_ctx *ctx)
 
 static int is_backend_full(void *data)
 {
-	struct barectf_platform_linux_fs_ctx *ctx = data;
+	struct barectf_platform_linux_fs_ctx *ctx =
+		FROM_VOID_PTR(struct barectf_platform_linux_fs_ctx, data);
 
 	if (ctx->simulate_full_backend) {
 		if (rand() % ctx->full_backend_rand_max <
@@ -73,14 +82,16 @@ static int is_backend_full(void *data)
 
 static void open_packet(void *data)
 {
-	struct barectf_platform_linux_fs_ctx *ctx = data;
+	struct barectf_platform_linux_fs_ctx *ctx =
+		FROM_VOID_PTR(struct barectf_platform_linux_fs_ctx, data);
 
 	barectf_default_open_packet(&ctx->ctx);
 }
 
 static void close_packet(void *data)
 {
-	struct barectf_platform_linux_fs_ctx *ctx = data;
+	struct barectf_platform_linux_fs_ctx *ctx =
+		FROM_VOID_PTR(struct barectf_platform_linux_fs_ctx, data);
 
 	/* close packet now */
 	barectf_default_close_packet(&ctx->ctx);
@@ -96,20 +107,19 @@ struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(
 	char stream_path[256];
 	uint8_t *buf;
 	struct barectf_platform_linux_fs_ctx *ctx;
-	struct barectf_platform_callbacks cbs = {
-		.default_clock_get_value = get_clock,
-		.is_backend_full = is_backend_full,
-		.open_packet = open_packet,
-		.close_packet = close_packet,
-	};
+	struct barectf_platform_callbacks cbs;
 
-	ctx = malloc(sizeof(*ctx));
+	cbs.default_clock_get_value = get_clock;
+	cbs.is_backend_full = is_backend_full;
+	cbs.open_packet = open_packet;
+	cbs.close_packet = close_packet;
+	ctx = FROM_VOID_PTR(struct barectf_platform_linux_fs_ctx, malloc(sizeof(*ctx)));
 
 	if (!ctx) {
 		return NULL;
 	}
 
-	buf = malloc(buf_size);
+	buf = FROM_VOID_PTR(uint8_t, malloc(buf_size));
 
 	if (!buf) {
 		free(ctx);

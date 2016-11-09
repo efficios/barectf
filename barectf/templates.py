@@ -84,7 +84,7 @@ _CTX_END = '};'
 
 _FUNC_INIT_PROTO = '''/* initialize context */
 void {prefix}init(
-	void *ctx,
+	void *vctx,
 	uint8_t *buf,
 	uint32_t buf_size,
 	struct {prefix}platform_callbacks cbs,
@@ -93,14 +93,14 @@ void {prefix}init(
 
 
 _FUNC_INIT_BODY = '''{{
-	struct {prefix}ctx *{prefix}ctx = ctx;
-	{prefix}ctx->cbs = cbs;
-	{prefix}ctx->data = data;
-	{prefix}ctx->buf = buf;
-	{prefix}ctx->packet_size = _BYTES_TO_BITS(buf_size);
-	{prefix}ctx->at = 0;
-	{prefix}ctx->events_discarded = 0;
-	{prefix}ctx->packet_is_open = 0;
+	struct {prefix}ctx *ctx = FROM_VOID_PTR(struct {prefix}ctx, vctx);
+	ctx->cbs = cbs;
+	ctx->data = data;
+	ctx->buf = buf;
+	ctx->packet_size = _BYTES_TO_BITS(buf_size);
+	ctx->at = 0;
+	ctx->events_discarded = 0;
+	ctx->packet_is_open = 0;
 }}'''
 
 
@@ -154,30 +154,31 @@ _FUNC_TRACE_BODY = '''{{
 	uint32_t ev_size;
 
 	/* get event size */
-	ev_size = _get_event_size_{sname}_{evname}((void *) ctx{params});
+	ev_size = _get_event_size_{sname}_{evname}(TO_VOID_PTR(ctx){params});
 
 	/* do we have enough space to serialize? */
-	if (!_reserve_event_space((void *) ctx, ev_size)) {{
+	if (!_reserve_event_space(TO_VOID_PTR(ctx), ev_size)) {{
 		/* no: forget this */
 		return;
 	}}
 
 	/* serialize event */
-	_serialize_event_{sname}_{evname}((void *) ctx{params});
+	_serialize_event_{sname}_{evname}(TO_VOID_PTR(ctx){params});
 
 	/* commit event */
-	_commit_event((void *) ctx);
+	_commit_event(TO_VOID_PTR(ctx));
 }}'''
 
 
 _FUNC_GET_EVENT_SIZE_PROTO_BEGIN = '''static uint32_t _get_event_size_{sname}_{evname}(
-	struct {prefix}ctx *ctx'''
+	void *vctx'''
 
 
 _FUNC_GET_EVENT_SIZE_PROTO_END = ')'
 
 
-_FUNC_GET_EVENT_SIZE_BODY_BEGIN = '''{
+_FUNC_GET_EVENT_SIZE_BODY_BEGIN = '''{{
+	struct {prefix}ctx *ctx = FROM_VOID_PTR(struct {prefix}ctx, vctx);
 	uint32_t at = ctx->at;'''
 
 
@@ -186,40 +187,43 @@ _FUNC_GET_EVENT_SIZE_BODY_END = '''	return at - ctx->at;
 
 
 _FUNC_SERIALIZE_STREAM_EVENT_HEADER_PROTO_BEGIN = '''static void _serialize_stream_event_header_{sname}(
-	struct {prefix}ctx *ctx,
+	void *vctx,
 	uint32_t event_id'''
 
 
 _FUNC_SERIALIZE_STREAM_EVENT_HEADER_PROTO_END = ')'
 
 
-_FUNC_SERIALIZE_STREAM_EVENT_HEADER_BODY_BEGIN = '{'
+_FUNC_SERIALIZE_STREAM_EVENT_HEADER_BODY_BEGIN = '''{{
+	struct {prefix}ctx *ctx = FROM_VOID_PTR(struct {prefix}ctx, vctx);'''
 
 
 _FUNC_SERIALIZE_STREAM_EVENT_HEADER_BODY_END = '}'
 
 
 _FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_PROTO_BEGIN = '''static void _serialize_stream_event_context_{sname}(
-	struct {prefix}ctx *ctx'''
+	void *vctx'''
 
 
 _FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_PROTO_END = ')'
 
 
-_FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_BEGIN = '{'
+_FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_BEGIN = '''{{
+	struct {prefix}ctx *ctx = FROM_VOID_PTR(struct {prefix}ctx, vctx);'''
 
 
 _FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_END = '}'
 
 
 _FUNC_SERIALIZE_EVENT_PROTO_BEGIN = '''static void _serialize_event_{sname}_{evname}(
-	struct {prefix}ctx *ctx'''
+	void *vctx'''
 
 
 _FUNC_SERIALIZE_EVENT_PROTO_END = ')'
 
 
-_FUNC_SERIALIZE_EVENT_BODY_BEGIN = '{'
+_FUNC_SERIALIZE_EVENT_BODY_BEGIN = '''{{
+	struct {prefix}ctx *ctx = FROM_VOID_PTR(struct {prefix}ctx, vctx);'''
 
 
 _FUNC_SERIALIZE_EVENT_BODY_END = '}'
@@ -334,6 +338,14 @@ _C_SRC = '''/*
 		(_at) = ((_at) + ((_align) - 1)) & -(_align);	\\
 	}} while (0)
 
+#ifdef __cplusplus
+# define TO_VOID_PTR(_value)		static_cast<void *>(_value)
+# define FROM_VOID_PTR(_type, _value)	static_cast<_type *>(_value)
+#else
+# define TO_VOID_PTR(_value)		((void *) (_value))
+# define FROM_VOID_PTR(_type, _value)	((_type *) (_value))
+#endif
+
 #define _BITS_TO_BYTES(_x)	((_x) >> 3)
 #define _BYTES_TO_BITS(_x)	((_x) << 3)
 
@@ -349,49 +361,51 @@ union d2u {{
 
 uint32_t {prefix}packet_size(void *ctx)
 {{
-	return ((struct {prefix}ctx *) ctx)->packet_size;
+	return FROM_VOID_PTR(struct {prefix}ctx, ctx)->packet_size;
 }}
 
 int {prefix}packet_is_full(void *ctx)
 {{
-	struct {prefix}ctx *cctx = ctx;
+	struct {prefix}ctx *cctx = FROM_VOID_PTR(struct {prefix}ctx, ctx);
 
 	return cctx->at == cctx->packet_size;
 }}
 
 int {prefix}packet_is_empty(void *ctx)
 {{
-	struct {prefix}ctx *cctx = ctx;
+	struct {prefix}ctx *cctx = FROM_VOID_PTR(struct {prefix}ctx, ctx);
 
 	return cctx->at <= cctx->off_content;
 }}
 
 uint32_t {prefix}packet_events_discarded(void *ctx)
 {{
-	return ((struct {prefix}ctx *) ctx)->events_discarded;
+	return FROM_VOID_PTR(struct {prefix}ctx, ctx)->events_discarded;
 }}
 
 uint8_t *{prefix}packet_buf(void *ctx)
 {{
-	return ((struct {prefix}ctx *) ctx)->buf;
+	return FROM_VOID_PTR(struct {prefix}ctx, ctx)->buf;
 }}
 
 uint32_t {prefix}packet_buf_size(void *ctx)
 {{
-	return _BITS_TO_BYTES(((struct {prefix}ctx *) ctx)->packet_size);
+	struct {prefix}ctx *cctx = FROM_VOID_PTR(struct {prefix}ctx, ctx);
+
+	return _BITS_TO_BYTES(cctx->packet_size);
 }}
 
 void {prefix}packet_set_buf(void *ctx, uint8_t *buf, uint32_t buf_size)
 {{
-	struct {prefix}ctx *{prefix}ctx = ctx;
+	struct {prefix}ctx *cctx = FROM_VOID_PTR(struct {prefix}ctx, ctx);
 
-	{prefix}ctx->buf = buf;
-	{prefix}ctx->packet_size = _BYTES_TO_BITS(buf_size);
+	cctx->buf = buf;
+	cctx->packet_size = _BYTES_TO_BITS(buf_size);
 }}
 
 int {prefix}packet_is_open(void *ctx)
 {{
-	return ((struct {prefix}ctx *) ctx)->packet_is_open;
+	return FROM_VOID_PTR(struct {prefix}ctx, ctx)->packet_is_open;
 }}
 
 static
@@ -404,8 +418,10 @@ void _write_cstring(struct {prefix}ctx *ctx, const char *src)
 }}
 
 static
-int _reserve_event_space(struct {prefix}ctx *ctx, uint32_t ev_size)
+int _reserve_event_space(void *vctx, uint32_t ev_size)
 {{
+	struct {prefix}ctx *ctx = FROM_VOID_PTR(struct {prefix}ctx, vctx);
+
 	/* event _cannot_ fit? */
 	if (ev_size > (ctx->packet_size - ctx->off_content)) {{
 		ctx->events_discarded++;
@@ -449,8 +465,10 @@ int _reserve_event_space(struct {prefix}ctx *ctx, uint32_t ev_size)
 }}
 
 static
-void _commit_event(struct {prefix}ctx *ctx)
+void _commit_event(void *vctx)
 {{
+	struct {prefix}ctx *ctx = FROM_VOID_PTR(struct {prefix}ctx, vctx);
+
 	/* is packet full? */
 	if ({prefix}packet_is_full(ctx)) {{
 		/* yes: close it now */
@@ -490,6 +508,13 @@ _BITFIELD = '''#ifndef _$PREFIX$BITFIELD_H
 
 #include <stdint.h>	/* C99 5.2.4.2 Numerical limits */
 #include <limits.h>
+
+#ifdef __cplusplus
+# define CAST_PTR(_type, _value) \\
+	static_cast<_type>(static_cast<void *>(_value))
+#else
+# define CAST_PTR(_type, _value)	((void *) (_value))
+#endif
 
 #define $PREFIX$BYTE_ORDER $ENDIAN_DEF$
 
@@ -548,7 +573,7 @@ __extension__ ({									\\
 #define _$prefix$bt_bitfield_write_le(_ptr, type, _start, _length, _v) \\
 do {									\\
 	__typeof__(_v) __v = (_v);					\\
-	type *__ptr = (void *) (_ptr);					\\
+	type *__ptr = CAST_PTR(type *, _ptr);				\\
 	unsigned long __start = (_start), __length = (_length);		\\
 	type mask, cmask;						\\
 	unsigned long ts = sizeof(type) * CHAR_BIT; /* type size */	\\
@@ -607,7 +632,7 @@ do {									\\
 #define _$prefix$bt_bitfield_write_be(_ptr, type, _start, _length, _v) \\
 do {									\\
 	__typeof__(_v) __v = (_v);					\\
-	type *__ptr = (void *) (_ptr);					\\
+	type *__ptr = CAST_PTR(type *, _ptr);				\\
 	unsigned long __start = (_start), __length = (_length);		\\
 	type mask, cmask;						\\
 	unsigned long ts = sizeof(type) * CHAR_BIT; /* type size */	\\

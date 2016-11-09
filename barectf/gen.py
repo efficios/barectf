@@ -522,7 +522,8 @@ class CCodeGenerator:
         self._reset_per_func_state()
         self._generate_func_get_event_size_proto(stream, event)
         tmpl = templates._FUNC_GET_EVENT_SIZE_BODY_BEGIN
-        self._cg.add_lines(tmpl)
+        lines = tmpl.format(prefix=self._cfg.prefix)
+        self._cg.add_lines(lines)
         self._cg.add_empty_line()
         self._cg.indent()
         func = self._generate_func_get_event_size_from_entity
@@ -651,7 +652,8 @@ class CCodeGenerator:
         self._reset_per_func_state()
         self._generate_func_serialize_event_proto(stream, event)
         tmpl = templates._FUNC_SERIALIZE_EVENT_BODY_BEGIN
-        self._cg.add_lines(tmpl)
+        lines = tmpl.format(prefix=self._cfg.prefix)
+        self._cg.add_lines(lines)
         self._cg.indent()
 
         if stream.event_header_type is not None:
@@ -720,7 +722,8 @@ class CCodeGenerator:
         self._reset_per_func_state()
         self._generate_func_serialize_stream_event_header_proto(stream)
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_HEADER_BODY_BEGIN
-        self._cg.add_lines(tmpl)
+        lines = tmpl.format(prefix=self._cfg.prefix)
+        self._cg.add_lines(lines)
         self._cg.indent()
 
         if stream.event_header_type is not None:
@@ -757,7 +760,8 @@ class CCodeGenerator:
         self._reset_per_func_state()
         self._generate_func_serialize_stream_event_context_proto(stream)
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_BEGIN
-        self._cg.add_lines(tmpl)
+        lines = tmpl.format(prefix=self._cfg.prefix)
+        self._cg.add_lines(lines)
         self._cg.indent()
         func = self._generate_func_serialize_event_from_entity
 
