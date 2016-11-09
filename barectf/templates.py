@@ -263,6 +263,10 @@ _HEADER_BEGIN = '''#ifndef _{ucprefix}H
 
 #include "{bitfield_header_filename}"
 
+#ifdef __cplusplus
+extern "C" {{
+#endif
+
 {prefix_def}
 {default_stream_def}
 
@@ -280,7 +284,12 @@ uint32_t {prefix}packet_buf_size(void *ctx);
 int {prefix}packet_is_open(void *ctx);'''
 
 
-_HEADER_END = '#endif /* _{ucprefix}H */'
+_HEADER_END = '''#ifdef __cplusplus
+}}
+#endif
+
+#endif /* _{ucprefix}H */
+'''
 
 
 _C_SRC = '''/*
