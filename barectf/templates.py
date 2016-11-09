@@ -403,12 +403,6 @@ void _write_cstring(struct {prefix}ctx *ctx, const char *src)
 	ctx->at += _BYTES_TO_BITS(sz);
 }}
 
-static inline
-int _packet_is_full(struct {prefix}ctx *ctx)
-{{
-	return {prefix}packet_is_full(ctx);
-}}
-
 static
 int _reserve_event_space(struct {prefix}ctx *ctx, uint32_t ev_size)
 {{
