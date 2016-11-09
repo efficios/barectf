@@ -29,6 +29,10 @@
 #include <stdint.h>
 #include <barectf.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct barectf_platform_linux_fs_ctx;
 
 /**
@@ -66,5 +70,9 @@ void barectf_platform_linux_fs_fini(struct barectf_platform_linux_fs_ctx *ctx);
  */
 struct barectf_default_ctx *barectf_platform_linux_fs_get_barectf_ctx(
 	struct barectf_platform_linux_fs_ctx *ctx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _BARECTF_PLATFORM_LINUX_FS_H */
