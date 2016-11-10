@@ -519,29 +519,16 @@ _BITFIELD = '''#ifndef _$PREFIX$BITFIELD_H
 #define $PREFIX$BYTE_ORDER $ENDIAN_DEF$
 
 /* We can't shift a int from 32 bit, >> 32 and << 32 on int is undefined */
-#define _$prefix$bt_piecewise_rshift(_v, _shift) \\
-__extension__ ({									\\
-	__typeof__(_v) ___v = (_v);					\\
-	__typeof__(_shift) ___shift = (_shift);				\\
-	unsigned long sb = (___shift) / (sizeof(___v) * CHAR_BIT - 1);	\\
-	unsigned long final = (___shift) % (sizeof(___v) * CHAR_BIT - 1); \\
+#define _$prefix$bt_piecewise_rshift(_vtype, _v, _shift) \\
+do {									\\
+	unsigned long ___shift = (_shift);				\\
+	unsigned long sb = (___shift) / (sizeof(_v) * CHAR_BIT - 1);	\\
+	unsigned long final = (___shift) % (sizeof(_v) * CHAR_BIT - 1); \\
 									\\
 	for (; sb; sb--)						\\
-		___v >>= sizeof(___v) * CHAR_BIT - 1;			\\
-	___v >>= final;							\\
-})
-
-#define _$prefix$bt_piecewise_lshift(_v, _shift) \\
-__extension__ ({									\\
-	__typeof__(_v) ___v = (_v);					\\
-	__typeof__(_shift) ___shift = (_shift);				\\
-	unsigned long sb = (___shift) / (sizeof(___v) * CHAR_BIT - 1);	\\
-	unsigned long final = (___shift) % (sizeof(___v) * CHAR_BIT - 1); \\
-									\\
-	for (; sb; sb--)						\\
-		___v <<= sizeof(___v) * CHAR_BIT - 1;			\\
-	___v <<= final;							\\
-})
+		_v >>= sizeof(_v) * CHAR_BIT - 1;			\\
+	_v >>= final;							\\
+} while (0)
 
 #define _$prefix$bt_is_signed_type(type)	((type) -1 < (type) 0)
 
@@ -570,9 +557,9 @@ __extension__ ({									\\
  * Also, consecutive bitfields are placed from higher to lower bits.
  */
 
-#define _$prefix$bt_bitfield_write_le(_ptr, type, _start, _length, _v) \\
+#define _$prefix$bt_bitfield_write_le(_ptr, type, _start, _length, _vtype, _v) \\
 do {									\\
-	__typeof__(_v) __v = (_v);					\\
+	_vtype __v = (_v);					\\
 	type *__ptr = CAST_PTR(type *, _ptr);				\\
 	unsigned long __start = (_start), __length = (_length);		\\
 	type mask, cmask;						\\
@@ -589,7 +576,7 @@ do {									\\
 									\\
 	/* Trim v high bits */						\\
 	if (__length < sizeof(__v) * CHAR_BIT)				\\
-		__v &= ~((~(__typeof__(__v)) 0) << __length);		\\
+		__v &= ~((~(_vtype) 0) << __length);		\\
 									\\
 	/* We can now append v with a simple "or", shift it piece-wise */ \\
 	this_unit = start_unit;						\\
@@ -610,13 +597,13 @@ do {									\\
 		cmask &= ~mask;						\\
 		__ptr[this_unit] &= mask;				\\
 		__ptr[this_unit] |= cmask;				\\
-		__v = _$prefix$bt_piecewise_rshift(__v, ts - cshift); \\
+		_$prefix$bt_piecewise_rshift(_vtype, __v, ts - cshift); \\
 		__start += ts - cshift;					\\
 		this_unit++;						\\
 	}								\\
 	for (; this_unit < end_unit - 1; this_unit++) {			\\
 		__ptr[this_unit] = (type) __v;				\\
-		__v = _$prefix$bt_piecewise_rshift(__v, ts); \\
+		_$prefix$bt_piecewise_rshift(_vtype, __v, ts); 		\\
 		__start += ts;						\\
 	}								\\
 	if (end % ts) {							\\
@@ -629,9 +616,9 @@ do {									\\
 		__ptr[this_unit] = (type) __v;				\\
 } while (0)
 
-#define _$prefix$bt_bitfield_write_be(_ptr, type, _start, _length, _v) \\
+#define _$prefix$bt_bitfield_write_be(_ptr, type, _start, _length, _vtype, _v) \\
 do {									\\
-	__typeof__(_v) __v = (_v);					\\
+	_vtype __v = (_v);					\\
 	type *__ptr = CAST_PTR(type *, _ptr);				\\
 	unsigned long __start = (_start), __length = (_length);		\\
 	type mask, cmask;						\\
@@ -648,7 +635,7 @@ do {									\\
 									\\
 	/* Trim v high bits */						\\
 	if (__length < sizeof(__v) * CHAR_BIT)				\\
-		__v &= ~((~(__typeof__(__v)) 0) << __length);		\\
+		__v &= ~((~(_vtype) 0) << __length);			\\
 									\\
 	/* We can now append v with a simple "or", shift it piece-wise */ \\
 	this_unit = end_unit - 1;					\\
@@ -669,13 +656,13 @@ do {									\\
 		cmask &= ~mask;						\\
 		__ptr[this_unit] &= mask;				\\
 		__ptr[this_unit] |= cmask;				\\
-		__v = _$prefix$bt_piecewise_rshift(__v, cshift); \\
+		_$prefix$bt_piecewise_rshift(__v, cshift); \\
 		end -= cshift;						\\
 		this_unit--;						\\
 	}								\\
 	for (; (long) this_unit >= (long) start_unit + 1; this_unit--) { \\
 		__ptr[this_unit] = (type) __v;				\\
-		__v = _$prefix$bt_piecewise_rshift(__v, ts); \\
+		_$prefix$bt_piecewise_rshift(__v, ts); \\
 		end -= ts;						\\
 	}								\\
 	if (__start % ts) {						\\
@@ -695,19 +682,19 @@ do {									\\
 
 #if ($PREFIX$BYTE_ORDER == LITTLE_ENDIAN)
 
-#define $prefix$bt_bitfield_write_le(ptr, type, _start, _length, _v) \\
-	_$prefix$bt_bitfield_write_le(ptr, type, _start, _length, _v)
+#define $prefix$bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v) \\
+	_$prefix$bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v)
 
-#define $prefix$bt_bitfield_write_be(ptr, type, _start, _length, _v) \\
-	_$prefix$bt_bitfield_write_be(ptr, unsigned char, _start, _length, _v)
+#define $prefix$bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v) \\
+	_$prefix$bt_bitfield_write_be(ptr, unsigned char, _start, _length, _vtype, _v)
 
 #elif ($PREFIX$BYTE_ORDER == BIG_ENDIAN)
 
-#define $prefix$bt_bitfield_write_le(ptr, type, _start, _length, _v) \\
-	_$prefix$bt_bitfield_write_le(ptr, unsigned char, _start, _length, _v)
+#define $prefix$bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v) \\
+	_$prefix$bt_bitfield_write_le(ptr, unsigned char, _start, _length, _vtype, _v)
 
-#define $prefix$bt_bitfield_write_be(ptr, type, _start, _length, _v) \\
-	_$prefix$bt_bitfield_write_be(ptr, type, _start, _length, _v)
+#define $prefix$bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v) \\
+	_$prefix$bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v)
 
 #else /* ($PREFIX$BYTE_ORDER == PDP_ENDIAN) */
 

@@ -567,17 +567,19 @@ class CCodeGenerator:
         tmpl = templates._FUNC_SERIALIZE_EVENT_PROTO_END
         self._cg.add_lines(tmpl)
 
-    def _generate_bitfield_write(self, var, ctx, t):
+    def _generate_bitfield_write(self, ctype, var, ctx, t):
         ptr = '&{ctx}->buf[_BITS_TO_BYTES({ctx}->at)]'.format(ctx=ctx)
         start = self._sasa.byte_offset
         suffix = 'le' if t.byte_order is metadata.ByteOrder.LE else 'be'
         func = '{}bt_bitfield_write_{}'.format(self._cfg.prefix, suffix)
-        call = '{}({}, uint8_t, {}, {}, {});'.format(func, ptr, start, t.size,
-                                                     var)
+        call_fmt = '{func}({ptr}, uint8_t, {start}, {size}, {ctype}, ({ctype}) {var});'
+        call = call_fmt.format(func=func, ptr=ptr, start=start, size=t.size,
+                               ctype=ctype, var=var)
         self._cg.add_line(call)
 
     def _generate_serialize_int(self, var, ctx, t):
-        self._generate_bitfield_write(var, ctx, t)
+        ctype = self._get_int_ctype(t)
+        self._generate_bitfield_write(ctype, var, ctx, t)
         self._generate_incr_pos('{}->at'.format(ctx), t.size)
 
     def _generate_serialize_float(self, var, ctx, t):
@@ -592,16 +594,17 @@ class CCodeGenerator:
                     gen_union_var = True
 
                 union_name = 'f2u'
+                int_ctype = 'uint32_t'
             elif ctype == 'double':
                 if not self._ud_written:
                     self._ud_written = True
                     gen_union_var = True
 
                 union_name = 'd2u'
+                int_ctype = 'uint64_t'
 
             if gen_union_var:
                 # union for reading the bytes of the floating point number
-
                 self._cg.add_line('union {name} {name};'.format(name=union_name))
                 self._cg.add_empty_line()
 
@@ -609,8 +612,9 @@ class CCodeGenerator:
             bf_var = '{}.u'.format(union_name)
         else:
             bf_var = '({}) {}'.format(ctype, var)
+            int_ctype = ctype
 
-        self._generate_bitfield_write(bf_var, ctx, t)
+        self._generate_bitfield_write(int_ctype, bf_var, ctx, t)
         self._generate_incr_pos('{}->at'.format(ctx), t.size)
 
     def _generate_serialize_enum(self, var, ctx, t):
