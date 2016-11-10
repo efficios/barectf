@@ -3,7 +3,7 @@
 [![](https://img.shields.io/pypi/v/barectf.svg)](https://pypi.python.org/pypi/barectf)
 [![Jenkins](https://img.shields.io/jenkins/s/https/ci.lttng.org/barectf_master_build.svg)](https://ci.lttng.org/job/barectf_master_build)
 
-**barectf** is a command-line utility which generates C99
+**barectf** is a command-line utility which generates ANSI C
 code that is able to write native [Common Trace Format](http://diamon.org/ctf)
 (CTF) binary streams.
 
@@ -24,7 +24,8 @@ You will find barectf interesting if:
 
 The target audience of barectf is developers who need to trace bare metal
 systems (without an operating system). The code produced by barectf
-is pure C99 and can be lightweight enough to fit on a tiny microcontroller.
+is pure ANCI C (with one exception, see the current limitations below)
+and can be lightweight enough to fit on a tiny microcontroller.
 
 **Key features**:
 
@@ -55,15 +56,22 @@ As of this version:
     stream-specific context, need to be called from the same thread, and cannot
     be called from an interrupt handler, unless a user-provided
     synchronization mechanism is used.
-  * CTF compound types (array, sequence, structure, variant) are not supported
-    yet, except at some very specific locations in the metadata.
-  * The current generated C code is not strictly C99 compliant:
-    [statement expressions](https://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html)
-    and the
-    [`typeof` keyword](https://gcc.gnu.org/onlinedocs/gcc/Typeof.html)
-    GCC extensions are used in the generated bitfield macros. The
-    generated C code is known to be compiled with no warnings using
-    both GCC and Clang.
+  * The generated C code needs the `stdint.h` header, which is new in
+    C99. If your standard C library does not have this header,
+    you can create one yourself and put it in one of your include
+    directories to define the following types according to your
+    architecture:
+    * `int8_t`
+    * `int16_t`
+    * `int32_t`
+    * `int64_t`
+    * `uint8_t`
+    * `uint16_t`
+    * `uint32_t`
+    * `uint64_t`
+  * CTF compound types (array, sequence, structure, variant) are not
+    supported yet, except at some very specific locations in the
+    metadata.
 
 barectf is written in Python 3.
 

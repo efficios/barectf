@@ -32,7 +32,7 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 ESDK=$(EPIPHANY_HOME)
 ELDF=$(ESDK)/bsps/current/fast.ldf
 PLATFORM_DIR = ../../../platforms/parallella
-CFLAGS = -O2 -Wall -pedantic -std=c99 -I$(PLATFORM_DIR) -I.
+CFLAGS = -O2 -Wall -pedantic -I$(PLATFORM_DIR) -I.
 LDFLAGS = -T $(ELDF) -le-lib
 
 TARGET = parallella

@@ -25,7 +25,7 @@ RM = rm -rf
 MKDIR = mkdir
 
 PLATFORM_DIR = ../../../platforms/linux-fs
-CFLAGS = -O2 -Wall -pedantic -std=gnu99 -I$(PLATFORM_DIR) -I.
+CFLAGS = -O2 -Wall -pedantic -I$(PLATFORM_DIR) -I.
 
 TARGET = linux-fs-simple
 OBJS = $(TARGET).o barectf.o barectf-platform-linux-fs.o

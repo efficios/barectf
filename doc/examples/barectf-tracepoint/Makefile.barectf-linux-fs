@@ -26,7 +26,7 @@ MKDIR = mkdir -p
 
 PLATFORM_DIR = ../../../platforms/linux-fs
 EXTRA_DIR = ../../../extra
-CFLAGS = -O2 -Wall -pedantic -std=gnu99 -I$(PLATFORM_DIR) -I$(EXTRA_DIR) -I.
+CFLAGS = -O2 -Wall -pedantic -I$(PLATFORM_DIR) -I$(EXTRA_DIR) -I.
 
 VERSION = linux-fs
 TARGET = barectf-tracepoint-barectf-$(VERSION)

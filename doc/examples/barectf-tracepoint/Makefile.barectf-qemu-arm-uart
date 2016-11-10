@@ -30,7 +30,7 @@ CC = $(ARCH)-gcc
 VERSION = qemu-arm-uart
 CPU=arm926ej-s
 EXTRA_DIR = ../../../extra
-CFLAGS = -DWITH_QEMU_ARM_UART=1 -ffunction-sections -mcpu=$(CPU) -O2 -Wall -pedantic -std=gnu99 -I$(EXTRA_DIR) -I.
+CFLAGS = -DWITH_QEMU_ARM_UART=1 -ffunction-sections -mcpu=$(CPU) -O2 -Wall -pedantic -I$(EXTRA_DIR) -I.
 LDFLAGS= -T barectf-platform-$(VERSION).ld -lc -lnosys
 
 TARGET = barectf-tracepoint-barectf-$(VERSION)
