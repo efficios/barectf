@@ -48,7 +48,7 @@ use the option:--dump-config option.
 
 OPTIONS
 -------
-option:-c, option:--code-dir='PATH'::
+option:-c 'PATH', option:--code-dir='PATH'::
     Write C source files to directory 'PATH' instead of the current
     working directory.
 
@@ -56,7 +56,7 @@ option:--dump-config::
     Dump the effective YAML configuration file, after all inclusions are
     processed, to the standard output.
 
-option:-H, option:--headers-dir='PATH'::
+option:-H 'PATH', option:--headers-dir='PATH'::
     Write C header files to directory 'PATH' instead of the current
     working directory.
 
@@ -64,17 +64,17 @@ option:--ignore-include-not-found::
     Do not consider as an error inclusion files that are not found:
     continue silently.
 
-option:-I, option:--include-dir='PATH'::
+option:-I 'PATH', option:--include-dir='PATH'::
     Prepend 'PATH' to the list of directories to search into for include
     files. The default list of directories is the current working
     directory, followed by the directory containing the provided,
     "standard" inclusion files.
 
-option:-m, option:--metadata-dir='PATH'::
+option:-m 'PATH', option:--metadata-dir='PATH'::
     Write CTF metadata file to directory 'PATH' instead of the current
     working directory.
 
-option:-p, option:--prefix='PREFIX'::
+option:-p 'PREFIX', option:--prefix='PREFIX'::
     Override the configuration file's prefix with 'PREFIX'. This prefix
     is used in file names, function names, macro names, structure names,
     and the rest. When not specified in the configuration file, the
