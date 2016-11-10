@@ -530,15 +530,6 @@ do {									\\
 	_v >>= final;							\\
 } while (0)
 
-#define _$prefix$bt_is_signed_type(type)	((type) -1 < (type) 0)
-
-#define _$prefix$bt_unsigned_cast(type, v) \\
-__extension__ ({									\\
-	(sizeof(v) < sizeof(type)) ?					\\
-		((type) (v)) & (~(~(type) 0 << (sizeof(v) * CHAR_BIT))) : \\
-		(type) (v);						\\
-})
-
 /*
  * $prefix$bt_bitfield_write - write integer to a bitfield in native endianness
  *
