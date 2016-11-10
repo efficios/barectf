@@ -506,7 +506,6 @@ _BITFIELD = '''#ifndef _$PREFIX$BITFIELD_H
  * SOFTWARE.
  */
 
-#include <stdint.h>	/* C99 5.2.4.2 Numerical limits */
 #include <limits.h>
 
 #ifdef __cplusplus
