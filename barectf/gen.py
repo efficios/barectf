@@ -149,8 +149,6 @@ class CCodeGenerator:
             metadata.String: self._generate_serialize_string,
         }
         self._saved_byte_offsets = {}
-        self._uf_written = False
-        self._ud_written = False
         self._sasa = _StaticAlignSizeAutomatonByteOffset()
 
     def _generate_ctx_parent(self):
@@ -584,30 +582,24 @@ class CCodeGenerator:
 
     def _generate_serialize_float(self, var, ctx, t):
         ctype = self._get_type_ctype(t)
+        flt_dbl = False
 
         if ctype == 'float' or ctype == 'double':
-            gen_union_var = False
+            flt_dbl = True
 
             if ctype == 'float':
-                if not self._uf_written:
-                    self._uf_written = True
-                    gen_union_var = True
-
                 union_name = 'f2u'
                 int_ctype = 'uint32_t'
             elif ctype == 'double':
-                if not self._ud_written:
-                    self._ud_written = True
-                    gen_union_var = True
-
                 union_name = 'd2u'
                 int_ctype = 'uint64_t'
 
-            if gen_union_var:
-                # union for reading the bytes of the floating point number
-                self._cg.add_line('union {name} {name};'.format(name=union_name))
-                self._cg.add_empty_line()
-
+            # union for reading the bytes of the floating point number
+            self._cg.add_empty_line()
+            self._cg.add_line('{')
+            self._cg.indent()
+            self._cg.add_line('union {name} {name};'.format(name=union_name))
+            self._cg.add_empty_line()
             self._cg.add_line('{}.f = {};'.format(union_name, var))
             bf_var = '{}.u'.format(union_name)
         else:
@@ -615,6 +607,12 @@ class CCodeGenerator:
             int_ctype = ctype
 
         self._generate_bitfield_write(int_ctype, bf_var, ctx, t)
+
+        if flt_dbl:
+            self._cg.unindent()
+            self._cg.add_line('}')
+            self._cg.add_empty_line()
+
         self._generate_incr_pos('{}->at'.format(ctx), t.size)
 
     def _generate_serialize_enum(self, var, ctx, t):
@@ -800,8 +798,7 @@ class CCodeGenerator:
         self._sasa.byte_offset = self._saved_byte_offsets[name]
 
     def _reset_per_func_state(self):
-        self._uf_written = False
-        self._ud_written = False
+        pass
 
     def _generate_func_open(self, stream):
         def generate_save_offset(name):
