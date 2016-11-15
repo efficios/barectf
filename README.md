@@ -53,8 +53,8 @@ microcontroller.
     various platforms.
   * Generated tracers are known to build with `gcc` (tested with the
     IA-32, x86-64, MIPS, ARM, and AVR architectures), `g++`, `clang`,
-    `clang++`, [https://github.com/rui314/8cc](`8cc`),
-    [http://bellard.org/tcc/](`tcc`), VS2008 (with a custom `stdint.h`),
+    `clang++`, [`8cc`](https://github.com/rui314/8cc),
+    [`tcc`](http://bellard.org/tcc/), VS2008 (with a custom `stdint.h`),
     and VS2010.
 
 **Current limitations**:
