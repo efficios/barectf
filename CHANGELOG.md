@@ -1,5 +1,18 @@
 # barectf 2 changelog
 
+## barectf v2.2.1
+
+**Minor improvements**:
+
+  * barectf now generates ANSI C code.
+  * The generated code can be compiled with a C++ compiler.
+
+**README.md**:
+
+  * barectf claims to generate ANSI C code.
+  * Reword some paragraphs.
+
+
 ## barectf v2.2.0
 
 **Features**:
