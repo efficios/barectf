@@ -55,7 +55,7 @@ ctf/metadata barectf-bitfield.h barectf.h barectf.c: config.yaml ctf
 	barectf $< -m ctf
 
 barectf.o: barectf.c barectf.h barectf-bitfield.h
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -ansi -c $<
 
 barectf-platform-parallella.o: $(PLATFORM_DIR)/barectf-platform-parallella.c
 	$(CC) $(CFLAGS) -c $<
