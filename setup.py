@@ -43,7 +43,7 @@ import barectf
 
 setup(name='barectf',
       version=barectf.__version__,
-      description='Generator of ANSI C code that can write native CTF',
+      description='Generator of ANSI C tracers which output CTF',
       author='Philippe Proulx',
       author_email='eeppeliteloop@gmail.com',
       license='MIT',
