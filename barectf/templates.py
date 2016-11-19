@@ -68,6 +68,12 @@ struct {prefix}ctx {{
 
 	/* current packet is opened */
 	int packet_is_open;
+
+	/* in tracing code */
+	volatile int in_tracing_section;
+
+	/* tracing is enabled */
+	volatile int is_tracing_enabled;
 }};'''
 
 
@@ -101,6 +107,8 @@ _FUNC_INIT_BODY = '''{{
 	ctx->at = 0;
 	ctx->events_discarded = 0;
 	ctx->packet_is_open = 0;
+	ctx->in_tracing_section = 0;
+	ctx->is_tracing_enabled = 1;
 }}'''
 
 
@@ -112,7 +120,33 @@ void {prefix}{sname}_open_packet(
 _FUNC_OPEN_PROTO_END = ')'
 
 
-_FUNC_OPEN_BODY_BEGIN = '{'
+_FUNC_OPEN_BODY_BEGIN = '''{{
+{ts}
+	const int saved_in_tracing_section = ctx->parent.in_tracing_section;
+
+	/*
+	 * This function is either called by a tracing function, or
+	 * directly by the platform.
+	 *
+	 * If it's called by a tracing function, then
+	 * ctx->parent.in_tracing_section is 1, so it's safe to open
+	 * the packet here (alter the packet), even if tracing was
+	 * disabled in the meantime because we're already in a tracing
+	 * section (which finishes at the end of the tracing function
+	 * call).
+	 *
+	 * If it's called directly by the platform, then if tracing is
+	 * disabled, we don't want to alter the packet, and return
+	 * immediately.
+	 */
+	if (!ctx->parent.is_tracing_enabled && !saved_in_tracing_section) {{
+		ctx->parent.in_tracing_section = 0;
+		return;
+	}}
+
+	/* we can modify the packet */
+	ctx->parent.in_tracing_section = 1;
+'''
 
 
 _FUNC_OPEN_BODY_END = '''
@@ -120,6 +154,9 @@ _FUNC_OPEN_BODY_END = '''
 
 	/* mark current packet as open */
 	ctx->parent.packet_is_open = 1;
+
+	/* not tracing anymore */
+	ctx->parent.in_tracing_section = saved_in_tracing_section;
 }'''
 
 
@@ -127,7 +164,33 @@ _FUNC_CLOSE_PROTO = '''/* close packet for stream "{sname}" */
 void {prefix}{sname}_close_packet(struct {prefix}{sname}_ctx *ctx)'''
 
 
-_FUNC_CLOSE_BODY_BEGIN = '{'
+_FUNC_CLOSE_BODY_BEGIN = '''{{
+{ts}
+	const int saved_in_tracing_section = ctx->parent.in_tracing_section;
+
+	/*
+	 * This function is either called by a tracing function, or
+	 * directly by the platform.
+	 *
+	 * If it's called by a tracing function, then
+	 * ctx->parent.in_tracing_section is 1, so it's safe to close
+	 * the packet here (alter the packet), even if tracing was
+	 * disabled in the meantime, because we're already in a tracing
+	 * section (which finishes at the end of the tracing function
+	 * call).
+	 *
+	 * If it's called directly by the platform, then if tracing is
+	 * disabled, we don't want to alter the packet, and return
+	 * immediately.
+	 */
+	if (!ctx->parent.is_tracing_enabled && !saved_in_tracing_section) {{
+		ctx->parent.in_tracing_section = 0;
+		return;
+	}}
+
+	/* we can modify the packet */
+	ctx->parent.in_tracing_section = 1;
+'''
 
 
 _FUNC_CLOSE_BODY_END = '''
@@ -136,6 +199,9 @@ _FUNC_CLOSE_BODY_END = '''
 
 	/* mark packet as closed */
 	ctx->parent.packet_is_open = 0;
+
+	/* not tracing anymore */
+	ctx->parent.in_tracing_section = saved_in_tracing_section;
 }'''
 
 
@@ -151,7 +217,15 @@ _FUNC_TRACE_PROTO_END = ')'
 
 
 _FUNC_TRACE_BODY = '''{{
+{ts}
 	uint32_t ev_size;
+
+	if (!ctx->parent.is_tracing_enabled) {{
+		return;
+	}}
+
+	/* we can modify the packet */
+	ctx->parent.in_tracing_section = 1;
 
 	/* get event size */
 	ev_size = _get_event_size_{sname}_{evname}(TO_VOID_PTR(ctx){params});
@@ -159,14 +233,18 @@ _FUNC_TRACE_BODY = '''{{
 	/* do we have enough space to serialize? */
 	if (!_reserve_event_space(TO_VOID_PTR(ctx), ev_size)) {{
 		/* no: forget this */
+		ctx->parent.in_tracing_section = 0;
 		return;
 	}}
 
 	/* serialize event */
-	_serialize_event_{sname}_{evname}(TO_VOID_PTR(ctx){params});
+	_serialize_event_{sname}_{evname}(TO_VOID_PTR(ctx), ts{params});
 
 	/* commit event */
 	_commit_event(TO_VOID_PTR(ctx));
+
+	/* not tracing anymore */
+	ctx->parent.in_tracing_section = 0;
 }}'''
 
 
@@ -188,6 +266,7 @@ _FUNC_GET_EVENT_SIZE_BODY_END = '''	return at - ctx->at;
 
 _FUNC_SERIALIZE_STREAM_EVENT_HEADER_PROTO_BEGIN = '''static void _serialize_stream_event_header_{sname}(
 	void *vctx,
+	{clock_ctype} ts,
 	uint32_t event_id'''
 
 
@@ -216,7 +295,8 @@ _FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_END = '}'
 
 
 _FUNC_SERIALIZE_EVENT_PROTO_BEGIN = '''static void _serialize_event_{sname}_{evname}(
-	void *vctx'''
+	void *vctx,
+	{clock_ctype} ts'''
 
 
 _FUNC_SERIALIZE_EVENT_PROTO_END = ')'
@@ -285,7 +365,11 @@ uint32_t {prefix}packet_events_discarded(void *ctx);
 uint8_t *{prefix}packet_buf(void *ctx);
 void {prefix}packet_set_buf(void *ctx, uint8_t *buf, uint32_t buf_size);
 uint32_t {prefix}packet_buf_size(void *ctx);
-int {prefix}packet_is_open(void *ctx);'''
+int {prefix}packet_is_open(void *ctx);
+int {prefix}is_in_tracing_section(void *ctx);
+volatile const int *{prefix}is_in_tracing_section_ptr(void *ctx);
+int {prefix}is_tracing_enabled(void *ctx);
+void {prefix}enable_tracing(void *ctx, int enable);'''
 
 
 _HEADER_END = '''#ifdef __cplusplus
@@ -406,6 +490,26 @@ void {prefix}packet_set_buf(void *ctx, uint8_t *buf, uint32_t buf_size)
 int {prefix}packet_is_open(void *ctx)
 {{
 	return FROM_VOID_PTR(struct {prefix}ctx, ctx)->packet_is_open;
+}}
+
+int {prefix}is_in_tracing_section(void *ctx)
+{{
+	return FROM_VOID_PTR(struct {prefix}ctx, ctx)->in_tracing_section;
+}}
+
+volatile const int *{prefix}is_in_tracing_section_ptr(void *ctx)
+{{
+	return &FROM_VOID_PTR(struct {prefix}ctx, ctx)->in_tracing_section;
+}}
+
+int {prefix}is_tracing_enabled(void *ctx)
+{{
+	return FROM_VOID_PTR(struct {prefix}ctx, ctx)->is_tracing_enabled;
+}}
+
+void {prefix}enable_tracing(void *ctx, int enable)
+{{
+	FROM_VOID_PTR(struct {prefix}ctx, ctx)->is_tracing_enabled = enable;
 }}
 
 static

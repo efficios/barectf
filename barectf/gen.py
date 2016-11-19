@@ -559,7 +559,15 @@ class CCodeGenerator:
 
     def _generate_func_serialize_event_proto(self, stream, event):
         tmpl = templates._FUNC_SERIALIZE_EVENT_PROTO_BEGIN
+        clock_ctype = 'const int'
+
+        if stream.event_header_type is not None:
+            if 'timestamp' in stream.event_header_type.fields:
+                field = stream.event_header_type['timestamp']
+                clock_ctype = self._get_first_clock_ctype(field)
+
         self._cg.add_lines(tmpl.format(prefix=self._cfg.prefix,
+                                       clock_ctype=clock_ctype,
                                        sname=stream.name, evname=event.name))
         self._generate_func_trace_proto_params(stream, event)
         tmpl = templates._FUNC_SERIALIZE_EVENT_PROTO_END
@@ -657,13 +665,14 @@ class CCodeGenerator:
         lines = tmpl.format(prefix=self._cfg.prefix)
         self._cg.add_lines(lines)
         self._cg.indent()
+        self._cg.add_empty_line()
 
         if stream.event_header_type is not None:
             t = stream.event_header_type
             exclude_list = ['timestamp', 'id']
             params = self._get_call_event_param_list_from_struct(t, _PREFIX_SEH,
                                                                  exclude_list)
-            tmpl = '_serialize_stream_event_header_{sname}(ctx, {evid}{params});'
+            tmpl = '_serialize_stream_event_header_{sname}(ctx, ts, {evid}{params});'
             self._cg.add_cc_line('stream event header')
             self._cg.add_line(tmpl.format(sname=stream.name, evid=event.id,
                                           params=params))
@@ -694,8 +703,16 @@ class CCodeGenerator:
 
     def _generate_func_serialize_stream_event_header_proto(self, stream):
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_HEADER_PROTO_BEGIN
+        clock_ctype = 'const int'
+
+        if stream.event_header_type is not None:
+            if 'timestamp' in stream.event_header_type.fields:
+                field = stream.event_header_type['timestamp']
+                clock_ctype = self._get_first_clock_ctype(field)
+
         self._cg.add_lines(tmpl.format(prefix=self._cfg.prefix,
-                                       sname=stream.name))
+                                       sname=stream.name,
+                                       clock_ctype=clock_ctype))
 
         if stream.event_header_type is not None:
             exclude_list = [
@@ -727,17 +744,6 @@ class CCodeGenerator:
         lines = tmpl.format(prefix=self._cfg.prefix)
         self._cg.add_lines(lines)
         self._cg.indent()
-
-        if stream.event_header_type is not None:
-            if 'timestamp' in stream.event_header_type.fields:
-                timestamp = stream.event_header_type.fields['timestamp']
-                ts_ctype = self._get_int_ctype(timestamp)
-                clock = timestamp.property_mappings[0].object
-                clock_name = clock.name
-                clock_ctype = clock.return_ctype
-                tmpl = '{} ts = ctx->cbs.{}_clock_get_value(ctx->data);'
-                self._cg.add_line(tmpl.format(clock_ctype, clock_name))
-
         self._cg.add_empty_line()
         func = self._generate_func_serialize_event_from_entity
 
@@ -750,6 +756,8 @@ class CCodeGenerator:
                 spec_src['id'] = '({}) event_id'.format(id_t_ctype)
 
             if 'timestamp' in stream.event_header_type.fields:
+                field = stream.event_header_type.fields['timestamp']
+                ts_ctype = self._get_int_ctype(field)
                 spec_src['timestamp'] = '({}) ts'.format(ts_ctype)
 
             func(_PREFIX_SEH, stream.event_header_type, spec_src)
@@ -779,8 +787,18 @@ class CCodeGenerator:
         self._generate_func_trace_proto(stream, event)
         params = self._get_call_event_param_list(stream, event)
         tmpl = templates._FUNC_TRACE_BODY
+        ts_line = ''
+
+        if stream.event_header_type is not None:
+            if 'timestamp' in stream.event_header_type.fields:
+                field = stream.event_header_type.fields['timestamp']
+                ts_line = self._get_ts_line(field)
+
+        if not ts_line:
+            ts_line = '\tconst int ts = 0; /* unused */'
+
         self._cg.add_lines(tmpl.format(sname=stream.name, evname=event.name,
-                                       params=params))
+                                       params=params, ts=ts_line))
 
     def _generate_func_init(self):
         self._reset_per_func_state()
@@ -800,6 +818,27 @@ class CCodeGenerator:
     def _reset_per_func_state(self):
         pass
 
+    def _get_first_clock_ctype(self, field, default='int'):
+        if not field.property_mappings:
+            return 'const {}'.format(default)
+
+        clock = field.property_mappings[0].object
+
+        return 'const {}'.format(clock.return_ctype)
+
+    def _get_ts_line(self, field):
+        if field is None:
+            return ''
+
+        if not field.property_mappings:
+            return ''
+
+        tmpl = '\tconst {} ts = ctx->parent.cbs.{}_clock_get_value(ctx->parent.data);'
+        clock = field.property_mappings[0].object
+        line = tmpl.format(clock.return_ctype, clock.name)
+
+        return line
+
     def _generate_func_open(self, stream):
         def generate_save_offset(name):
             tmpl = 'ctx->off_spc_{} = ctx->parent.at;'.format(name)
@@ -809,28 +848,26 @@ class CCodeGenerator:
         self._reset_per_func_state()
         self._generate_func_open_proto(stream)
         tmpl = templates._FUNC_OPEN_BODY_BEGIN
-        self._cg.add_lines(tmpl)
-        self._cg.indent()
-        tph_type = self._cfg.metadata.trace.packet_header_type
+        ts_line = ''
         spc_type = stream.packet_context_type
 
         if spc_type is not None and 'timestamp_begin' in spc_type.fields:
             field = spc_type.fields['timestamp_begin']
-            tmpl = '{} ts = ctx->parent.cbs.{}_clock_get_value(ctx->parent.data);'
-            clock = field.property_mappings[0].object
-            clock_ctype = clock.return_ctype
-            clock_name = clock.name
-            self._cg.add_line(tmpl.format(clock_ctype, clock_name))
-            self._cg.add_empty_line()
+            ts_line = self._get_ts_line(field)
 
+        lines = tmpl.format(ts=ts_line)
+        self._cg.add_lines(lines)
+        self._cg.indent()
         self._cg.add_cc_line('do not open a packet that is already open')
         self._cg.add_line('if (ctx->parent.packet_is_open) {')
         self._cg.indent()
+        self._cg.add_line('ctx->parent.in_tracing_section = saved_in_tracing_section;')
         self._cg.add_line('return;')
         self._cg.unindent()
         self._cg.add_line('}')
         self._cg.add_empty_line()
         self._cg.add_line('ctx->parent.at = 0;')
+        tph_type = self._cfg.metadata.trace.packet_header_type
 
         if tph_type is not None:
             self._cg.add_empty_line()
@@ -931,23 +968,20 @@ class CCodeGenerator:
         self._reset_per_func_state()
         self._generate_func_close_proto(stream)
         tmpl = templates._FUNC_CLOSE_BODY_BEGIN
-        self._cg.add_lines(tmpl)
-        self._cg.indent()
+        ts_line = ''
         spc_type = stream.packet_context_type
 
-        if spc_type is not None:
-            if 'timestamp_end' in spc_type.fields:
-                tmpl = '{} ts = ctx->parent.cbs.{}_clock_get_value(ctx->parent.data);'
-                field = spc_type.fields['timestamp_end']
-                clock = field.property_mappings[0].object
-                clock_ctype = clock.return_ctype
-                clock_name = clock.name
-                self._cg.add_line(tmpl.format(clock_ctype, clock_name))
-                self._cg.add_empty_line()
+        if spc_type is not None and 'timestamp_end' in spc_type.fields:
+            field = spc_type.fields['timestamp_end']
+            ts_line = self._get_ts_line(field)
 
+        lines = tmpl.format(ts=ts_line)
+        self._cg.add_lines(lines)
+        self._cg.indent()
         self._cg.add_cc_line('do not close a packet that is not open')
         self._cg.add_line('if (!ctx->parent.packet_is_open) {')
         self._cg.indent()
+        self._cg.add_line('ctx->parent.in_tracing_section = saved_in_tracing_section;')
         self._cg.add_line('return;')
         self._cg.unindent()
         self._cg.add_line('}')
