@@ -46,7 +46,7 @@ ctf/metadata barectf-bitfield.h barectf.h barectf.c: config.yaml ctf
 barectf.o: barectf.c
 	$(CC) $(CFLAGS) -ansi -c $<
 
-barectf-platform-linux-fs.o: $(PLATFORM_DIR)/barectf-platform-linux-fs.c
+barectf-platform-linux-fs.o: $(PLATFORM_DIR)/barectf-platform-linux-fs.c barectf.h
 	$(CC) $(CFLAGS) -c $<
 
 $(TARGET).o: $(TARGET).c barectf.h barectf-bitfield.h
