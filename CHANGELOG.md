@@ -1,5 +1,23 @@
 # barectf 2 changelog
 
+## barectf v2.3.0
+
+**Features**:
+
+  * Add tracing activity and tracing section API to check whether or not
+    the traced thread is currently within a barectf tracing function and
+    to enable or disable tracing.
+
+**Tests**:
+
+  * Add tox configuration.
+
+**Fixes**:
+
+  * Fix various testing infrastructure issues.
+  * Fix generated `bitfield.h` big-endian macros.
+
+
 ## barectf v2.2.1
 
 **Minor improvements**:
