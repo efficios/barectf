@@ -70,7 +70,7 @@ class Config:
         version_tuple = barectf.get_version_tuple()
         base_env = {
             'domain': 'bare',
-            'tracer_name': 'barectf'        ,
+            'tracer_name': 'barectf',
             'tracer_major': version_tuple[0],
             'tracer_minor': version_tuple[1],
             'tracer_patch': version_tuple[2],
