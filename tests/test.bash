@@ -42,20 +42,19 @@ test_dirs=(
 bats_bin="$(pwd)/bats/bin/bats"
 rc=0
 
-if [ -z ${CC+x} ]; then
+if [ -z "${CC+x}" ]; then
   # default to gcc
   export CC=gcc
 fi
 
-for d in ${test_dirs[@]}; do
-  pushd $d
-  $bats_bin $@ .
-  popd
-
+for d in "${test_dirs[@]}"; do
+  pushd "$d"
+  $bats_bin "${@}" .
   if [ $? -ne 0 ]; then
     # latch error, but continue other tests
     rc=1
   fi
+  popd
 done
 
 exit $rc
