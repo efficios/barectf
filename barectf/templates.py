@@ -750,13 +750,13 @@ do {									\\
 		cmask &= ~mask;						\\
 		__ptr[this_unit] &= mask;				\\
 		__ptr[this_unit] |= cmask;				\\
-		_$prefix$bt_piecewise_rshift(__v, cshift); \\
+		_$prefix$bt_piecewise_rshift(_vtype, __v, cshift); \\
 		end -= cshift;						\\
 		this_unit--;						\\
 	}								\\
 	for (; (long) this_unit >= (long) start_unit + 1; this_unit--) { \\
 		__ptr[this_unit] = (type) __v;				\\
-		_$prefix$bt_piecewise_rshift(__v, ts); \\
+		_$prefix$bt_piecewise_rshift(_vtype, __v, ts); \\
 		end -= ts;						\\
 	}								\\
 	if (__start % ts) {						\\
