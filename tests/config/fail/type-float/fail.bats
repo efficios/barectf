@@ -22,65 +22,52 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load ../../../common
 load ../../common
 
 @test 'unknown property in float type object makes barectf fail' {
-  barectf_assert_file_exists unknown-prop.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail unknown-prop.yaml
 }
 
 @test 'no "size" property in float type object makes barectf fail' {
-  barectf_assert_file_exists size-no.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail size-no.yaml
 }
 
 @test 'wrong "size" property type in float type object makes barectf fail' {
-  barectf_assert_file_exists size-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail size-invalid-type.yaml
 }
 
 @test 'unknown property in float type object "size" property makes barectf fail' {
-  barectf_assert_file_exists size-unknown-prop.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail size-unknown-prop.yaml
 }
 
 @test 'no "exp" property in float type object "size" property makes barectf fail' {
-  barectf_assert_file_exists size-exp-no.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail size-exp-no.yaml
 }
 
 @test 'no "mant" property in float type object "size" property makes barectf fail' {
-  barectf_assert_file_exists size-mant-no.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail size-mant-no.yaml
 }
 
 @test 'sum of "mant" and "exp" properties of float type size object not a multiple of 32 property makes barectf fail' {
-  barectf_assert_file_exists size-exp-mant-wrong-sum.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail size-exp-mant-wrong-sum.yaml
 }
 
 @test 'wrong "align" property type in float type object makes barectf fail' {
-  barectf_assert_file_exists align-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail align-invalid-type.yaml
 }
 
 @test 'invalid "align" property (0) in float type object makes barectf fail' {
-  barectf_assert_file_exists align-0.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail align-0.yaml
 }
 
 @test 'invalid "align" property (3) in float type object makes barectf fail' {
-  barectf_assert_file_exists align-3.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail align-3.yaml
 }
 
 @test 'wrong "byte-order" property type in float type object makes barectf fail' {
-  barectf_assert_file_exists bo-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail bo-invalid-type.yaml
 }
 
 @test 'invalid "byte-order" property in float type object makes barectf fail' {
-  barectf_assert_file_exists bo-invalid.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail bo-invalid.yaml
 }

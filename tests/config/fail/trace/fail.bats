@@ -22,100 +22,80 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load ../../../common
 load ../../common
 
 @test 'unknown property in trace object makes barectf fail' {
-  barectf_assert_file_exists unknown-prop.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail unknown-prop.yaml
 }
 
 @test 'wrong "byte-order" property type in trace object makes barectf fail' {
-  barectf_assert_file_exists bo-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail bo-invalid-type.yaml
 }
 
 @test 'no "byte-order" property in trace object makes barectf fail' {
-  barectf_assert_file_exists bo-no.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail bo-no.yaml
 }
 
 @test 'invalid "byte-order" property in trace object makes barectf fail' {
-  barectf_assert_file_exists bo-invalid.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail bo-invalid.yaml
 }
 
 @test 'invalid "packet-header-type" property field type (not a structure) in trace object makes barectf fail' {
-  barectf_assert_file_exists ph-not-struct.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-not-struct.yaml
 }
 
 @test 'wrong "uuid" property type in trace object makes barectf fail' {
-  barectf_assert_file_exists uuid-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail uuid-invalid-type.yaml
 }
 
 @test 'invalid "uuid" property (invalid UUID format) in trace object makes barectf fail' {
-  barectf_assert_file_exists uuid-invalid-uuid.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail uuid-invalid-uuid.yaml
 }
 
 @test 'invalid "magic" field type (not an integer) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-magic-not-int.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-magic-not-int.yaml
 }
 
 @test 'invalid "magic" field type (wrong integer size) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-magic-wrong-size.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-magic-wrong-size.yaml
 }
 
 @test 'invalid "magic" field type (signed) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-magic-wrong-signed.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-magic-wrong-signed.yaml
 }
 
 @test 'invalid "stream_id" field type (not an integer) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-streamid-not-int.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-streamid-not-int.yaml
 }
 
 @test 'invalid "stream_id" field type (signed) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-streamid-wrong-signed.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-streamid-wrong-signed.yaml
 }
 
 @test '"stream_id" field type size too small for the number of trace streams in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-streamid-too-small.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-streamid-too-small.yaml
 }
 
 @test 'invalid "uuid" field type (not an array) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-uuid-not-array.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-uuid-not-array.yaml
 }
 
 @test 'invalid "uuid" field type (wrong array length) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-uuid-wrong-length.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-uuid-wrong-length.yaml
 }
 
 @test 'invalid "uuid" field type (element type is not an integer) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-uuid-et-not-int.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-uuid-et-not-int.yaml
 }
 
 @test 'invalid "uuid" field type (wrong element type size) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-uuid-et-wrong-size.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-uuid-et-wrong-size.yaml
 }
 
 @test 'invalid "uuid" field type (element type is signed) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-uuid-et-wrong-signed.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-uuid-et-wrong-signed.yaml
 }
 
 @test 'invalid "uuid" field type (wrong element type alignment) in packet header type makes barectf fail' {
-  barectf_assert_file_exists ph-uuid-et-wrong-align.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ph-uuid-et-wrong-align.yaml
 }

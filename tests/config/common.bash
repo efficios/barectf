@@ -20,15 +20,53 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-barectf_config_check_fail() {
-  if [ $status -eq 0 ]; then
-    echo "Fail: exit code is 0" 1>&2
+barectf_assert_file_exists() {
+  if [ ! -f "$1" ]; then
+    echo "FATAL: "$1" does not exist" 1>&2
     return 1
   fi
 
-  pushd "$BATS_TEST_DIRNAME"
+  if ! which barectf > /dev/null; then
+    echo "FATAL: cannot find barectf tool" 1>&2
+    return 1
+  fi
+}
+
+barectf_config_check_success() {
+  pushd "$BATS_TEST_DIRNAME" >/dev/null
+
+  if ! barectf_assert_file_exists "$1"; then
+    popd >/dev/null
+    return 1
+  fi
+
+  run barectf "$1"
+  popd >/dev/null
+
+  if [ "$status" -ne 0 ]; then
+    echo "Fail: exit code is $status" 1>&2
+    return 1
+  fi
+}
+
+barectf_config_check_fail() {
+  pushd "$BATS_TEST_DIRNAME" >/dev/null
+
+  if ! barectf_assert_file_exists "$1"; then
+    popd >/dev/null
+    return 1
+  fi
+
+  run barectf "$1"
+
+  if [ "$status" -eq 0 ]; then
+    echo "Fail: exit code is 0" 1>&2
+    popd >/dev/null
+    return 1
+  fi
+
   local find_output="$(find -iname '*.c' -o -iname '*.h' -o -iname metadata)"
-  popd
+  popd >/dev/null
 
   if [ -n "$find_output" ]; then
     echo "Fail: barectf generated files" 1>&2

@@ -22,70 +22,56 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load ../../../common
 load ../../common
 
 @test 'unknown property in enum type object makes barectf fail' {
-  barectf_assert_file_exists unknown-prop.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail unknown-prop.yaml
 }
 
 @test 'no "value-type" property in enum type object makes barectf fail' {
-  barectf_assert_file_exists vt-no.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail vt-no.yaml
 }
 
 @test 'wrong "value-type" property type in enum type object makes barectf fail' {
-  barectf_assert_file_exists vt-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail vt-invalid-type.yaml
 }
 
 @test 'no "members" property in enum type object makes barectf fail' {
-  barectf_assert_file_exists members-no.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail members-no.yaml
 }
 
 @test 'wrong "members" property type in enum type object makes barectf fail' {
-  barectf_assert_file_exists members-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail members-invalid-type.yaml
 }
 
 @test 'empty "members" property in enum type object makes barectf fail' {
-  barectf_assert_file_exists members-empty.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail members-empty.yaml
 }
 
 @test 'wrong "members" property element type in enum type object makes barectf fail' {
-  barectf_assert_file_exists members-el-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail members-el-invalid-type.yaml
 }
 
 @test 'unknown property in enum type member object makes barectf fail' {
-  barectf_assert_file_exists members-el-member-unknown-prop.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail members-el-member-unknown-prop.yaml
 }
 
 @test 'wrong "label" property type in enum type member object makes barectf fail' {
-  barectf_assert_file_exists members-el-member-label-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail members-el-member-label-invalid-type.yaml
 }
 
 @test 'wrong "value" property type in enum type member object makes barectf fail' {
-  barectf_assert_file_exists members-el-member-value-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail members-el-member-value-invalid-type.yaml
 }
 
 @test '"value" property outside the unsigned value type range in enum type member object makes barectf fail' {
-  barectf_assert_file_exists members-el-member-value-outside-range-unsigned.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail members-el-member-value-outside-range-unsigned.yaml
 }
 
 @test '"value" property outside the signed value type range in enum type member object makes barectf fail' {
-  barectf_assert_file_exists members-el-member-value-outside-range-signed.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail members-el-member-value-outside-range-signed.yaml
 }
 
 @test 'overlapping members in enum type object makes barectf fail' {
-  barectf_assert_file_exists members-overlap.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail members-overlap.yaml
 }

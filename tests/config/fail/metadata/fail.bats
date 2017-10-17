@@ -22,105 +22,84 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load ../../../common
 load ../../common
 
 @test 'unknown property in metadata object makes barectf fail' {
-  barectf_assert_file_exists unknown-prop.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail unknown-prop.yaml
 }
 
 @test 'wrong "env" property type in metadata object makes barectf fail' {
-  barectf_assert_file_exists env-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail env-invalid-type.yaml
 }
 
 @test 'invalid "env" key (invalid C identifier) in metadata object makes barectf fail' {
-  barectf_assert_file_exists env-key-invalid-identifier.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail env-key-invalid-identifier.yaml
 }
 
 @test 'invalid "env" value (not an int/string) in metadata object makes barectf fail' {
-  barectf_assert_file_exists env-value-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail env-value-invalid-type.yaml
 }
 
 @test 'wrong "clocks" property type in metadata object makes barectf fail' {
-  barectf_assert_file_exists clocks-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail clocks-invalid-type.yaml
 }
 
 @test 'invalid "clocks" key (invalid C identifier) in metadata object makes barectf fail' {
-  barectf_assert_file_exists clocks-key-invalid-identifier.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail clocks-key-invalid-identifier.yaml
 }
 
 @test 'wrong "$log-levels" property type in metadata object makes barectf fail' {
-  barectf_assert_file_exists ll-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ll-invalid-type.yaml
 }
 
 @test 'wrong "$log-levels" property value type in metadata object makes barectf fail' {
-  barectf_assert_file_exists ll-value-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ll-value-invalid-type.yaml
 }
 
 @test 'wrong "type-aliases" property type in metadata object makes barectf fail' {
-  barectf_assert_file_exists ta-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ta-invalid-type.yaml
 }
 
 @test 'no "trace" property in metadata object makes barectf fail' {
-  barectf_assert_file_exists trace-no.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail trace-no.yaml
 }
 
 @test 'wrong "trace" property type in metadata object makes barectf fail' {
-  barectf_assert_file_exists trace-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail trace-invalid-type.yaml
 }
 
 @test 'empty "trace" property in metadata object makes barectf fail' {
-  barectf_assert_file_exists trace-empty.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail trace-empty.yaml
 }
 
 @test 'no "streams" property in metadata object makes barectf fail' {
-  barectf_assert_file_exists streams-no.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail streams-no.yaml
 }
 
 @test 'wrong "streams" property type in metadata object makes barectf fail' {
-  barectf_assert_file_exists streams-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail streams-invalid-type.yaml
 }
 
 @test 'empty "streams" property in metadata object makes barectf fail' {
-  barectf_assert_file_exists streams-empty.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail streams-empty.yaml
 }
 
 @test 'invalid "streams" key (invalid C identifier) in metadata object makes barectf fail' {
-  barectf_assert_file_exists streams-key-invalid-identifier.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail streams-key-invalid-identifier.yaml
 }
 
 @test 'multiple streams in metadata object with missing "stream_id" packet header type field makes barectf fail' {
-  barectf_assert_file_exists multiple-streams-trace-ph-no-stream-id.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail multiple-streams-trace-ph-no-stream-id.yaml
 }
 
 @test 'wrong "$default-stream" property type in metadata object makes barectf fail' {
-  barectf_assert_file_exists default-stream-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail default-stream-invalid-type.yaml
 }
 
 @test 'non-existing stream name in "$default-stream" property makes barectf fail' {
-  barectf_assert_file_exists default-stream-unknown-stream.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail default-stream-unknown-stream.yaml
 }
 
 @test 'coexisting "$default-stream" property (metadata) and "$default: true" property (stream) with different names make barectf fail' {
-  barectf_assert_file_exists default-stream-stream-default-duplicate.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail default-stream-stream-default-duplicate.yaml
 }

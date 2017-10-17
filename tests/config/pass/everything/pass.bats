@@ -22,12 +22,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load ../../../common
 load ../../common
 
 @test 'config file using all features makes barectf pass' {
-  barectf_assert_file_exists config.yaml
-  [ $status -eq 0 ]
+  barectf_config_check_success config.yaml
   [ -f metadata ]
   [ -f bctf.c ]
   [ -f bctf.h ]

@@ -22,45 +22,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load ../../../common
 load ../../common
 
 @test 'unknown property in event object makes barectf fail' {
-  barectf_assert_file_exists unknown-prop.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail unknown-prop.yaml
 }
 
 @test 'wrong "log-level" property type in event object makes barectf fail' {
-  barectf_assert_file_exists ll-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ll-invalid-type.yaml
 }
 
 @test 'non existing log level name as "log-level" property value in event object makes barectf fail' {
-  barectf_assert_file_exists ll-non-existing.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ll-non-existing.yaml
 }
 
 @test 'wrong "context-type" property type in event object makes barectf fail' {
-  barectf_assert_file_exists ct-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ct-invalid-type.yaml
 }
 
 @test 'invalid "context-type" property field type (not a structure) in event object makes barectf fail' {
-  barectf_assert_file_exists ct-not-struct.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ct-not-struct.yaml
 }
 
 @test 'wrong "payload-type" property type in event object makes barectf fail' {
-  barectf_assert_file_exists pt-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail pt-invalid-type.yaml
 }
 
 @test 'invalid "payload-type" property field type (not a structure) in event object makes barectf fail' {
-  barectf_assert_file_exists pt-not-struct.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail pt-not-struct.yaml
 }
 
 @test 'empty event object makes barectf fail' {
-  barectf_assert_file_exists no-fields-at-all.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail no-fields-at-all.yaml
 }

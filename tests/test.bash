@@ -48,13 +48,13 @@ if [ -z "${CC+x}" ]; then
 fi
 
 for d in "${test_dirs[@]}"; do
-  pushd "$d"
+  pushd "$d" >/dev/null
   $bats_bin "${@}" .
   if [ $? -ne 0 ]; then
     # latch error, but continue other tests
     rc=1
   fi
-  popd
+  popd >/dev/null
 done
 
 exit $rc

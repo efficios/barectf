@@ -22,65 +22,52 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load ../../../common
 load ../../common
 
 @test 'unknown property in config object makes barectf fail' {
-  barectf_assert_file_exists unknown-prop.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail unknown-prop.yaml
 }
 
 @test 'no "version" property in config object makes barectf fail' {
-  barectf_assert_file_exists version-no.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail version-no.yaml
 }
 
 @test 'wrong "version" property type in config object makes barectf fail' {
-  barectf_assert_file_exists version-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail version-invalid-type.yaml
 }
 
 @test 'invalid "version" property (1.9) in config object makes barectf fail' {
-  barectf_assert_file_exists version-invalid-19.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail version-invalid-19.yaml
 }
 
 @test 'invalid "version" property (2.3) in config object makes barectf fail' {
-  barectf_assert_file_exists version-invalid-23.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail version-invalid-23.yaml
 }
 
 @test 'wrong "prefix" property type in config object makes barectf fail' {
-  barectf_assert_file_exists prefix-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail prefix-invalid-type.yaml
 }
 
 @test 'no valid C identifier in "prefix" property type in config object makes barectf fail' {
-  barectf_assert_file_exists prefix-invalid-identifier.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail prefix-invalid-identifier.yaml
 }
 
 @test 'no "metadata" property in config object makes barectf fail' {
-  barectf_assert_file_exists metadata-no.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail metadata-no.yaml
 }
 
 @test 'wrong "metadata" property type in config object makes barectf fail' {
-  barectf_assert_file_exists metadata-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail metadata-invalid-type.yaml
 }
 
 @test 'wrong "options" property type in config object makes barectf fail' {
-  barectf_assert_file_exists options-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail options-invalid-type.yaml
 }
 
 @test 'wrong "gen-prefix-def" property type in config options object makes barectf fail' {
-  barectf_assert_file_exists options-gen-prefix-def-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail options-gen-prefix-def-invalid-type.yaml
 }
 
 @test 'wrong "gen-default-stream-def" property type in config options object makes barectf fail' {
-  barectf_assert_file_exists options-gen-default-stream-def-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail options-gen-default-stream-def-invalid-type.yaml
 }

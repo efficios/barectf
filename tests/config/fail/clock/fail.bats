@@ -22,90 +22,72 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load ../../../common
 load ../../common
 
 @test 'unknown property in clock object makes barectf fail' {
-  barectf_assert_file_exists unknown-prop.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail unknown-prop.yaml
 }
 
 @test 'wrong "freq" property type in clock object makes barectf fail' {
-  barectf_assert_file_exists freq-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail freq-invalid-type.yaml
 }
 
 @test 'invalid "freq" property (0) in clock object makes barectf fail' {
-  barectf_assert_file_exists freq-0.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail freq-0.yaml
 }
 
 @test 'invalid "freq" property (negative) in clock object makes barectf fail' {
-  barectf_assert_file_exists freq-neg.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail freq-neg.yaml
 }
 
 @test 'wrong "description" property type in clock object makes barectf fail' {
-  barectf_assert_file_exists description-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail description-invalid-type.yaml
 }
 
 @test 'wrong "uuid" property type in clock object makes barectf fail' {
-  barectf_assert_file_exists uuid-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail uuid-invalid-type.yaml
 }
 
 @test 'invalid "uuid" property in clock object makes barectf fail' {
-  barectf_assert_file_exists uuid-invalid.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail uuid-invalid.yaml
 }
 
 @test 'wrong "error-cycles" property type in clock object makes barectf fail' {
-  barectf_assert_file_exists ec-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ec-invalid-type.yaml
 }
 
 @test 'invalid "error-cycles" property in clock object makes barectf fail' {
-  barectf_assert_file_exists ec-invalid.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail ec-invalid.yaml
 }
 
 @test 'wrong "offset" property type in clock object makes barectf fail' {
-  barectf_assert_file_exists offset-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail offset-invalid-type.yaml
 }
 
 @test 'wrong "absolute" property type in clock object makes barectf fail' {
-  barectf_assert_file_exists absolute-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail absolute-invalid-type.yaml
 }
 
 @test 'unknown property in clock offset object makes barectf fail' {
-  barectf_assert_file_exists offset-unknown-prop.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail offset-unknown-prop.yaml
 }
 
 @test 'wrong "seconds" property type in clock offset object makes barectf fail' {
-  barectf_assert_file_exists offset-seconds-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail offset-seconds-invalid-type.yaml
 }
 
 @test 'invalid "seconds" property in clock offset object makes barectf fail' {
-  barectf_assert_file_exists offset-seconds-neg.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail offset-seconds-neg.yaml
 }
 
 @test 'wrong "cycles" property type in clock offset object makes barectf fail' {
-  barectf_assert_file_exists offset-cycles-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail offset-cycles-invalid-type.yaml
 }
 
 @test 'invalid "cycles" property in clock offset object makes barectf fail' {
-  barectf_assert_file_exists offset-cycles-neg.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail offset-cycles-neg.yaml
 }
 
 @test 'wrong "$return-ctype" property type in clock object makes barectf fail' {
-  barectf_assert_file_exists rct-invalid-type.yaml
-  barectf_config_check_fail
+  barectf_config_check_fail rct-invalid-type.yaml
 }
