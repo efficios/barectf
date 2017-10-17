@@ -28,8 +28,12 @@ barectf_assert_file_exists() {
     return 1
   fi
 
+  if ! which barectf > /dev/null; then
+    echo "FATAL: cannot find barectf tool" 1>&2
+    return 1
+  fi
+
   run barectf "$1"
-  local rc=$?
   popd
-  return $rc
+  return $status
 }
