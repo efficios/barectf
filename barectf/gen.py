@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2014-2016 Philippe Proulx <pproulx@efficios.com>
+# Copyright (c) 2014-2019 Philippe Proulx <pproulx@efficios.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,11 @@ from barectf import templates
 from barectf import metadata
 import barectf.codegen
 import collections
+import itertools
 import argparse
 import datetime
 import barectf
+import copy
 import sys
 import os
 import re
@@ -36,92 +38,127 @@ def _align(v, align):
     return (v + (align - 1)) & -align
 
 
-class _StaticAlignSizeAutomatonByteOffset:
-    def __init__(self):
-        self._byte_offset = 0
-        self._type_to_update_byte_offset_func = {
-            metadata.Integer: self._write_static_size,
-            metadata.FloatingPoint: self._write_static_size,
-            metadata.Enum: self._write_static_size,
-            metadata.String: self._write_string_size,
-        }
+class _SerializationAction:
+    def __init__(self, offset_in_byte, type, names):
+        assert(offset_in_byte >= 0 and offset_in_byte < 8)
+        self._offset_in_byte = offset_in_byte
+        self._type = type
+        self._names = copy.deepcopy(names)
 
     @property
-    def byte_offset(self):
-        return self._byte_offset
+    def offset_in_byte(self):
+        return self._offset_in_byte
 
-    @byte_offset.setter
-    def byte_offset(self, value):
-        self._byte_offset = value
+    @property
+    def type(self):
+        return self._type
 
-    def _wrap_byte_offset(self):
-        self._byte_offset %= 8
+    @property
+    def names(self):
+        return self._names
 
-    def align(self, align):
-        # align byte offset
-        self._byte_offset = _align(self._byte_offset, align)
 
-        # wrap on current byte
-        self._wrap_byte_offset()
+class _AlignSerializationAction(_SerializationAction):
+    def __init__(self, offset_in_byte, type, names, value):
+        super().__init__(offset_in_byte, type, names)
+        self._value = value
 
-    def write_type(self, t):
-        self._type_to_update_byte_offset_func[type(t)](t)
+    @property
+    def value(self):
+        return self._value
 
-    def _write_string_size(self, t):
+
+class _SerializeSerializationAction(_SerializationAction):
+    def __init__(self, offset_in_byte, type, names):
+        super().__init__(offset_in_byte, type, names)
+
+
+class _SerializationActions:
+    def __init__(self):
         self.reset()
 
-    def _write_static_size(self, t):
-        # increment byte offset
-        self._byte_offset += t.size
-
-        # wrap on current byte
-        self._wrap_byte_offset()
-
     def reset(self):
-        # reset byte offset
-        self._byte_offset = 0
+        self._last_alignment = None
+        self._last_bit_array_size = None
+        self._actions = []
+        self._names = []
+        self._offset_in_byte = 0
 
-    def set_unknown(self):
-        self._byte_offset = None
+    def append_root_scope_type(self, t, name):
+        if t is None:
+            return
 
-
-class _StaticAlignSizeAutomatonPreSize:
-    def __init__(self):
-        self.reset(1)
-
-    def reset(self, initial_align):
-        self._max_align = initial_align
-        self._size = 0
-
-    def add_type(self, t):
-        if t.align > self._max_align:
-            # type alignment is greater than the maximum alignment we
-            # got so far since the last reset, so we don't know how many
-            # padding bits are needed between this type and the previous
-            # one, hence the static size is set to the type's size
-            # (since we're aligned) and our new alignment is saved
-            self._max_align = t.align
-
-            if type(t) is metadata.Struct:
-                self._size = 0
-            else:
-                self._size = t.size
-
-            return False
-        else:
-            # type alignment is lesser than or equal to the maximum
-            # alignment we got so far, so we just align the static size
-            # and add the type's size
-            self._size = _align(self._size, t.align)
-
-            if type(t) is not metadata.Struct:
-                self._size += t.size
-
-            return True
+        assert(type(t) is metadata.Struct)
+        self._names = [name]
+        self._append_type(t)
 
     @property
-    def size(self):
-        return self._size
+    def actions(self):
+        return self._actions
+
+    def align(self, alignment):
+        do_align = self._must_align(alignment)
+        self._last_alignment = alignment
+        self._last_bit_array_size = alignment
+        self._try_append_align_action(alignment, do_align)
+
+    def _must_align(self, align_req):
+        return self._last_alignment != align_req or self._last_bit_array_size % align_req != 0
+
+    def _append_type(self, t):
+        assert(type(t) in (metadata.Struct, metadata.String, metadata.Integer,
+                           metadata.FloatingPoint, metadata.Enum,
+                           metadata.Array))
+
+        if type(t) in (metadata.String, metadata.Array):
+            assert(type(t) is metadata.String or self._names[-1] == 'uuid')
+            do_align = self._must_align(8)
+            self._last_alignment = 8
+            self._last_bit_array_size = 8
+            self._try_append_align_action(8, do_align, t)
+            self._append_serialize_action(t)
+        elif type(t) in (metadata.Integer, metadata.FloatingPoint,
+                         metadata.Enum, metadata.Struct):
+            do_align = self._must_align(t.align)
+            self._last_alignment = t.align
+
+            if type(t) is metadata.Struct:
+                self._last_bit_array_size = t.align
+            else:
+                self._last_bit_array_size = t.size
+
+            self._try_append_align_action(t.align, do_align, t)
+
+            if type(t) is metadata.Struct:
+                for field_name, field_type in t.fields.items():
+                    self._names.append(field_name)
+                    self._append_type(field_type)
+                    del self._names[-1]
+            else:
+                self._append_serialize_action(t, t.size)
+
+    def _try_append_align_action(self, alignment, do_align, t=None):
+        offset_in_byte = self._offset_in_byte
+        self._offset_in_byte = _align(self._offset_in_byte, alignment) % 8
+
+        if do_align and alignment > 1:
+            self._actions.append(_AlignSerializationAction(offset_in_byte,
+                                                           t, self._names,
+                                                           alignment))
+
+    def _append_serialize_action(self, t, size=None):
+        assert(type(t) in (metadata.Integer, metadata.FloatingPoint,
+                           metadata.Enum, metadata.String,
+                           metadata.Array))
+
+        offset_in_byte = self._offset_in_byte
+
+        if t.size is not None:
+            self._offset_in_byte += t.size
+            self._offset_in_byte %= 8
+
+        self._actions.append(_SerializeSerializationAction(offset_in_byte,
+                                                           t, self._names))
 
 
 _PREFIX_TPH = 'tph_'
@@ -130,6 +167,14 @@ _PREFIX_SEH = 'seh_'
 _PREFIX_SEC = 'sec_'
 _PREFIX_EC = 'ec_'
 _PREFIX_EP = 'ep_'
+_PREFIX_TO_NAME = {
+    _PREFIX_TPH: 'trace packet header',
+    _PREFIX_SPC: 'stream packet context',
+    _PREFIX_SEH: 'stream event header',
+    _PREFIX_SEC: 'stream event context',
+    _PREFIX_EC: 'event context',
+    _PREFIX_EP: 'event payload',
+}
 
 
 class CCodeGenerator:
@@ -148,8 +193,7 @@ class CCodeGenerator:
             metadata.Enum: self._generate_serialize_enum,
             metadata.String: self._generate_serialize_string,
         }
-        self._saved_byte_offsets = {}
-        self._sasa = _StaticAlignSizeAutomatonByteOffset()
+        self._saved_serialization_actions = {}
 
     def _generate_ctx_parent(self):
         tmpl = templates._CTX_PARENT
@@ -446,7 +490,6 @@ class CCodeGenerator:
 
     def _generate_align(self, at, align):
         self._cg.add_line('_ALIGN({}, {});'.format(at, align))
-        self._sasa.align(align)
 
     def _generate_align_type(self, at, t):
         if t.align == 1:
@@ -468,90 +511,49 @@ class CCodeGenerator:
         tmpl = templates._FUNC_GET_EVENT_SIZE_PROTO_END
         self._cg.add_lines(tmpl)
 
-    def _generate_func_get_event_size_from_entity(self, prefix, t):
-        self._cg.add_line('{')
-        self._cg.indent()
-        statically_aligned = self._pre_size_sasa.add_type(t)
-
-        if not statically_aligned:
-            # increment current position if needed
-            if self._last_basic_types_size > 0:
-                self._generate_incr_pos('at', self._last_basic_types_size)
-                self._last_basic_types_size = 0
-
-            self._cg.add_cc_line('align structure')
-            self._generate_align_type('at', t)
-
-        for field_name, field_type in t.fields.items():
-            self._cg.add_empty_line()
-            self._generate_field_name_cc_line(field_name)
-
-            if type(field_type) is metadata.String:
-                # increment current position if needed
-                if self._last_basic_types_size > 0:
-                    self._generate_incr_pos('at', self._last_basic_types_size)
-                    self._last_basic_types_size = 0
-
-                param = prefix + field_name
-                self._generate_incr_pos_bytes('at',
-                                              'strlen({}) + 1'.format(param))
-                self._pre_size_sasa.reset(8)
-            else:
-                statically_aligned = self._pre_size_sasa.add_type(field_type)
-
-                if not statically_aligned:
-                    # increment current position if needed
-                    if self._last_basic_types_size > 0:
-                        self._generate_incr_pos('at', self._last_basic_types_size)
-
-                    # realign dynamically
-                    self._cg.add_cc_line('align for field')
-                    self._generate_align_type('at', field_type)
-
-                fmt = 'field size: {} (partial total so far: {})'
-                self._cg.add_cc_line(fmt.format(field_type.size, self._pre_size_sasa.size))
-                self._last_basic_types_size = self._pre_size_sasa.size
-
-        self._cg.unindent()
-        self._cg.add_line('}')
-        self._cg.add_empty_line()
-
     def _generate_func_get_event_size(self, stream, event):
-        self._reset_per_func_state()
         self._generate_func_get_event_size_proto(stream, event)
         tmpl = templates._FUNC_GET_EVENT_SIZE_BODY_BEGIN
         lines = tmpl.format(prefix=self._cfg.prefix)
         self._cg.add_lines(lines)
         self._cg.add_empty_line()
         self._cg.indent()
-        func = self._generate_func_get_event_size_from_entity
-        self._pre_size_sasa = _StaticAlignSizeAutomatonPreSize()
-        self._cg.add_cc_line('byte-align entity')
-        self._generate_align('at', 8)
-        self._cg.add_empty_line()
-        self._pre_size_sasa.reset(8)
-        self._last_basic_types_size = 0
+        ser_actions = _SerializationActions()
+        ser_actions.append_root_scope_type(stream.event_header_type,
+                                            _PREFIX_SEH)
+        ser_actions.append_root_scope_type(stream.event_context_type,
+                                            _PREFIX_SEC)
+        ser_actions.append_root_scope_type(event.context_type, _PREFIX_EC)
+        ser_actions.append_root_scope_type(event.payload_type, _PREFIX_EP)
 
-        if stream.event_header_type is not None:
-            self._cg.add_cc_line('stream event header')
-            func(_PREFIX_SEH, stream.event_header_type)
+        for action in ser_actions.actions:
+            if type(action) is _AlignSerializationAction:
+                if action.names:
+                    if len(action.names) == 1:
+                        line = 'align {} structure'.format(_PREFIX_TO_NAME[action.names[0]])
+                    else:
+                        fmt = 'align field "{}" ({})'
+                        line = fmt.format(action.names[-1],
+                                          _PREFIX_TO_NAME[action.names[0]])
 
-        if stream.event_context_type is not None:
-            self._cg.add_cc_line('stream event context')
-            func(_PREFIX_SEC, stream.event_context_type)
+                    self._cg.add_cc_line(line)
 
-        if event.context_type is not None:
-            self._cg.add_cc_line('event context')
-            func(_PREFIX_EC, event.context_type)
+                self._generate_align('at', action.value)
+                self._cg.add_empty_line()
+            elif type(action) is _SerializeSerializationAction:
+                assert(len(action.names) >= 2)
+                fmt = 'add size of field "{}" ({})'
+                line = fmt.format(action.names[-1], _PREFIX_TO_NAME[action.names[0]])
+                self._cg.add_cc_line(line)
 
-        if event.payload_type is not None:
-            self._cg.add_cc_line('event payload')
-            func(_PREFIX_EP, event.payload_type)
+                if type(action.type) is metadata.String:
+                    param = ''.join(action.names)
+                    self._generate_incr_pos_bytes('at',
+                                                  'strlen({}) + 1'.format(param))
+                else:
+                    self._generate_incr_pos('at', action.type.size)
 
-        # increment current position if needed
-        if self._last_basic_types_size > 0:
-            self._generate_incr_pos('at', self._last_basic_types_size)
-            self._cg.add_empty_line()
+                self._cg.add_empty_line()
 
         self._cg.unindent()
         tmpl = templates._FUNC_GET_EVENT_SIZE_BODY_END
@@ -573,23 +575,23 @@ class CCodeGenerator:
         tmpl = templates._FUNC_SERIALIZE_EVENT_PROTO_END
         self._cg.add_lines(tmpl)
 
-    def _generate_bitfield_write(self, ctype, var, ctx, t):
+    def _generate_bitfield_write(self, ctype, var, ctx, action):
         ptr = '&{ctx}->buf[_BITS_TO_BYTES({ctx}->at)]'.format(ctx=ctx)
-        start = self._sasa.byte_offset
-        suffix = 'le' if t.byte_order is metadata.ByteOrder.LE else 'be'
+        start = action.offset_in_byte
+        suffix = 'le' if action.type.byte_order is metadata.ByteOrder.LE else 'be'
         func = '{}bt_bitfield_write_{}'.format(self._cfg.prefix, suffix)
         call_fmt = '{func}({ptr}, uint8_t, {start}, {size}, {ctype}, ({ctype}) {var});'
-        call = call_fmt.format(func=func, ptr=ptr, start=start, size=t.size,
-                               ctype=ctype, var=var)
+        call = call_fmt.format(func=func, ptr=ptr, start=start,
+                               size=action.type.size, ctype=ctype, var=var)
         self._cg.add_line(call)
 
-    def _generate_serialize_int(self, var, ctx, t):
-        ctype = self._get_int_ctype(t)
-        self._generate_bitfield_write(ctype, var, ctx, t)
-        self._generate_incr_pos('{}->at'.format(ctx), t.size)
+    def _generate_serialize_int(self, var, ctx, action):
+        ctype = self._get_int_ctype(action.type)
+        self._generate_bitfield_write(ctype, var, ctx, action)
+        self._generate_incr_pos('{}->at'.format(ctx), action.type.size)
 
-    def _generate_serialize_float(self, var, ctx, t):
-        ctype = self._get_type_ctype(t)
+    def _generate_serialize_float(self, var, ctx, action):
+        ctype = self._get_type_ctype(action.type)
         flt_dbl = False
 
         if ctype == 'float' or ctype == 'double':
@@ -614,52 +616,61 @@ class CCodeGenerator:
             bf_var = '({}) {}'.format(ctype, var)
             int_ctype = ctype
 
-        self._generate_bitfield_write(int_ctype, bf_var, ctx, t)
+        self._generate_bitfield_write(int_ctype, bf_var, ctx, action)
 
         if flt_dbl:
             self._cg.unindent()
             self._cg.add_line('}')
             self._cg.add_empty_line()
 
-        self._generate_incr_pos('{}->at'.format(ctx), t.size)
+        self._generate_incr_pos('{}->at'.format(ctx), action.type.size)
 
-    def _generate_serialize_enum(self, var, ctx, t):
-        self._generate_serialize_type(var, ctx, t.value_type)
+    def _generate_serialize_enum(self, var, ctx, action):
+        sub_action = _SerializeSerializationAction(action.offset_in_byte,
+                                                   action.type.value_type,
+                                                   action.names)
+        self._generate_serialize_from_action(var, ctx, sub_action)
 
-    def _generate_serialize_string(self, var, ctx, t):
+    def _generate_serialize_string(self, var, ctx, action):
         tmpl = '_write_cstring({}, {});'.format(ctx, var)
         self._cg.add_lines(tmpl)
 
-    def _generate_serialize_type(self, var, ctx, t):
-        self._type_to_generate_serialize_func[type(t)](var, ctx, t)
-        self._sasa.write_type(t)
+    def _generate_serialize_from_action(self, var, ctx, action):
+        func = self._type_to_generate_serialize_func[type(action.type)]
+        func(var, ctx, action)
 
-    def _generate_func_serialize_event_from_entity(self, prefix, t,
-                                                   spec_src=None):
-        self._cg.add_line('{')
-        self._cg.indent()
-        self._cg.add_cc_line('align structure')
-        self._sasa.reset()
-        self._generate_align_type('ctx->at', t)
+    def _generate_serialize_statements_from_actions(self, prefix, action_iter,
+                                                    spec_src=None):
+        for action in action_iter:
+            if type(action) is _AlignSerializationAction:
+                if action.names:
+                    if len(action.names) == 1:
+                        line = 'align {} structure'.format(_PREFIX_TO_NAME[action.names[0]])
+                    else:
+                        fmt = 'align field "{}" ({})'
+                        line = fmt.format(action.names[-1],
+                                          _PREFIX_TO_NAME[action.names[0]])
 
-        for field_name, field_type in t.fields.items():
-            src = prefix + field_name
+                    self._cg.add_cc_line(line)
 
-            if spec_src is not None:
-                if field_name in spec_src:
+                self._generate_align('ctx->at', action.value)
+                self._cg.add_empty_line()
+            elif type(action) is _SerializeSerializationAction:
+                assert(len(action.names) >= 2)
+                fmt = 'serialize field "{}" ({})'
+                line = fmt.format(action.names[-1],
+                                  _PREFIX_TO_NAME[action.names[0]])
+                self._cg.add_cc_line(line)
+                field_name = action.names[-1]
+                src = prefix + field_name
+
+                if spec_src is not None and field_name in spec_src:
                     src = spec_src[field_name]
 
-            self._cg.add_empty_line()
-            self._generate_field_name_cc_line(field_name)
-            self._generate_align_type('ctx->at', field_type)
-            self._generate_serialize_type(src, 'ctx', field_type)
+                self._generate_serialize_from_action(src, 'ctx', action)
+                self._cg.add_empty_line()
 
-        self._cg.unindent()
-        self._cg.add_line('}')
-        self._cg.add_empty_line()
-
-    def _generate_func_serialize_event(self, stream, event):
-        self._reset_per_func_state()
+    def _generate_func_serialize_event(self, stream, event, orig_ser_actions):
         self._generate_func_serialize_event_proto(stream, event)
         tmpl = templates._FUNC_SERIALIZE_EVENT_BODY_BEGIN
         lines = tmpl.format(prefix=self._cfg.prefix)
@@ -687,15 +698,24 @@ class CCodeGenerator:
             self._cg.add_line(tmpl.format(sname=stream.name, params=params))
             self._cg.add_empty_line()
 
+        if event.context_type is not None or event.payload_type is not None:
+            ser_actions = copy.deepcopy(orig_ser_actions)
+
         if event.context_type is not None:
-            self._cg.add_cc_line('event context')
-            self._generate_func_serialize_event_from_entity(_PREFIX_EC,
-                                                            event.context_type)
+            ser_action_index = len(ser_actions.actions)
+            ser_actions.append_root_scope_type(event.context_type, _PREFIX_EC)
+            ser_action_iter = itertools.islice(ser_actions.actions,
+                                               ser_action_index, None)
+            self._generate_serialize_statements_from_actions(_PREFIX_EC,
+                                                             ser_action_iter)
 
         if event.payload_type is not None:
-            self._cg.add_cc_line('event payload')
-            self._generate_func_serialize_event_from_entity(_PREFIX_EP,
-                                                            event.payload_type)
+            ser_action_index = len(ser_actions.actions)
+            ser_actions.append_root_scope_type(event.payload_type, _PREFIX_EP)
+            ser_action_iter = itertools.islice(ser_actions.actions,
+                                               ser_action_index, None)
+            self._generate_serialize_statements_from_actions(_PREFIX_EP,
+                                                             ser_action_iter)
 
         self._cg.unindent()
         tmpl = templates._FUNC_SERIALIZE_EVENT_BODY_END
@@ -737,15 +757,14 @@ class CCodeGenerator:
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_PROTO_END
         self._cg.add_lines(tmpl)
 
-    def _generate_func_serialize_stream_event_header(self, stream):
-        self._reset_per_func_state()
+    def _generate_func_serialize_stream_event_header(self, stream,
+                                                     ser_action_iter):
         self._generate_func_serialize_stream_event_header_proto(stream)
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_HEADER_BODY_BEGIN
         lines = tmpl.format(prefix=self._cfg.prefix)
         self._cg.add_lines(lines)
         self._cg.indent()
         self._cg.add_empty_line()
-        func = self._generate_func_serialize_event_from_entity
 
         if stream.event_header_type is not None:
             spec_src = {}
@@ -760,30 +779,31 @@ class CCodeGenerator:
                 ts_ctype = self._get_int_ctype(field)
                 spec_src['timestamp'] = '({}) ts'.format(ts_ctype)
 
-            func(_PREFIX_SEH, stream.event_header_type, spec_src)
+            self._generate_serialize_statements_from_actions(_PREFIX_SEH,
+                                                             ser_action_iter,
+                                                             spec_src)
 
         self._cg.unindent()
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_HEADER_BODY_END
         self._cg.add_lines(tmpl)
 
-    def _generate_func_serialize_stream_event_context(self, stream):
-        self._reset_per_func_state()
+    def _generate_func_serialize_stream_event_context(self, stream,
+                                                      ser_action_iter):
         self._generate_func_serialize_stream_event_context_proto(stream)
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_BEGIN
         lines = tmpl.format(prefix=self._cfg.prefix)
         self._cg.add_lines(lines)
         self._cg.indent()
-        func = self._generate_func_serialize_event_from_entity
 
         if stream.event_context_type is not None:
-            func(_PREFIX_SEC, stream.event_context_type)
+            self._generate_serialize_statements_from_actions(_PREFIX_SEC,
+                                                             ser_action_iter)
 
         self._cg.unindent()
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_END
         self._cg.add_lines(tmpl)
 
     def _generate_func_trace(self, stream, event):
-        self._reset_per_func_state()
         self._generate_func_trace_proto(stream, event)
         params = self._get_call_event_param_list(stream, event)
         tmpl = templates._FUNC_TRACE_BODY
@@ -801,7 +821,6 @@ class CCodeGenerator:
                                        params=params, ts=ts_line))
 
     def _generate_func_init(self):
-        self._reset_per_func_state()
         self._generate_func_init_proto()
         tmpl = templates._FUNC_INIT_BODY
         self._cg.add_lines(tmpl.format(prefix=self._cfg.prefix))
@@ -809,14 +828,8 @@ class CCodeGenerator:
     def _generate_field_name_cc_line(self, field_name):
         self._cg.add_cc_line('"{}" field'.format(field_name))
 
-    def _save_byte_offset(self, name):
-        self._saved_byte_offsets[name] = self._sasa.byte_offset
-
-    def _restore_byte_offset(self, name):
-        self._sasa.byte_offset = self._saved_byte_offsets[name]
-
-    def _reset_per_func_state(self):
-        pass
+    def _save_serialization_action(self, name, action):
+        self._saved_serialization_actions[name] = action
 
     def _get_first_clock_ctype(self, field, default='int'):
         if not field.property_mappings:
@@ -840,12 +853,11 @@ class CCodeGenerator:
         return line
 
     def _generate_func_open(self, stream):
-        def generate_save_offset(name):
+        def generate_save_offset(name, action):
             tmpl = 'ctx->off_spc_{} = ctx->parent.at;'.format(name)
             self._cg.add_line(tmpl)
-            self._save_byte_offset(name)
+            self._save_serialization_action(name, action)
 
-        self._reset_per_func_state()
         self._generate_func_open_proto(stream)
         tmpl = templates._FUNC_OPEN_BODY_BEGIN
         ts_line = ''
@@ -868,90 +880,117 @@ class CCodeGenerator:
         self._cg.add_empty_line()
         self._cg.add_line('ctx->parent.at = 0;')
         tph_type = self._cfg.metadata.trace.packet_header_type
+        ser_actions = _SerializationActions()
 
         if tph_type is not None:
             self._cg.add_empty_line()
             self._cg.add_cc_line('trace packet header')
             self._cg.add_line('{')
             self._cg.indent()
-            self._cg.add_cc_line('align structure')
-            self._sasa.reset()
-            self._generate_align_type('ctx->parent.at', tph_type)
+            ser_actions.append_root_scope_type(tph_type, _PREFIX_TPH)
 
-            for field_name, field_type in tph_type.fields.items():
-                src = _PREFIX_TPH + field_name
+            for action in ser_actions.actions:
+                if type(action) is _AlignSerializationAction:
+                    if action.names:
+                        if len(action.names) == 1:
+                            line = 'align trace packet header structure'
+                        else:
+                            line = 'align field "{}"'.format(action.names[-1])
 
-                if field_name == 'magic':
-                    src = '0xc1fc1fc1UL'
-                elif field_name == 'stream_id':
-                    stream_id_ctype = self._get_int_ctype(field_type)
-                    src = '({}) {}'.format(stream_id_ctype, stream.id)
-                elif field_name == 'uuid':
+                        self._cg.add_cc_line(line)
+
+                    self._generate_align('ctx->parent.at', action.value)
                     self._cg.add_empty_line()
-                    self._generate_field_name_cc_line(field_name)
-                    self._cg.add_line('{')
-                    self._cg.indent()
-                    self._cg.add_line('static uint8_t uuid[] = {')
-                    self._cg.indent()
+                elif type(action) is _SerializeSerializationAction:
+                    assert(len(action.names) >= 2)
+                    fmt = 'serialize field "{}"'
+                    line = fmt.format(action.names[-1])
+                    self._cg.add_cc_line(line)
+                    field_name = action.names[-1]
+                    src = _PREFIX_TPH + field_name
 
-                    for b in self._cfg.metadata.trace.uuid.bytes:
-                        self._cg.add_line('{},'.format(b))
+                    if field_name == 'magic':
+                        src = '0xc1fc1fc1UL'
+                    elif field_name == 'stream_id':
+                        stream_id_ctype = self._get_int_ctype(action.type)
+                        src = '({}) {}'.format(stream_id_ctype, stream.id)
+                    elif field_name == 'uuid':
+                        self._cg.add_line('{')
+                        self._cg.indent()
+                        self._cg.add_line('static uint8_t uuid[] = {')
+                        self._cg.indent()
 
-                    self._cg.unindent()
-                    self._cg.add_line('};')
+                        for b in self._cfg.metadata.trace.uuid.bytes:
+                            self._cg.add_line('{},'.format(b))
+
+                        self._cg.unindent()
+                        self._cg.add_line('};')
+                        self._cg.add_empty_line()
+                        self._generate_align('ctx->parent.at', 8)
+                        line = 'memcpy(&ctx->parent.buf[_BITS_TO_BYTES(ctx->parent.at)], uuid, 16);'
+                        self._cg.add_line(line)
+                        self._generate_incr_pos_bytes('ctx->parent.at', 16)
+                        self._cg.unindent()
+                        self._cg.add_line('}')
+                        self._cg.add_empty_line()
+                        continue
+
+                    self._generate_serialize_from_action(src, '(&ctx->parent)', action)
                     self._cg.add_empty_line()
-                    self._generate_align('ctx->parent.at', 8)
-                    line = 'memcpy(&ctx->parent.buf[_BITS_TO_BYTES(ctx->parent.at)], uuid, 16);'
-                    self._cg.add_line(line)
-                    self._generate_incr_pos_bytes('ctx->parent.at', 16)
-                    self._cg.unindent()
-                    self._cg.add_line('}')
-                    self._sasa.reset()
-                    continue
-
-                self._cg.add_empty_line()
-                self._generate_field_name_cc_line(field_name)
-                self._generate_align_type('ctx->parent.at', field_type)
-                self._generate_serialize_type(src, '(&ctx->parent)', field_type)
 
             self._cg.unindent()
             self._cg.add_lines('}')
+
+        spc_action_index = len(ser_actions.actions)
 
         if spc_type is not None:
             self._cg.add_empty_line()
             self._cg.add_cc_line('stream packet context')
             self._cg.add_line('{')
             self._cg.indent()
-            self._cg.add_cc_line('align structure')
-            self._sasa.reset()
-            self._generate_align_type('ctx->parent.at', spc_type)
+            ser_actions.append_root_scope_type(spc_type, _PREFIX_SPC)
             tmpl_off = 'off_spc_{fname}'
 
-            for field_name, field_type in spc_type.fields.items():
-                src = _PREFIX_SPC + field_name
-                skip_int = False
-                self._cg.add_empty_line()
-                self._generate_field_name_cc_line(field_name)
+            for action in itertools.islice(ser_actions.actions, spc_action_index, None):
+                if type(action) is _AlignSerializationAction:
+                    if action.names:
+                        if len(action.names) == 1:
+                            line = 'align stream packet context structure'
+                        else:
+                            line = 'align field "{}"'.format(action.names[-1])
 
-                if field_name == 'timestamp_begin':
-                    ctype = self._get_type_ctype(field_type)
-                    src = '({}) ts'.format(ctype)
-                elif field_name in ['timestamp_end', 'content_size',
-                                    'events_discarded']:
-                    skip_int = True
-                elif field_name == 'packet_size':
-                    ctype = self._get_type_ctype(field_type)
-                    src = '({}) ctx->parent.packet_size'.format(ctype)
+                        self._cg.add_cc_line(line)
 
-                self._generate_align_type('ctx->parent.at', field_type)
+                    self._generate_align('ctx->parent.at', action.value)
+                    self._cg.add_empty_line()
+                elif type(action) is _SerializeSerializationAction:
+                    assert(len(action.names) >= 2)
+                    fmt = 'serialize field "{}"'
+                    line = fmt.format(action.names[-1])
+                    self._cg.add_cc_line(line)
+                    field_name = action.names[-1]
+                    src = _PREFIX_SPC + field_name
+                    skip_int = False
 
-                if skip_int:
-                    generate_save_offset(field_name)
-                    self._generate_incr_pos('ctx->parent.at', field_type.size)
-                    self._sasa.write_type(field_type)
-                else:
-                    self._generate_serialize_type(src, '(&ctx->parent)',
-                                                  field_type)
+                    if field_name == 'timestamp_begin':
+                        ctype = self._get_type_ctype(action.type)
+                        src = '({}) ts'.format(ctype)
+                    elif field_name in ['timestamp_end', 'content_size',
+                                        'events_discarded']:
+                        skip_int = True
+                    elif field_name == 'packet_size':
+                        ctype = self._get_type_ctype(action.type)
+                        src = '({}) ctx->parent.packet_size'.format(ctype)
+
+                    if skip_int:
+                        generate_save_offset(field_name, action)
+                        self._generate_incr_pos('ctx->parent.at',
+                                                action.type.size)
+                    else:
+                        self._generate_serialize_from_action(src, '(&ctx->parent)',
+                                                      action)
+
+                    self._cg.add_empty_line()
 
             self._cg.unindent()
             self._cg.add_lines('}')
@@ -965,7 +1004,6 @@ class CCodeGenerator:
             tmpl = 'ctx->parent.at = ctx->off_spc_{};'.format(name)
             self._cg.add_line(tmpl)
 
-        self._reset_per_func_state()
         self._generate_func_close_proto(stream)
         tmpl = templates._FUNC_CLOSE_BODY_BEGIN
         ts_line = ''
@@ -999,8 +1037,8 @@ class CCodeGenerator:
                 self._cg.add_empty_line()
                 self._generate_field_name_cc_line(field_name)
                 generate_goto_offset(field_name)
-                self._restore_byte_offset(field_name)
-                self._generate_serialize_type(src, '(&ctx->parent)', t)
+                action = self._saved_serialization_actions[field_name]
+                self._generate_serialize_from_action(src, '(&ctx->parent)', action)
 
             field_name = 'content_size'
 
@@ -1011,8 +1049,8 @@ class CCodeGenerator:
                 self._cg.add_empty_line()
                 self._generate_field_name_cc_line(field_name)
                 generate_goto_offset(field_name)
-                self._restore_byte_offset(field_name)
-                self._generate_serialize_type(src, '(&ctx->parent)', t)
+                action = self._saved_serialization_actions[field_name]
+                self._generate_serialize_from_action(src, '(&ctx->parent)', action)
 
             field_name = 'events_discarded'
 
@@ -1023,13 +1061,12 @@ class CCodeGenerator:
                 self._cg.add_empty_line()
                 self._generate_field_name_cc_line(field_name)
                 generate_goto_offset(field_name)
-                self._restore_byte_offset(field_name)
-                self._generate_serialize_type(src, '(&ctx->parent)', t)
+                action = self._saved_serialization_actions[field_name]
+                self._generate_serialize_from_action(src, '(&ctx->parent)', action)
 
         self._cg.unindent()
         tmpl = templates._FUNC_CLOSE_BODY_END
         self._cg.add_lines(tmpl)
-        self._sasa.reset()
 
     def generate_c_src(self):
         self._cg.reset()
@@ -1050,19 +1087,29 @@ class CCodeGenerator:
             self._cg.add_empty_line()
             self._generate_func_close(stream)
             self._cg.add_empty_line()
+            ser_actions = _SerializationActions()
 
             if stream.event_header_type is not None:
-                self._generate_func_serialize_stream_event_header(stream)
+                ser_actions.append_root_scope_type(stream.event_header_type,
+                                                   _PREFIX_SEH)
+                self._generate_func_serialize_stream_event_header(stream,
+                                                                  iter(ser_actions.actions))
                 self._cg.add_empty_line()
 
             if stream.event_context_type is not None:
-                self._generate_func_serialize_stream_event_context(stream)
+                ser_action_index = len(ser_actions.actions)
+                ser_actions.append_root_scope_type(stream.event_context_type,
+                                                   _PREFIX_SEC)
+                ser_action_iter = itertools.islice(ser_actions.actions,
+                                                   ser_action_index, None)
+                self._generate_func_serialize_stream_event_context(stream,
+                                                                   ser_action_iter)
                 self._cg.add_empty_line()
 
             for ev in stream.events.values():
                 self._generate_func_get_event_size(stream, ev)
                 self._cg.add_empty_line()
-                self._generate_func_serialize_event(stream, ev)
+                self._generate_func_serialize_event(stream, ev, ser_actions)
                 self._cg.add_empty_line()
                 self._generate_func_trace(stream, ev)
                 self._cg.add_empty_line()
