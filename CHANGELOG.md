@@ -1,5 +1,16 @@
 # barectf 2 changelog
 
+## barectf v2.3.1
+
+**Fixes**:
+
+  * Share operations between event size computation and event
+    serialization to avoid buffer overflow.
+  * Do not sample clock when closing and opening packets when this is
+    done because the current event does not fit the current packet. This
+    avoids a packet's first event having a timestamp that is less than
+    the packet's beginning timestamp.
+
 ## barectf v2.3.0
 
 **Features**:
