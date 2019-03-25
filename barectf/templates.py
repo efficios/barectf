@@ -74,6 +74,9 @@ struct {prefix}ctx {{
 
 	/* tracing is enabled */
 	volatile int is_tracing_enabled;
+
+	/* use current/last event timestamp when opening/closing packets */
+	int use_cur_last_event_ts;
 }};'''
 
 
@@ -109,6 +112,7 @@ _FUNC_INIT_BODY = '''{{
 	ctx->packet_is_open = 0;
 	ctx->in_tracing_section = 0;
 	ctx->is_tracing_enabled = 1;
+	ctx->use_cur_last_event_ts = 0;
 }}'''
 
 
@@ -150,6 +154,7 @@ _FUNC_OPEN_BODY_BEGIN = '''{{
 
 
 _FUNC_OPEN_BODY_END = '''
+	/* save content beginning's offset */
 	ctx->parent.off_content = ctx->parent.at;
 
 	/* mark current packet as open */
@@ -217,8 +222,10 @@ _FUNC_TRACE_PROTO_END = ')'
 
 
 _FUNC_TRACE_BODY = '''{{
-{ts}
 	uint32_t ev_size;
+
+	/* save timestamp */
+	{save_ts}
 
 	if (!ctx->parent.is_tracing_enabled) {{
 		return;
@@ -238,7 +245,7 @@ _FUNC_TRACE_BODY = '''{{
 	}}
 
 	/* serialize event */
-	_serialize_event_{sname}_{evname}(TO_VOID_PTR(ctx), ts{params});
+	_serialize_event_{sname}_{evname}(TO_VOID_PTR(ctx){params});
 
 	/* commit event */
 	_commit_event(TO_VOID_PTR(ctx));
@@ -266,7 +273,6 @@ _FUNC_GET_EVENT_SIZE_BODY_END = '''	return at - ctx->at;
 
 _FUNC_SERIALIZE_STREAM_EVENT_HEADER_PROTO_BEGIN = '''static void _serialize_stream_event_header_{sname}(
 	void *vctx,
-	{clock_ctype} ts,
 	uint32_t event_id'''
 
 
@@ -295,8 +301,7 @@ _FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_END = '}'
 
 
 _FUNC_SERIALIZE_EVENT_PROTO_BEGIN = '''static void _serialize_event_{sname}_{evname}(
-	void *vctx,
-	{clock_ctype} ts'''
+	void *vctx'''
 
 
 _FUNC_SERIALIZE_EVENT_PROTO_END = ')'
@@ -544,13 +549,17 @@ int _reserve_event_space(void *vctx, uint32_t ev_size)
 		}}
 
 		/* back-end is not full: open new packet */
+		ctx->use_cur_last_event_ts = 1;
 		ctx->cbs.open_packet(ctx->data);
+		ctx->use_cur_last_event_ts = 0;
 	}}
 
 	/* event fits the current packet? */
 	if (ev_size > (ctx->packet_size - ctx->at)) {{
 		/* no: close packet now */
+		ctx->use_cur_last_event_ts = 1;
 		ctx->cbs.close_packet(ctx->data);
+		ctx->use_cur_last_event_ts = 0;
 
 		/* is back-end full? */
 		if (ctx->cbs.is_backend_full(ctx->data)) {{
@@ -561,7 +570,9 @@ int _reserve_event_space(void *vctx, uint32_t ev_size)
 		}}
 
 		/* back-end is not full: open new packet */
+		ctx->use_cur_last_event_ts = 1;
 		ctx->cbs.open_packet(ctx->data);
+		ctx->use_cur_last_event_ts = 0;
 		assert(ev_size <= (ctx->packet_size - ctx->at));
 	}}
 

@@ -195,6 +195,26 @@ class CCodeGenerator:
         }
         self._saved_serialization_actions = {}
 
+    def _get_stream_clock(self, stream):
+        field = None
+
+        if stream.event_header_type is not None:
+            if 'timestamp' in stream.event_header_type.fields:
+                field = stream.event_header_type['timestamp']
+
+        if stream.packet_context_type is not None:
+            if field is None and 'timestamp_begin' in stream.packet_context_type.fields:
+                field = stream.packet_context_type['timestamp_begin']
+
+            if field is None and 'timestamp_end' in stream.packet_context_type.fields:
+                field = stream.packet_context_type['timestamp_end']
+
+        if field is None:
+            return
+
+        if field.property_mappings:
+            return field.property_mappings[0].object
+
     def _generate_ctx_parent(self):
         tmpl = templates._CTX_PARENT
         self._cg.add_lines(tmpl.format(prefix=self._cfg.prefix))
@@ -216,6 +236,12 @@ class CCodeGenerator:
         if stream.packet_context_type is not None:
             for field_name in stream.packet_context_type.fields:
                 self._cg.add_lines(tmpl.format(fname=field_name))
+
+        clock = self._get_stream_clock(stream)
+
+        if clock is not None:
+            line = '{} cur_last_event_ts;'.format(clock.return_ctype)
+            self._cg.add_line(line)
 
         self._cg.unindent()
         tmpl = templates._CTX_END
@@ -561,15 +587,7 @@ class CCodeGenerator:
 
     def _generate_func_serialize_event_proto(self, stream, event):
         tmpl = templates._FUNC_SERIALIZE_EVENT_PROTO_BEGIN
-        clock_ctype = 'const int'
-
-        if stream.event_header_type is not None:
-            if 'timestamp' in stream.event_header_type.fields:
-                field = stream.event_header_type['timestamp']
-                clock_ctype = self._get_first_clock_ctype(field)
-
         self._cg.add_lines(tmpl.format(prefix=self._cfg.prefix,
-                                       clock_ctype=clock_ctype,
                                        sname=stream.name, evname=event.name))
         self._generate_func_trace_proto_params(stream, event)
         tmpl = templates._FUNC_SERIALIZE_EVENT_PROTO_END
@@ -683,7 +701,7 @@ class CCodeGenerator:
             exclude_list = ['timestamp', 'id']
             params = self._get_call_event_param_list_from_struct(t, _PREFIX_SEH,
                                                                  exclude_list)
-            tmpl = '_serialize_stream_event_header_{sname}(ctx, ts, {evid}{params});'
+            tmpl = '_serialize_stream_event_header_{sname}(ctx, {evid}{params});'
             self._cg.add_cc_line('stream event header')
             self._cg.add_line(tmpl.format(sname=stream.name, evid=event.id,
                                           params=params))
@@ -724,15 +742,8 @@ class CCodeGenerator:
     def _generate_func_serialize_stream_event_header_proto(self, stream):
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_HEADER_PROTO_BEGIN
         clock_ctype = 'const int'
-
-        if stream.event_header_type is not None:
-            if 'timestamp' in stream.event_header_type.fields:
-                field = stream.event_header_type['timestamp']
-                clock_ctype = self._get_first_clock_ctype(field)
-
         self._cg.add_lines(tmpl.format(prefix=self._cfg.prefix,
-                                       sname=stream.name,
-                                       clock_ctype=clock_ctype))
+                                       sname=stream.name))
 
         if stream.event_header_type is not None:
             exclude_list = [
@@ -761,9 +772,20 @@ class CCodeGenerator:
                                                      ser_action_iter):
         self._generate_func_serialize_stream_event_header_proto(stream)
         tmpl = templates._FUNC_SERIALIZE_STREAM_EVENT_HEADER_BODY_BEGIN
-        lines = tmpl.format(prefix=self._cfg.prefix)
+        lines = tmpl.format(prefix=self._cfg.prefix, sname=stream.name)
         self._cg.add_lines(lines)
         self._cg.indent()
+        clock = self._get_stream_clock(stream)
+
+        if clock is not None:
+            tmpl = 'struct {prefix}{sname}_ctx *s_ctx = FROM_VOID_PTR(struct {prefix}{sname}_ctx, vctx);'
+            line = tmpl.format(prefix=self._cfg.prefix,
+                               sname=stream.name)
+            self._cg.add_line(line)
+            tmpl = 'const {} ts = s_ctx->cur_last_event_ts;'
+            line = tmpl.format(clock.return_ctype)
+            self._cg.add_line(line)
+
         self._cg.add_empty_line()
 
         if stream.event_header_type is not None:
@@ -806,19 +828,17 @@ class CCodeGenerator:
     def _generate_func_trace(self, stream, event):
         self._generate_func_trace_proto(stream, event)
         params = self._get_call_event_param_list(stream, event)
+        clock = self._get_stream_clock(stream)
+
+        if clock is not None:
+            tmpl = 'ctx->cur_last_event_ts = ctx->parent.cbs.{}_clock_get_value(ctx->parent.data);'
+            save_ts_line = tmpl.format(clock.name)
+        else:
+            save_ts_line = '/* (no clock) */'
+
         tmpl = templates._FUNC_TRACE_BODY
-        ts_line = ''
-
-        if stream.event_header_type is not None:
-            if 'timestamp' in stream.event_header_type.fields:
-                field = stream.event_header_type.fields['timestamp']
-                ts_line = self._get_ts_line(field)
-
-        if not ts_line:
-            ts_line = '\tconst int ts = 0; /* unused */'
-
         self._cg.add_lines(tmpl.format(sname=stream.name, evname=event.name,
-                                       params=params, ts=ts_line))
+                                       params=params, save_ts=save_ts_line))
 
     def _generate_func_init(self):
         self._generate_func_init_proto()
@@ -831,25 +851,14 @@ class CCodeGenerator:
     def _save_serialization_action(self, name, action):
         self._saved_serialization_actions[name] = action
 
-    def _get_first_clock_ctype(self, field, default='int'):
-        if not field.property_mappings:
-            return 'const {}'.format(default)
+    def _get_open_close_ts_line(self, stream):
+        clock = self._get_stream_clock(stream)
 
-        clock = field.property_mappings[0].object
-
-        return 'const {}'.format(clock.return_ctype)
-
-    def _get_ts_line(self, field):
-        if field is None:
+        if clock is None:
             return ''
 
-        if not field.property_mappings:
-            return ''
-
-        tmpl = '\tconst {} ts = ctx->parent.cbs.{}_clock_get_value(ctx->parent.data);'
-        clock = field.property_mappings[0].object
+        tmpl = '\tconst {} ts = ctx->parent.use_cur_last_event_ts ? ctx->cur_last_event_ts : ctx->parent.cbs.{}_clock_get_value(ctx->parent.data);'
         line = tmpl.format(clock.return_ctype, clock.name)
-
         return line
 
     def _generate_func_open(self, stream):
@@ -860,13 +869,8 @@ class CCodeGenerator:
 
         self._generate_func_open_proto(stream)
         tmpl = templates._FUNC_OPEN_BODY_BEGIN
-        ts_line = ''
         spc_type = stream.packet_context_type
-
-        if spc_type is not None and 'timestamp_begin' in spc_type.fields:
-            field = spc_type.fields['timestamp_begin']
-            ts_line = self._get_ts_line(field)
-
+        ts_line = self._get_open_close_ts_line(stream)
         lines = tmpl.format(ts=ts_line)
         self._cg.add_lines(lines)
         self._cg.indent()
@@ -1006,13 +1010,8 @@ class CCodeGenerator:
 
         self._generate_func_close_proto(stream)
         tmpl = templates._FUNC_CLOSE_BODY_BEGIN
-        ts_line = ''
         spc_type = stream.packet_context_type
-
-        if spc_type is not None and 'timestamp_end' in spc_type.fields:
-            field = spc_type.fields['timestamp_end']
-            ts_line = self._get_ts_line(field)
-
+        ts_line = self._get_open_close_ts_line(stream)
         lines = tmpl.format(ts=ts_line)
         self._cg.add_lines(lines)
         self._cg.indent()
