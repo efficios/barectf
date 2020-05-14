@@ -36,7 +36,7 @@ XSL_SRC_FILES = $(addprefix xsl/,$(XSL_FILES))
 ASCIIDOC ?= asciidoc
 XMLTO ?= xmlto
 ADOC = $(ASCIIDOC) -f $(ASCIIDOC_CONF) -d manpage \
-	-a barectf_version=$(shell grep '^__version__' ../../barectf/__init__.py | grep -Po '\d+\.\d+\.\d+(?:-\w+)?')
+	-a barectf_version=$(shell cd ../../barectf; python3 -c 'import __init__; print(__init__.__version__)')
 ADOC_DOCBOOK = $(ADOC) -b docbook
 XTO = $(XMLTO) -m $(firstword $(XSL_SRC_FILES)) man
 
