@@ -26,6 +26,7 @@ load ../../common
 
 @test 'config file using all features makes barectf pass' {
   barectf_config_check_success config.yaml
+  pushd "$BATS_TEST_DIRNAME" >/dev/null
   [ -f metadata ]
   [ -f bctf.c ]
   [ -f bctf.h ]
@@ -53,4 +54,5 @@ load ../../common
   nm bctf.o | grep bctf_packet_is_open
   nm bctf.o | grep bctf_packet_set_buf
   nm bctf.o | grep bctf_packet_size
+  popd
 }
