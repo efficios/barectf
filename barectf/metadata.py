@@ -22,6 +22,8 @@
 
 import enum
 import collections
+import barectf
+import datetime
 
 
 @enum.unique
@@ -60,106 +62,57 @@ class PropertyMapping:
     def object(self):
         return self._object
 
-    @object.setter
-    def object(self, value):
-        self._object = value
-
     @property
     def prop(self):
         return self.prop
 
-    @prop.setter
-    def prop(self, value):
-        self.prop = value
-
 
 class Integer(Type):
-    def __init__(self):
-        self.set_default_size()
-        self.set_default_align()
-        self.set_default_signed()
-        self.set_default_byte_order()
-        self.set_default_base()
-        self.set_default_encoding()
-        self.set_default_property_mappings()
+    def __init__(self, size, byte_order, align=None, signed=False,
+                 base=10, encoding=Encoding.NONE, property_mappings=None):
+        self._size = size
+        self._byte_order = byte_order
 
-    def set_default_size(self):
-        self._size = None
+        if align is None:
+            if size % 8 == 0:
+                self._align = 8
+            else:
+                self._align = 1
+        else:
+            self._align = align
 
-    def set_default_align(self):
-        self._align = None
+        self._signed = signed
+        self._base = base
+        self._encoding = encoding
 
-    def set_default_signed(self):
-        self._signed = False
-
-    def set_default_byte_order(self):
-        self._byte_order = None
-
-    def set_default_base(self):
-        self._base = 10
-
-    def set_default_encoding(self):
-        self._encoding = Encoding.NONE
-
-    def set_default_property_mappings(self):
-        self._property_mappings = []
+        if property_mappings is None:
+            self._property_mappings = []
+        else:
+            self._property_mappings = property_mappings
 
     @property
     def signed(self):
         return self._signed
 
-    @signed.setter
-    def signed(self, value):
-        self._signed = value
-
     @property
     def byte_order(self):
         return self._byte_order
-
-    @byte_order.setter
-    def byte_order(self, value):
-        self._byte_order = value
 
     @property
     def base(self):
         return self._base
 
-    @base.setter
-    def base(self, value):
-        self._base = value
-
     @property
     def encoding(self):
         return self._encoding
 
-    @encoding.setter
-    def encoding(self, value):
-        self._encoding = value
-
     @property
     def align(self):
-        if self._align is None:
-            if self._size is None:
-                return
-            else:
-                if self._size % 8 == 0:
-                    return 8
-                else:
-                    return 1
-        else:
-            return self._align
-
-    @align.setter
-    def align(self, value):
-        self._align = value
+        return self._align
 
     @property
     def size(self):
         return self._size
-
-    @size.setter
-    def size(self, value):
-        self._size = value
 
     @property
     def property_mappings(self):
@@ -167,74 +120,41 @@ class Integer(Type):
 
 
 class FloatingPoint(Type):
-    def __init__(self):
-        self.set_default_exp_size()
-        self.set_default_mant_size()
-        self.set_default_align()
-        self.set_default_byte_order()
-
-    def set_default_exp_size(self):
-        self._exp_size = None
-
-    def set_default_mant_size(self):
-        self._mant_size = None
-
-    def set_default_align(self):
-        self._align = 8
-
-    def set_default_byte_order(self):
-        self._byte_order = None
+    def __init__(self, exp_size, mant_size, byte_order, align=8):
+        self._exp_size = exp_size
+        self._mant_size = mant_size
+        self._byte_order = byte_order
+        self._align = align
 
     @property
     def exp_size(self):
         return self._exp_size
 
-    @exp_size.setter
-    def exp_size(self, value):
-        self._exp_size = value
-
     @property
     def mant_size(self):
         return self._mant_size
 
-    @mant_size.setter
-    def mant_size(self, value):
-        self._mant_size = value
-
     @property
     def size(self):
-        if self._exp_size is None or self._mant_size is None:
-            return
-
         return self._exp_size + self._mant_size
 
     @property
     def byte_order(self):
         return self._byte_order
 
-    @byte_order.setter
-    def byte_order(self, value):
-        self._byte_order = value
-
     @property
     def align(self):
         return self._align
 
-    @align.setter
-    def align(self, value):
-        self._align = value
-
 
 class Enum(Type):
-    def __init__(self):
-        self.set_default_value_type()
-        self.set_default_members()
+    def __init__(self, value_type, members=None):
+        self._value_type = value_type
 
-    def set_default_value_type(self):
-        self._value_type = None
-
-    def set_default_members(self):
-        self._members = collections.OrderedDict()
+        if members is None:
+            self._members = collections.OrderedDict()
+        else:
+            self._members = members
 
     @property
     def align(self):
@@ -248,17 +168,13 @@ class Enum(Type):
     def value_type(self):
         return self._value_type
 
-    @value_type.setter
-    def value_type(self, value):
-        self._value_type = value
-
     @property
     def members(self):
         return self._members
 
     @property
     def last_value(self):
-        if not self._members:
+        if len(self._members) == 0:
             return
 
         return list(self._members.values())[-1][1]
@@ -281,11 +197,8 @@ class Enum(Type):
 
 
 class String(Type):
-    def __init__(self):
-        self.set_default_encoding()
-
-    def set_default_encoding(self):
-        self._encoding = Encoding.UTF8
+    def __init__(self, encoding=Encoding.UTF8):
+        self._encoding = encoding.UTF8
 
     @property
     def align(self):
@@ -295,25 +208,15 @@ class String(Type):
     def encoding(self):
         return self._encoding
 
-    @encoding.setter
-    def encoding(self, value):
-        self._encoding = value
-
     @property
     def is_dynamic(self):
         return True
 
 
 class Array(Type):
-    def __init__(self):
-        self.set_default_element_type()
-        self.set_default_length()
-
-    def set_default_element_type(self):
-        self._default_element_type = None
-
-    def set_default_length(self):
-        self._default_length = None
+    def __init__(self, element_type, length):
+        self._element_type = element_type
+        self._length = length
 
     @property
     def align(self):
@@ -323,50 +226,36 @@ class Array(Type):
     def element_type(self):
         return self._element_type
 
-    @element_type.setter
-    def element_type(self, value):
-        self._element_type = value
-
     @property
     def length(self):
         return self._length
 
-    @length.setter
-    def length(self, value):
-        self._length = value
-
 
 class Struct(Type):
-    def __init__(self):
-        self.set_default_min_align()
-        self.set_default_fields()
+    def __init__(self, min_align=1, fields=None):
+        self._min_align = min_align
 
-    def set_default_min_align(self):
-        self._min_align = 1
+        if fields is None:
+            self._fields = collections.OrderedDict()
+        else:
+            self._fields = fields
 
-    def set_default_fields(self):
-        self._fields = collections.OrderedDict()
+        self._align = self.min_align
+
+        for field in self.fields.values():
+            if field.align is None:
+                continue
+
+            if field.align > self._align:
+                self._align = field.align
 
     @property
     def min_align(self):
         return self._min_align
 
-    @min_align.setter
-    def min_align(self, value):
-        self._min_align = value
-
     @property
     def align(self):
-        align = self.min_align
-
-        for field in self.fields.values():
-            if field.align is None:
-                return
-
-            if field.align > align:
-                align = field.align
-
-        return align
+        return self._align
 
     @property
     def fields(self):
@@ -380,326 +269,202 @@ class Struct(Type):
 
 
 class Trace:
-    def __init__(self):
-        self._byte_order = None
-        self._packet_header_type = None
-        self._uuid = None
+    def __init__(self, byte_order, uuid=None, packet_header_type=None):
+        self._byte_order = byte_order
+        self._uuid = uuid
+        self._packet_header_type = packet_header_type
 
     @property
     def uuid(self):
         return self._uuid
-
-    @uuid.setter
-    def uuid(self, value):
-        self._uuid = value
 
     @property
     def byte_order(self):
         return self._byte_order
 
-    @byte_order.setter
-    def byte_order(self, value):
-        self._byte_order = value
-
     @property
     def packet_header_type(self):
         return self._packet_header_type
 
-    @packet_header_type.setter
-    def packet_header_type(self, value):
-        self._packet_header_type = value
-
-
-class Env(collections.OrderedDict):
-    pass
-
 
 class Clock:
-    def __init__(self):
-        self.set_default_name()
-        self.set_default_uuid()
-        self.set_default_description()
-        self.set_default_freq()
-        self.set_default_error_cycles()
-        self.set_default_offset_seconds()
-        self.set_default_offset_cycles()
-        self.set_default_absolute()
-        self.set_default_return_ctype()
-
-    def set_default_name(self):
-        self._name = None
-
-    def set_default_uuid(self):
-        self._uuid = None
-
-    def set_default_description(self):
-        self._description = None
-
-    def set_default_freq(self):
-        self._freq = 1000000000
-
-    def set_default_error_cycles(self):
-        self._error_cycles = 0
-
-    def set_default_offset_seconds(self):
-        self._offset_seconds = 0
-
-    def set_default_offset_cycles(self):
-        self._offset_cycles = 0
-
-    def set_default_absolute(self):
-        self._absolute = False
-
-    def set_default_return_ctype(self):
-        self._return_ctype = 'uint32_t'
+    def __init__(self, name, uuid=None, description=None, freq=int(1e9),
+                 error_cycles=0, offset_seconds=0, offset_cycles=0,
+                 absolute=False, return_ctype='uint32_t'):
+        self._name = name
+        self._uuid = uuid
+        self._description = description
+        self._freq = freq
+        self._error_cycles = error_cycles
+        self._offset_seconds = offset_seconds
+        self._offset_cycles = offset_cycles
+        self._absolute = absolute
+        self._return_ctype = return_ctype
 
     @property
     def name(self):
         return self._name
 
-    @name.setter
-    def name(self, value):
-        self._name = value
-
     @property
     def uuid(self):
         return self._uuid
-
-    @uuid.setter
-    def uuid(self, value):
-        self._uuid = value
 
     @property
     def description(self):
         return self._description
 
-    @description.setter
-    def description(self, value):
-        self._description = value
-
     @property
     def error_cycles(self):
         return self._error_cycles
-
-    @error_cycles.setter
-    def error_cycles(self, value):
-        self._error_cycles = value
 
     @property
     def freq(self):
         return self._freq
 
-    @freq.setter
-    def freq(self, value):
-        self._freq = value
-
     @property
     def offset_seconds(self):
         return self._offset_seconds
-
-    @offset_seconds.setter
-    def offset_seconds(self, value):
-        self._offset_seconds = value
 
     @property
     def offset_cycles(self):
         return self._offset_cycles
 
-    @offset_cycles.setter
-    def offset_cycles(self, value):
-        self._offset_cycles = value
-
     @property
     def absolute(self):
         return self._absolute
 
-    @absolute.setter
-    def absolute(self, value):
-        self._absolute = value
-
     @property
     def return_ctype(self):
         return self._return_ctype
-
-    @return_ctype.setter
-    def return_ctype(self, value):
-        self._return_ctype = value
 
 
 LogLevel = collections.namedtuple('LogLevel', ['name', 'value'])
 
 
 class Event:
-    def __init__(self):
-        self._id = None
-        self._name = None
-        self._log_level = None
-        self._context_type = None
-        self._payload_type = None
+    def __init__(self, id, name, log_level=None, payload_type=None,
+                 context_type=None):
+        self._id = id
+        self._name = name
+        self._payload_type = payload_type
+        self._log_level = log_level
+        self._context_type = context_type
 
     @property
     def id(self):
         return self._id
 
-    @id.setter
-    def id(self, value):
-        self._id = value
-
     @property
     def name(self):
         return self._name
-
-    @name.setter
-    def name(self, value):
-        self._name = value
 
     @property
     def log_level(self):
         return self._log_level
 
-    @log_level.setter
-    def log_level(self, value):
-        self._log_level = value
-
     @property
     def context_type(self):
         return self._context_type
-
-    @context_type.setter
-    def context_type(self, value):
-        self._context_type = value
 
     @property
     def payload_type(self):
         return self._payload_type
 
-    @payload_type.setter
-    def payload_type(self, value):
-        self._payload_type = value
-
     def __getitem__(self, key):
-        assert(type(self.payload_type) is Struct)
+        if self.payload_type is None:
+            raise KeyError(key)
+
         return self.payload_type[key]
 
 
 class Stream:
-    def __init__(self):
-        self._id = 0
-        self._name = None
-        self._packet_context_type = None
-        self._event_header_type = None
-        self._event_context_type = None
-        self._events = collections.OrderedDict()
+    def __init__(self, id, name=None, packet_context_type=None,
+                 event_header_type=None, event_context_type=None,
+                 events=None):
+        self._id = id
+        self._name = name
+        self._packet_context_type = packet_context_type
+        self._event_header_type = event_header_type
+        self._event_context_type = event_context_type
+
+        if events is None:
+            self._events = collections.OrderedDict()
+        else:
+            self._events = events
 
     @property
     def name(self):
         return self._name
 
-    @name.setter
-    def name(self, value):
-        self._name = value
-
     @property
     def id(self):
         return self._id
-
-    @id.setter
-    def id(self, value):
-        self._id = value
 
     @property
     def packet_context_type(self):
         return self._packet_context_type
 
-    @packet_context_type.setter
-    def packet_context_type(self, value):
-        self._packet_context_type = value
-
     @property
     def event_header_type(self):
         return self._event_header_type
-
-    @event_header_type.setter
-    def event_header_type(self, value):
-        self._event_header_type = value
 
     @property
     def event_context_type(self):
         return self._event_context_type
 
-    @event_context_type.setter
-    def event_context_type(self, value):
-        self._event_context_type = value
-
     @property
     def events(self):
         return self._events
 
-    def is_event_empty(self, event):
-        total_fields = 0
-
-        if self.event_header_type:
-            total_fields += len(self.event_header_type)
-
-        if self.event_context_type:
-            total_fields += len(self.event_context_type)
-
-        if event.context_type:
-            total_fields += len(event.context_type)
-
-        if event.payload_type:
-            total_fields += len(event.payload_type)
-
-        return total_fields == 0
-
 
 class Metadata:
-    def __init__(self):
-        self._trace = None
-        self._env = collections.OrderedDict()
-        self._clocks = collections.OrderedDict()
-        self._streams = collections.OrderedDict()
-        self._default_stream_name = None
+    def __init__(self, trace, env=None, clocks=None, streams=None,
+                 default_stream_name=None):
+        self._trace = trace
+        version_tuple = barectf.get_version_tuple()
+        self._env = collections.OrderedDict([
+            ('domain', 'bare'),
+            ('tracer_name', 'barectf'),
+            ('tracer_major', version_tuple[0]),
+            ('tracer_minor', version_tuple[1]),
+            ('tracer_patch', version_tuple[2]),
+            ('barectf_gen_date', str(datetime.datetime.now().isoformat())),
+        ])
+
+        if env is not None:
+            self._env.update(env)
+
+        if clocks is None:
+            self._clocks = collections.OrderedDict()
+        else:
+            self._clocks = clocks
+
+        if streams is None:
+            self._streams = collections.OrderedDict()
+        else:
+            self._streams = streams
+
+        self._default_stream_name = default_stream_name
 
     @property
     def trace(self):
         return self._trace
 
-    @trace.setter
-    def trace(self, value):
-        self._trace = value
-
     @property
     def env(self):
         return self._env
-
-    @env.setter
-    def env(self, value):
-        self._env = value
 
     @property
     def clocks(self):
         return self._clocks
 
-    @clocks.setter
-    def clocks(self, value):
-        self._clocks = value
-
     @property
     def streams(self):
         return self._streams
 
-    @streams.setter
-    def streams(self, value):
-        self._streams = value
-
     @property
     def default_stream_name(self):
         return self._default_stream_name
-
-    @default_stream_name.setter
-    def default_stream_name(self, value):
-        self._default_stream_name = value
 
     @property
     def default_stream(self):

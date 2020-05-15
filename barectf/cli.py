@@ -112,10 +112,10 @@ def run():
 
     # create configuration
     try:
-        config = barectf.config.from_yaml_file(args.config, args.include_dir,
-                                               args.ignore_include_not_found,
-                                               args.dump_config)
-    except barectf.config.ConfigError as e:
+        config = barectf.config.from_file(args.config, args.include_dir,
+                                          args.ignore_include_not_found,
+                                          args.dump_config)
+    except barectf.config.ConfigParseError as e:
         _pconfig_error(e)
     except Exception as e:
         import traceback
@@ -125,10 +125,9 @@ def run():
 
     # replace prefix if needed
     if args.prefix:
-        try:
-            config.prefix = args.prefix
-        except barectf.config.ConfigError as e:
-            _pconfig_error(e)
+        config = barectf.config.Config(config.metadata,
+                                       args.prefix,
+                                       config.options)
 
     # generate metadata
     metadata = barectf.tsdl182gen.from_metadata(config.metadata)
