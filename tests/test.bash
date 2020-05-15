@@ -40,21 +40,10 @@ test_dirs=(
   "config/pass/everything"
 )
 bats_bin="$(pwd)/bats/bin/bats"
-rc=0
 
 if [ -z "${CC+x}" ]; then
   # default to gcc
   export CC=gcc
 fi
 
-for d in "${test_dirs[@]}"; do
-  pushd "$d" >/dev/null
-  $bats_bin "${@}" .
-  if [ $? -ne 0 ]; then
-    # latch error, but continue other tests
-    rc=1
-  fi
-  popd >/dev/null
-done
-
-exit $rc
+"$bats_bin" "${test_dirs[@]}"
