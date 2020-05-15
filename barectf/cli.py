@@ -39,28 +39,16 @@ def _perror(msg):
     sys.exit(1)
 
 
-def _pconfig_error(e):
-    lines = []
-
-    while True:
-        if e is None:
-            break
-
-        lines.append(str(e))
-
-        if not hasattr(e, 'prev'):
-            break
-
-        e = e.prev
-
-    if len(lines) == 1:
-        _perror(lines[0])
-
+def _pconfig_error(exc):
     cprint('Error:', 'red', file=sys.stderr)
 
-    for i, line in enumerate(lines):
-        suf = ':' if i < len(lines) - 1 else ''
-        cprint('  ' + line + suf, 'red', attrs=['bold'], file=sys.stderr)
+    for ctx in reversed(exc.ctx):
+        if ctx.msg is not None:
+            msg = ' {}'.format(ctx.msg)
+        else:
+            msg = ''
+        cprint('  {}:{}'.format(ctx.name, msg), 'red', attrs=['bold'],
+               file=sys.stderr)
 
     sys.exit(1)
 
