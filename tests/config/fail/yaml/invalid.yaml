@@ -28,7 +28,7 @@ metadata:
       size: 16
   trace:
     byte-order:
-      le: - 23
+      le: -23
   streams:
     my_stream:
       packet-context-type:
