@@ -59,6 +59,12 @@ barectf_config_check_fail() {
 
   run barectf "$1"
 
+  if [[ $output != *'configuration: cannot create configuration'* ]]; then
+    echo "Fail: barectf does not print a configuration error" 1>&2
+    popd >/dev/null
+    return 1
+  fi
+
   if [ "$status" -eq 0 ]; then
     echo "Fail: exit code is 0" 1>&2
     popd >/dev/null
