@@ -73,7 +73,7 @@ class Config:
             validator = _MetadataSpecialFieldsValidator()
             validator.validate(meta)
         except ConfigError as exc:
-            exc.append_ctx('metadata')
+            exc.append_ctx('Metadata')
             raise
 
         try:
@@ -122,8 +122,8 @@ class Config:
     @prefix.setter
     def prefix(self, value):
         if not _is_valid_identifier(value):
-            raise ConfigError('configuration',
-                              'prefix must be a valid C identifier')
+            raise ConfigError('Configuration',
+                              'Prefix must be a valid C identifier')
 
         self._prefix = value
 
@@ -261,22 +261,22 @@ class _BarectfMetadataValidator:
 
     def _validate_int_type(self, t, entity_root):
         if t.size > 64:
-            raise ConfigError('integer type', 'size must be lesser than or equal to 64 bits')
+            raise ConfigError('Integer type', 'Size must be lesser than or equal to 64 bits')
 
     def _validate_float_type(self, t, entity_root):
         if t.size > 64:
-            raise ConfigError('floating point number type', 'size must be lesser than or equal to 64 bits')
+            raise ConfigError('Floating point number type', 'Size must be lesser than or equal to 64 bits')
 
     def _validate_enum_type(self, t, entity_root):
         if t.value_type.size > 64:
-            raise ConfigError('enumeration type', 'integer type\'s size must be lesser than or equal to 64 bits')
+            raise ConfigError('Enumeration type', 'Integer type\'s size must be lesser than or equal to 64 bits')
 
     def _validate_string_type(self, t, entity_root):
         pass
 
     def _validate_struct_type(self, t, entity_root):
         if not entity_root:
-            raise ConfigError('structure type', 'inner structure types are not supported as of this version')
+            raise ConfigError('Structure type', 'Inner structure types are not supported as of this version')
 
         for field_name, field_type in t.fields.items():
             if entity_root and self._cur_entity is _Entity.TRACE_PACKET_HEADER:
@@ -287,11 +287,11 @@ class _BarectfMetadataValidator:
             try:
                 self._validate_type(field_type, False)
             except ConfigError as exc:
-                exc.append_ctx('structure type\' field "{}"'.format(field_name))
+                exc.append_ctx('Structure type\' field "{}"'.format(field_name))
                 raise
 
     def _validate_array_type(self, t, entity_root):
-        raise ConfigError('array type', 'not supported as of this version')
+        raise ConfigError('Array type', 'Not supported as of this version')
 
     def _validate_type(self, t, entity_root):
         self._type_to_validate_type_func[type(t)](t, entity_root)
@@ -302,11 +302,11 @@ class _BarectfMetadataValidator:
 
         # make sure entity is byte-aligned
         if t.align < 8:
-            raise ConfigError('root type', 'alignment must be at least byte-aligned')
+            raise ConfigError('Root type', 'Alignment must be at least byte-aligned')
 
         # make sure entity is a structure
         if type(t) is not metadata.Struct:
-            raise ConfigError('root type', 'expecting a structure type')
+            raise ConfigError('Root type', 'Expecting a structure type')
 
         # validate types
         self._validate_type(t, True)
@@ -317,20 +317,20 @@ class _BarectfMetadataValidator:
         try:
             self._validate_entity(meta.trace.packet_header_type)
         except ConfigError as exc:
-            exc.append_ctx('trace', 'invalid packet header type')
+            exc.append_ctx('Trace', 'Invalid packet header type')
             raise
 
         for stream_name, stream in meta.streams.items():
             if not _is_valid_identifier(stream_name):
-                raise ConfigError('trace', 'stream name "{}" is not a valid C identifier'.format(stream_name))
+                raise ConfigError('Trace', 'Stream name "{}" is not a valid C identifier'.format(stream_name))
 
             self._cur_entity = _Entity.STREAM_PACKET_CONTEXT
 
             try:
                 self._validate_entity(stream.packet_context_type)
             except ConfigError as exc:
-                exc.append_ctx('stream "{}"'.format(stream_name),
-                               'invalid packet context type')
+                exc.append_ctx('Stream "{}"'.format(stream_name),
+                               'Invalid packet context type')
                 raise
 
             self._cur_entity = _Entity.STREAM_EVENT_HEADER
@@ -338,8 +338,8 @@ class _BarectfMetadataValidator:
             try:
                 self._validate_entity(stream.event_header_type)
             except ConfigError as exc:
-                exc.append_ctx('stream "{}"'.format(stream_name),
-                               'invalid event header type')
+                exc.append_ctx('Stream "{}"'.format(stream_name),
+                               'Invalid event header type')
                 raise
 
             self._cur_entity = _Entity.STREAM_EVENT_CONTEXT
@@ -347,23 +347,23 @@ class _BarectfMetadataValidator:
             try:
                 self._validate_entity(stream.event_context_type)
             except ConfigError as exc:
-                exc.append_ctx('stream "{}"'.format(stream_name),
-                               'invalid event context type'.format(stream_name))
+                exc.append_ctx('Stream "{}"'.format(stream_name),
+                               'Invalid event context type'.format(stream_name))
                 raise
 
             try:
                 for ev_name, ev in stream.events.items():
                     if not _is_valid_identifier(ev_name):
-                        raise ConfigError('stream "{}"'.format(stream_name),
-                                          'event name "{}" is not a valid C identifier'.format(ev_name))
+                        raise ConfigError('Stream "{}"'.format(stream_name),
+                                          'Event name "{}" is not a valid C identifier'.format(ev_name))
 
                     self._cur_entity = _Entity.EVENT_CONTEXT
 
                     try:
                         self._validate_entity(ev.context_type)
                     except ConfigError as exc:
-                        exc.append_ctx('event "{}"'.format(ev_name),
-                                       'invalid context type')
+                        exc.append_ctx('Event "{}"'.format(ev_name),
+                                       'Invalid context type')
                         raise
 
                     self._cur_entity = _Entity.EVENT_PAYLOAD
@@ -371,20 +371,20 @@ class _BarectfMetadataValidator:
                     try:
                         self._validate_entity(ev.payload_type)
                     except ConfigError as exc:
-                        exc.append_ctx('event "{}"'.format(ev_name),
-                                       'invalid payload type')
+                        exc.append_ctx('Event "{}"'.format(ev_name),
+                                       'Invalid payload type')
                         raise
 
                     if stream.is_event_empty(ev):
-                        raise ConfigError('event "{}"'.format(ev_name), 'empty')
+                        raise ConfigError('Event "{}"'.format(ev_name), 'Empty')
             except ConfigError as exc:
-                exc.append_ctx('stream "{}"'.format(stream_name))
+                exc.append_ctx('Stream "{}"'.format(stream_name))
                 raise
 
     def _validate_default_stream(self, meta):
         if meta.default_stream_name:
             if meta.default_stream_name not in meta.streams.keys():
-                raise ConfigError('barectf metadata', 'default stream name ("{}") does not exist'.format(meta.default_stream_name))
+                raise ConfigError('barectf metadata', 'Default stream name ("{}") does not exist'.format(meta.default_stream_name))
 
     def validate(self, meta):
         self._validate_entities_and_names(meta)
@@ -401,15 +401,15 @@ class _MetadataSpecialFieldsValidator:
             # yes
             if t is None:
                 raise ConfigError('"packet-header-type" property',
-                                  'need "stream_id" field (more than one stream), but trace packet header type is missing')
+                                  'Need "stream_id" field (more than one stream), but trace packet header type is missing')
 
             if type(t) is not metadata.Struct:
                 raise ConfigError('"packet-header-type" property',
-                                  'need "stream_id" field (more than one stream), but trace packet header type is not a structure type')
+                                  'Need "stream_id" field (more than one stream), but trace packet header type is not a structure type')
 
             if 'stream_id' not in t.fields:
                 raise ConfigError('"packet-header-type" property',
-                                  'need "stream_id" field (more than one stream)')
+                                  'Need "stream_id" field (more than one stream)')
 
         # validate "magic" and "stream_id" types
         if type(t) is not metadata.Struct:
@@ -479,12 +479,12 @@ class _MetadataSpecialFieldsValidator:
         t = stream.packet_context_type
 
         if type(t) is None:
-            raise ConfigError('stream',
-                              'missing "packet-context-type" property')
+            raise ConfigError('Stream',
+                              'Missing "packet-context-type" property')
 
         if type(t) is not metadata.Struct:
             raise ConfigError('"packet-context-type" property',
-                              'expecting a structure type')
+                              'Expecting a structure type')
 
         # "timestamp_begin", if exists, is an unsigned integer type,
         # mapped to a clock
@@ -548,14 +548,14 @@ class _MetadataSpecialFieldsValidator:
         # "packet_size" and "content_size" must exist
         if 'packet_size' not in t.fields:
             raise ConfigError('"packet-context-type" property',
-                              'missing "packet_size" field in stream packet context type')
+                              'Missing "packet_size" field in stream packet context type')
 
         packet_size = t.fields['packet_size']
 
         # "content_size" and "content_size" must exist
         if 'content_size' not in t.fields:
             raise ConfigError('"packet-context-type" property',
-                              'missing "content_size" field in stream packet context type')
+                              'Missing "content_size" field in stream packet context type')
 
         content_size = t.fields['content_size']
 
@@ -590,15 +590,15 @@ class _MetadataSpecialFieldsValidator:
             # yes
             if t is None:
                 raise ConfigError('"event-header-type" property',
-                                  'need "id" field (more than one event), but stream event header type is missing')
+                                  'Need "id" field (more than one event), but stream event header type is missing')
 
             if type(t) is not metadata.Struct:
                 raise ConfigError('"event-header-type" property',
-                                  'need "id" field (more than one event), but stream event header type is not a structure type')
+                                  'Need "id" field (more than one event), but stream event header type is not a structure type')
 
             if 'id' not in t.fields:
                 raise ConfigError('"event-header-type" property',
-                                  'need "id" field (more than one event)')
+                                  'Need "id" field (more than one event)')
 
         # validate "id" and "timestamp" types
         if type(t) is not metadata.Struct:
@@ -650,7 +650,7 @@ class _MetadataSpecialFieldsValidator:
             try:
                 self._validate_stream(stream)
             except ConfigError as exc:
-                exc.append_ctx('stream "{}"'.format(stream.name), 'invalid')
+                exc.append_ctx('Stream "{}"'.format(stream.name), 'Invalid')
                 raise
 
 
@@ -683,32 +683,32 @@ class _MetadataTypesHistologyValidator:
     def _validate_integer_histology(self, t):
         # size is set
         if t.size is None:
-            raise ConfigError('integer type', 'missing size')
+            raise ConfigError('Integer type', 'Missing size')
 
     def _validate_float_histology(self, t):
         # exponent digits is set
         if t.exp_size is None:
-            raise ConfigError('floating point number type',
-                              'missing exponent size')
+            raise ConfigError('Floating point number type',
+                              'Missing exponent size')
 
         # mantissa digits is set
         if t.mant_size is None:
-            raise ConfigError('floating point number type',
-                              'missing mantissa size')
+            raise ConfigError('Floating point number type',
+                              'Missing mantissa size')
 
         # exponent and mantissa sum is a multiple of 8
         if (t.exp_size + t.mant_size) % 8 != 0:
-            raise ConfigError('floating point number type',
-                              'mantissa and exponent sizes sum must be a multiple of 8')
+            raise ConfigError('Floating point number type',
+                              'Mantissa and exponent sizes sum must be a multiple of 8')
 
     def _validate_enum_histology(self, t):
         # integer type is set
         if t.value_type is None:
-            raise ConfigError('enumeration type', 'missing value type')
+            raise ConfigError('Enumeration type', 'Missing value type')
 
         # there's at least one member
         if not t.members:
-            raise ConfigError('enumeration type', 'at least one member required')
+            raise ConfigError('Enumeration type', 'At least one member required')
 
         # no overlapping values and all values are valid considering
         # the value type
@@ -724,11 +724,11 @@ class _MetadataTypesHistologyValidator:
         for label, value in t.members.items():
             for rg in ranges:
                 if value[0] <= rg[1] and rg[0] <= value[1]:
-                    raise ConfigError('enumeration type\'s member "{}"',
-                                      'overlaps another member'.format(label))
+                    raise ConfigError('Enumeration type\'s member "{}"',
+                                      'Overlaps another member'.format(label))
 
-            name_fmt = 'enumeration type\'s member "{}"'
-            msg_fmt = 'value {} is outside the value type range [{}, {}]'
+            name_fmt = 'Enumeration type\'s member "{}"'
+            msg_fmt = 'Value {} is outside the value type range [{}, {}]'
 
             if value[0] < value_min or value[0] > value_max:
                 raise ConfigError(name_fmt.format(label),
@@ -750,23 +750,23 @@ class _MetadataTypesHistologyValidator:
             try:
                 self._validate_type_histology(field_type)
             except ConfigError as exc:
-                exc.append_ctx('structure type\'s field "{}"'.format(field_name))
+                exc.append_ctx('Structure type\'s field "{}"'.format(field_name))
                 raise
 
     def _validate_array_histology(self, t):
         # length is set
         if t.length is None:
-            raise ConfigError('array type', 'missing length')
+            raise ConfigError('Array type', 'Missing length')
 
         # element type is set
         if t.element_type is None:
-            raise ConfigError('array type', 'missing element type')
+            raise ConfigError('Array type', 'Missing element type')
 
         # element type is valid
         try:
             self._validate_type_histology(t.element_type)
         except ConfigError as exc:
-            exc.append_ctx('array type', 'invalid element type')
+            exc.append_ctx('Array type', 'Invalid element type')
             raise
 
     def _validate_type_histology(self, t):
@@ -780,7 +780,7 @@ class _MetadataTypesHistologyValidator:
             return
 
         if type(t) is not metadata.Struct:
-            raise ConfigError('root type', 'expecting a structure type')
+            raise ConfigError('Root type', 'Expecting a structure type')
 
         self._validate_type_histology(t)
 
@@ -791,16 +791,16 @@ class _MetadataTypesHistologyValidator:
         try:
             self._validate_entity_type_histology(ev.context_type)
         except ConfigError as exc:
-            exc.append_ctx('event "{}"'.format(ev.name),
-                           'invalid context type')
+            exc.append_ctx('Event "{}"'.format(ev.name),
+                           'Invalid context type')
             raise
 
         # validate event payload type
         try:
             self._validate_entity_type_histology(ev.payload_type)
         except ConfigError as exc:
-            exc.append_ctx('event "{}"'.format(ev.name),
-                           'invalid payload type')
+            exc.append_ctx('Event "{}"'.format(ev.name),
+                           'Invalid payload type')
             raise
 
     def _validate_stream_types_histology(self, stream):
@@ -810,24 +810,24 @@ class _MetadataTypesHistologyValidator:
         try:
             self._validate_entity_type_histology(stream.packet_context_type)
         except ConfigError as exc:
-            exc.append_ctx('stream "{}"'.format(stream_name),
-                           'invalid packet context type')
+            exc.append_ctx('Stream "{}"'.format(stream_name),
+                           'Invalid packet context type')
             raise
 
         # validate stream event header type
         try:
             self._validate_entity_type_histology(stream.event_header_type)
         except ConfigError as exc:
-            exc.append_ctx('stream "{}"'.format(stream_name),
-                           'invalid event header type')
+            exc.append_ctx('Stream "{}"'.format(stream_name),
+                           'Invalid event header type')
             raise
 
         # validate stream event context type
         try:
             self._validate_entity_type_histology(stream.event_context_type)
         except ConfigError as exc:
-            exc.append_ctx('stream "{}"'.format(stream_name),
-                           'invalid event context type')
+            exc.append_ctx('Stream "{}"'.format(stream_name),
+                           'Invalid event context type')
             raise
 
         # validate events
@@ -835,8 +835,8 @@ class _MetadataTypesHistologyValidator:
             try:
                 self._validate_event_types_histology(ev)
             except ConfigError as exc:
-                exc.append_ctx('stream "{}"'.format(stream_name),
-                               'invalid event')
+                exc.append_ctx('Stream "{}"'.format(stream_name),
+                               'Invalid event')
                 raise
 
     def validate(self, meta):
@@ -844,7 +844,7 @@ class _MetadataTypesHistologyValidator:
         try:
             self._validate_entity_type_histology(meta.trace.packet_header_type)
         except ConfigError as exc:
-            exc.append_ctx('metadata\'s trace', 'invalid packet header type')
+            exc.append_ctx('Metadata\'s trace', 'Invalid packet header type')
             raise
 
         # validate streams
@@ -882,29 +882,29 @@ class _YamlConfigParser:
 
     def _set_byte_order(self, metadata_node):
         if 'trace' not in metadata_node:
-            raise ConfigError('metadata', 'missing "trace" property')
+            raise ConfigError('Metadata', 'Missing "trace" property')
 
         trace_node = metadata_node['trace']
 
         if not _is_assoc_array_prop(trace_node):
-            raise ConfigError('metadata\'s "trace" property',
-                              'must be an associative array')
+            raise ConfigError('Metadata\'s "trace" property',
+                              'Must be an associative array')
 
         if 'byte-order' not in trace_node:
-            raise ConfigError('metadata\'s "trace" property',
-                              'missing "byte-order" property')
+            raise ConfigError('Metadata\'s "trace" property',
+                              'Missing "byte-order" property')
 
         bo_node = trace_node['byte-order']
 
         if not _is_str_prop(bo_node):
-            raise ConfigError('metadata\'s "trace" property',
+            raise ConfigError('Metadata\'s "trace" property',
                               '"byte-order" property must be a string ("le" or "be")')
 
         self._bo = _byte_order_str_to_bo(bo_node)
 
         if self._bo is None:
-            raise ConfigError('metadata\'s "trace" property',
-                              'invalid "byte-order" property: must be "le" or "be"')
+            raise ConfigError('Metadata\'s "trace" property',
+                              'Invalid "byte-order" property: must be "le" or "be"')
 
     def _lookup_type_alias(self, name):
         if name in self._tas:
@@ -914,35 +914,35 @@ class _YamlConfigParser:
         unk_prop = _get_first_unknown_prop(prop_mapping_node, ['type', 'name', 'property'])
 
         if unk_prop:
-            raise ConfigError('integer type\'s clock property mapping',
-                              'unknown property: "{}"'.format(unk_prop))
+            raise ConfigError('Integer type\'s clock property mapping',
+                              'Unknown property: "{}"'.format(unk_prop))
 
         if 'name' not in prop_mapping_node:
-            raise ConfigError('integer type\'s clock property mapping',
-                              'missing "name" property')
+            raise ConfigError('Integer type\'s clock property mapping',
+                              'Missing "name" property')
 
         if 'property' not in prop_mapping_node:
-            raise ConfigError('integer type\'s clock property mapping',
-                              'missing "property" property')
+            raise ConfigError('Integer type\'s clock property mapping',
+                              'Missing "property" property')
 
         clock_name = prop_mapping_node['name']
         prop = prop_mapping_node['property']
 
         if not _is_str_prop(clock_name):
-            raise ConfigError('integer type\'s clock property mapping',
+            raise ConfigError('Integer type\'s clock property mapping',
                               '"name" property must be a string')
 
         if not _is_str_prop(prop):
-            raise ConfigError('integer type\'s clock property mapping',
+            raise ConfigError('Integer type\'s clock property mapping',
                               '"property" property must be a string')
 
         if clock_name not in self._clocks:
-            raise ConfigError('integer type\'s clock property mapping',
-                              'invalid clock name "{}"'.format(clock_name))
+            raise ConfigError('Integer type\'s clock property mapping',
+                              'Invalid clock name "{}"'.format(clock_name))
 
         if prop != 'value':
-            raise ConfigError('integer type\'s clock property mapping',
-                              'invalid "property" property: "{}"'.format(prop))
+            raise ConfigError('Integer type\'s clock property mapping',
+                              'Invalid "property" property: "{}"'.format(prop))
 
         mapped_clock = self._clocks[clock_name]
         int_obj.property_mappings.append(metadata.PropertyMapping(mapped_clock, prop))
@@ -971,20 +971,20 @@ class _YamlConfigParser:
         ])
 
         if unk_prop:
-            raise ConfigError('integer type',
-                              'unknown property: "{}"'.format(unk_prop))
+            raise ConfigError('Integer type',
+                              'Unknown property: "{}"'.format(unk_prop))
 
         # size
         if 'size' in node:
             size = node['size']
 
             if not _is_int_prop(size):
-                raise ConfigError('integer type',
+                raise ConfigError('Integer type',
                                   '"size" property of integer type object must be an integer')
 
             if size < 1:
-                raise ConfigError('integer type',
-                                  'invalid integer size: {}'.format(size))
+                raise ConfigError('Integer type',
+                                  'Invalid integer size: {}'.format(size))
 
             obj.size = size
 
@@ -996,12 +996,12 @@ class _YamlConfigParser:
                 obj.set_default_align()
             else:
                 if not _is_int_prop(align):
-                    raise ConfigError('integer type',
+                    raise ConfigError('Integer type',
                                       '"align" property of integer type object must be an integer')
 
                 if not _is_valid_alignment(align):
-                    raise ConfigError('integer type',
-                                      'invalid alignment: {}'.format(align))
+                    raise ConfigError('Integer type',
+                                      'Invalid alignment: {}'.format(align))
 
                 obj.align = align
 
@@ -1013,7 +1013,7 @@ class _YamlConfigParser:
                 obj.set_default_signed()
             else:
                 if not _is_bool_prop(signed):
-                    raise ConfigError('integer type',
+                    raise ConfigError('Integer type',
                                       '"signed" property of integer type object must be a boolean')
 
                 obj.signed = signed
@@ -1026,14 +1026,14 @@ class _YamlConfigParser:
                 obj.byte_order = self._bo
             else:
                 if not _is_str_prop(byte_order):
-                    raise ConfigError('integer type',
+                    raise ConfigError('Integer type',
                                       '"byte-order" property of integer type object must be a string ("le" or "be")')
 
                 byte_order = _byte_order_str_to_bo(byte_order)
 
                 if byte_order is None:
-                    raise ConfigError('integer type',
-                                      'invalid "byte-order" property in integer type object')
+                    raise ConfigError('Integer type',
+                                      'Invalid "byte-order" property in integer type object')
 
                 obj.byte_order = byte_order
         else:
@@ -1047,7 +1047,7 @@ class _YamlConfigParser:
                 obj.set_default_base()
             else:
                 if not _is_str_prop(base):
-                    raise ConfigError('integer type',
+                    raise ConfigError('Integer type',
                                       '"base" property of integer type object must be a string ("bin", "oct", "dec", or "hex")')
 
                 if base == 'bin':
@@ -1059,8 +1059,8 @@ class _YamlConfigParser:
                 elif base == 'hex':
                     base = 16
                 else:
-                    raise ConfigError('integer type',
-                                      'unknown "base" property value: "{}" ("bin", "oct", "dec", and "hex" are accepted)'.format(base))
+                    raise ConfigError('Integer type',
+                                      'Unknown "base" property value: "{}" ("bin", "oct", "dec", and "hex" are accepted)'.format(base))
 
                 obj.base = base
 
@@ -1072,14 +1072,14 @@ class _YamlConfigParser:
                 obj.set_default_encoding()
             else:
                 if not _is_str_prop(encoding):
-                    raise ConfigError('integer type',
+                    raise ConfigError('Integer type',
                                       '"encoding" property of integer type object must be a string ("none", "ascii", or "utf-8")')
 
                 encoding = _encoding_str_to_encoding(encoding)
 
                 if encoding is None:
-                    raise ConfigError('integer type',
-                                      'invalid "encoding" property in integer type object')
+                    raise ConfigError('Integer type',
+                                      'Invalid "encoding" property in integer type object')
 
                 obj.encoding = encoding
 
@@ -1091,33 +1091,33 @@ class _YamlConfigParser:
                 obj.set_default_property_mappings()
             else:
                 if not _is_array_prop(prop_mappings):
-                    raise ConfigError('integer type',
+                    raise ConfigError('Integer type',
                                       '"property-mappings" property of integer type object must be an array')
 
                 if len(prop_mappings) > 1:
-                    raise ConfigError('integer type',
-                                      'length of "property-mappings" array in integer type object must be 1')
+                    raise ConfigError('Integer type',
+                                      'Length of "property-mappings" array in integer type object must be 1')
 
                 for index, prop_mapping in enumerate(prop_mappings):
                     if not _is_assoc_array_prop(prop_mapping):
-                        raise ConfigError('integer type',
-                                          'elements of "property-mappings" property of integer type object must be associative arrays')
+                        raise ConfigError('Integer type',
+                                          'Elements of "property-mappings" property of integer type object must be associative arrays')
 
                     if 'type' not in prop_mapping:
-                        raise ConfigError('integer type',
-                                          'missing "type" property in integer type object\'s "property-mappings" array\'s element #{}'.format(index))
+                        raise ConfigError('Integer type',
+                                          'Missing "type" property in integer type object\'s "property-mappings" array\'s element #{}'.format(index))
 
                     prop_type = prop_mapping['type']
 
                     if not _is_str_prop(prop_type):
-                        raise ConfigError('integer type',
+                        raise ConfigError('Integer type',
                                           '"type" property of integer type object\'s "property-mappings" array\'s element #{} must be a string'.format(index))
 
                     if prop_type == 'clock':
                         self._set_int_clock_prop_mapping(obj, prop_mapping)
                     else:
-                        raise ConfigError('integer type',
-                                          'unknown property mapping type "{}" in integer type object\'s "property-mappings" array\'s element #{}'.format(prop_type, index))
+                        raise ConfigError('Integer type',
+                                          'Unknown property mapping type "{}" in integer type object\'s "property-mappings" array\'s element #{}'.format(prop_type, index))
 
         return obj
 
@@ -1133,33 +1133,33 @@ class _YamlConfigParser:
         ])
 
         if unk_prop:
-            raise ConfigError('floating point number type',
-                              'unknown property: "{}"'.format(unk_prop))
+            raise ConfigError('Floating point number type',
+                              'Unknown property: "{}"'.format(unk_prop))
 
         # size
         if 'size' in node:
             size = node['size']
 
             if not _is_assoc_array_prop(size):
-                raise ConfigError('floating point number type',
+                raise ConfigError('Floating point number type',
                                   '"size" property must be an associative array')
 
             unk_prop = _get_first_unknown_prop(size, ['exp', 'mant'])
 
             if unk_prop:
-                raise ConfigError('floating point number type\'s "size" property',
-                                  'unknown property: "{}"'.format(unk_prop))
+                raise ConfigError('Floating point number type\'s "size" property',
+                                  'Unknown property: "{}"'.format(unk_prop))
 
             if 'exp' in size:
                 exp = size['exp']
 
                 if not _is_int_prop(exp):
-                    raise ConfigError('floating point number type\'s "size" property',
+                    raise ConfigError('Floating point number type\'s "size" property',
                                       '"exp" property must be an integer')
 
                 if exp < 1:
-                    raise ConfigError('floating point number type\'s "size" property',
-                                      'invalid exponent size: {}')
+                    raise ConfigError('Floating point number type\'s "size" property',
+                                      'Invalid exponent size: {}')
 
                 obj.exp_size = exp
 
@@ -1167,12 +1167,12 @@ class _YamlConfigParser:
                 mant = size['mant']
 
                 if not _is_int_prop(mant):
-                    raise ConfigError('floating point number type\'s "size" property',
+                    raise ConfigError('Floating point number type\'s "size" property',
                                       '"mant" property must be an integer')
 
                 if mant < 1:
-                    raise ConfigError('floating point number type\'s "size" property',
-                                      'invalid mantissa size: {}')
+                    raise ConfigError('Floating point number type\'s "size" property',
+                                      'Invalid mantissa size: {}')
 
                 obj.mant_size = mant
 
@@ -1184,12 +1184,12 @@ class _YamlConfigParser:
                 obj.set_default_align()
             else:
                 if not _is_int_prop(align):
-                    raise ConfigError('floating point number type',
+                    raise ConfigError('Floating point number type',
                                       '"align" property must be an integer')
 
                 if not _is_valid_alignment(align):
-                    raise ConfigError('floating point number type',
-                                      'invalid alignment: {}'.format(align))
+                    raise ConfigError('Floating point number type',
+                                      'Invalid alignment: {}'.format(align))
 
                 obj.align = align
 
@@ -1201,14 +1201,14 @@ class _YamlConfigParser:
                 obj.byte_order = self._bo
             else:
                 if not _is_str_prop(byte_order):
-                    raise ConfigError('floating point number type',
+                    raise ConfigError('Floating point number type',
                                       '"byte-order" property must be a string ("le" or "be")')
 
                 byte_order = _byte_order_str_to_bo(byte_order)
 
                 if byte_order is None:
-                    raise ConfigError('floating point number type',
-                                      'invalid "byte-order" property')
+                    raise ConfigError('Floating point number type',
+                                      'Invalid "byte-order" property')
         else:
             obj.byte_order = self._bo
 
@@ -1225,8 +1225,8 @@ class _YamlConfigParser:
         ])
 
         if unk_prop:
-            raise ConfigError('enumeration type',
-                              'unknown property: "{}"'.format(unk_prop))
+            raise ConfigError('Enumeration type',
+                              'Unknown property: "{}"'.format(unk_prop))
 
         # value type
         if 'value-type' in node:
@@ -1235,7 +1235,7 @@ class _YamlConfigParser:
             try:
                 obj.value_type = self._create_type(value_type_node)
             except ConfigError as exc:
-                exc.append_ctx('enumeration type', 'cannot create integer type')
+                exc.append_ctx('Enumeration type', 'Cannot create integer type')
                 raise
 
         # members
@@ -1243,7 +1243,7 @@ class _YamlConfigParser:
             members_node = node['members']
 
             if not _is_array_prop(members_node):
-                raise ConfigError('enumeration type',
+                raise ConfigError('Enumeration type',
                                   '"members" property must be an array')
 
             cur = 0
@@ -1256,8 +1256,8 @@ class _YamlConfigParser:
 
             for index, m_node in enumerate(members_node):
                 if not _is_str_prop(m_node) and not _is_assoc_array_prop(m_node):
-                    raise ConfigError('enumeration type',
-                                      'invalid member #{}: expecting a string or an associative array'.format(index))
+                    raise ConfigError('Enumeration type',
+                                      'Invalid member #{}: expecting a string or an associative array'.format(index))
 
                 if _is_str_prop(m_node):
                     label = m_node
@@ -1270,43 +1270,43 @@ class _YamlConfigParser:
                     ])
 
                     if unk_prop:
-                        raise ConfigError('enumeration type',
-                                          'unknown member object property: "{}"'.format(unk_prop))
+                        raise ConfigError('Enumeration type',
+                                          'Unknown member object property: "{}"'.format(unk_prop))
 
                     if 'label' not in m_node:
-                        raise ConfigError('enumeration type',
-                                          'missing "label" property in member #{}'.format(index))
+                        raise ConfigError('Enumeration type',
+                                          'Missing "label" property in member #{}'.format(index))
 
                     label = m_node['label']
 
                     if not _is_str_prop(label):
-                        raise ConfigError('enumeration type',
+                        raise ConfigError('Enumeration type',
                                           '"label" property of member #{} must be a string'.format(index))
 
                     if 'value' not in m_node:
-                        raise ConfigError('enumeration type',
-                                          'missing "value" property in member ("{}")'.format(label))
+                        raise ConfigError('Enumeration type',
+                                          'Missing "value" property in member ("{}")'.format(label))
 
                     value = m_node['value']
 
                     if not _is_int_prop(value) and not _is_array_prop(value):
-                        raise ConfigError('enumeration type',
-                                          'invalid member ("{}"): expecting an integer or an array'.format(label))
+                        raise ConfigError('Enumeration type',
+                                          'Invalid member ("{}"): expecting an integer or an array'.format(label))
 
                     if _is_int_prop(value):
                         cur = value + 1
                         value = (value, value)
                     else:
                         if len(value) != 2:
-                            raise ConfigError('enumeration type',
-                                              'invalid member ("{}"): range must have exactly two items'.format(label))
+                            raise ConfigError('Enumeration type',
+                                              'Invalid member ("{}"): range must have exactly two items'.format(label))
 
                         mn = value[0]
                         mx = value[1]
 
                         if mn > mx:
-                            raise ConfigError('enumeration type',
-                                              'invalid member ("{}"): invalid range ({} > {})'.format(label, mn, mx))
+                            raise ConfigError('Enumeration type',
+                                              'Invalid member ("{}"): invalid range ({} > {})'.format(label, mn, mx))
 
                         value = (mn, mx)
                         cur = mx + 1
@@ -1325,8 +1325,8 @@ class _YamlConfigParser:
         ])
 
         if unk_prop:
-            raise ConfigError('string type',
-                              'unknown object property: "{}"'.format(unk_prop))
+            raise ConfigError('String type',
+                              'Unknown object property: "{}"'.format(unk_prop))
 
         # encoding
         if 'encoding' in node:
@@ -1336,14 +1336,14 @@ class _YamlConfigParser:
                 obj.set_default_encoding()
             else:
                 if not _is_str_prop(encoding):
-                    raise ConfigError('string type',
+                    raise ConfigError('String type',
                                       '"encoding" property of must be a string ("none", "ascii", or "utf-8")')
 
                 encoding = _encoding_str_to_encoding(encoding)
 
                 if encoding is None:
-                    raise ConfigError('string type',
-                                      'invalid "encoding" property')
+                    raise ConfigError('String type',
+                                      'Invalid "encoding" property')
 
                 obj.encoding = encoding
 
@@ -1360,8 +1360,8 @@ class _YamlConfigParser:
         ])
 
         if unk_prop:
-            raise ConfigError('structure type',
-                              'unknown object property: "{}"'.format(unk_prop))
+            raise ConfigError('Structure type',
+                              'Unknown object property: "{}"'.format(unk_prop))
 
         # minimum alignment
         if 'min-align' in node:
@@ -1371,12 +1371,12 @@ class _YamlConfigParser:
                 obj.set_default_min_align()
             else:
                 if not _is_int_prop(min_align):
-                    raise ConfigError('structure type',
+                    raise ConfigError('Structure type',
                                       '"min-align" property must be an integer')
 
                 if not _is_valid_alignment(min_align):
-                    raise ConfigError('structure type',
-                                      'invalid minimum alignment: {}'.format(min_align))
+                    raise ConfigError('Structure type',
+                                      'Invalid minimum alignment: {}'.format(min_align))
 
                 obj.min_align = min_align
 
@@ -1388,19 +1388,19 @@ class _YamlConfigParser:
                 obj.set_default_fields()
             else:
                 if not _is_assoc_array_prop(fields):
-                    raise ConfigError('structure type',
+                    raise ConfigError('Structure type',
                                       '"fields" property must be an associative array')
 
                 for field_name, field_node in fields.items():
                     if not _is_valid_identifier(field_name):
-                        raise ConfigError('structure type',
+                        raise ConfigError('Structure type',
                                           '"{}" is not a valid field name'.format(field_name))
 
                     try:
                         obj.fields[field_name] = self._create_type(field_node)
                     except ConfigError as exc:
-                        exc.append_ctx('structure type',
-                                       'cannot create field "{}"'.format(field_name))
+                        exc.append_ctx('Structure type',
+                                       'Cannot create field "{}"'.format(field_name))
                         raise
 
         return obj
@@ -1416,20 +1416,20 @@ class _YamlConfigParser:
         ])
 
         if unk_prop:
-            raise ConfigError('array type',
-                              'unknown property: "{}"'.format(unk_prop))
+            raise ConfigError('Array type',
+                              'Unknown property: "{}"'.format(unk_prop))
 
         # length
         if 'length' in node:
             length = node['length']
 
             if not _is_int_prop(length):
-                raise ConfigError('array type',
+                raise ConfigError('Array type',
                                   '"length" property must be an integer')
 
             if type(length) is int and length < 0:
-                raise ConfigError('array type',
-                                  'invalid length: {}'.format(length))
+                raise ConfigError('Array type',
+                                  'Invalid length: {}'.format(length))
 
             obj.length = length
 
@@ -1440,7 +1440,7 @@ class _YamlConfigParser:
             try:
                 obj.element_type = self._create_type(node['element-type'])
             except ConfigError as exc:
-                exc.append_ctx('array type', 'cannot create element type')
+                exc.append_ctx('Array type', 'Cannot create element type')
                 raise
 
         return obj
@@ -1450,14 +1450,14 @@ class _YamlConfigParser:
             t = self._lookup_type_alias(type_node)
 
             if t is None:
-                raise ConfigError('type',
-                                  'unknown type alias "{}"'.format(type_node))
+                raise ConfigError('Type',
+                                  'Unknown type alias "{}"'.format(type_node))
 
             return t
 
         if not _is_assoc_array_prop(type_node):
-            raise ConfigError('type',
-                              'expecting associative arrays or string (type alias name)')
+            raise ConfigError('Type',
+                              'Expecting associative arrays or string (type alias name)')
 
         # inherit:
         #   v2.0:  "inherit"
@@ -1472,41 +1472,41 @@ class _YamlConfigParser:
         if self._version >= 201:
             if '$inherit' in type_node:
                 if inherit_node is not None:
-                    raise ConfigError('type',
-                                      'cannot specify both "inherit" and "$inherit" properties of type object: prefer "$inherit"')
+                    raise ConfigError('Type',
+                                      'Cannot specify both "inherit" and "$inherit" properties of type object: prefer "$inherit"')
 
                 inherit_prop = '$inherit'
                 inherit_node = type_node[inherit_prop]
 
         if inherit_node is not None and 'class' in type_node:
-            raise ConfigError('type',
-                              'cannot specify both "{}" and "class" properties in type object'.format(inherit_prop))
+            raise ConfigError('Type',
+                              'Cannot specify both "{}" and "class" properties in type object'.format(inherit_prop))
 
         if inherit_node is not None:
             if not _is_str_prop(inherit_node):
-                raise ConfigError('type',
+                raise ConfigError('Type',
                                   '"{}" property of type object must be a string'.format(inherit_prop))
 
             base = self._lookup_type_alias(inherit_node)
 
             if base is None:
-                raise ConfigError('type',
-                                  'cannot inherit from type alias "{}": type alias does not exist at this point'.format(inherit_node))
+                raise ConfigError('Type',
+                                  'Cannot inherit from type alias "{}": type alias does not exist at this point'.format(inherit_node))
 
             func = self._type_to_create_type_func[type(base)]
         else:
             if 'class' not in type_node:
-                raise ConfigError('type',
-                                  'does not inherit, therefore must have a "class" property')
+                raise ConfigError('Type',
+                                  'Does not inherit, therefore must have a "class" property')
 
             class_name = type_node['class']
 
             if type(class_name) is not str:
-                raise ConfigError('type', '"class" property must be a string')
+                raise ConfigError('Type', '"class" property must be a string')
 
             if class_name not in self._class_name_to_create_type_func:
-                raise ConfigError('type',
-                                  'unknown class "{}"'.format(class_name))
+                raise ConfigError('Type',
+                                  'Unknown class "{}"'.format(class_name))
 
             base = None
             func = self._class_name_to_create_type_func[class_name]
@@ -1525,19 +1525,19 @@ class _YamlConfigParser:
             return
 
         if not _is_assoc_array_prop(ta_node):
-            raise ConfigError('metadata',
+            raise ConfigError('Metadata',
                               '"type-aliases" property must be an associative array')
 
         for ta_name, ta_type in ta_node.items():
             if ta_name in self._tas:
-                raise ConfigError('metadata',
-                                  'duplicate type alias "{}"'.format(ta_name))
+                raise ConfigError('Metadata',
+                                  'Duplicate type alias "{}"'.format(ta_name))
 
             try:
                 t = self._create_type(ta_type)
             except ConfigError as exc:
-                exc.append_ctx('metadata',
-                               'cannot create type alias "{}"'.format(ta_name))
+                exc.append_ctx('Metadata',
+                               'Cannot create type alias "{}"'.format(ta_name))
                 raise
 
             self._tas[ta_name] = t
@@ -1547,8 +1547,8 @@ class _YamlConfigParser:
         clock = metadata.Clock()
 
         if not _is_assoc_array_prop(node):
-            raise ConfigError('metadata',
-                              'clock objects must be associative arrays')
+            raise ConfigError('Metadata',
+                              'Clock objects must be associative arrays')
 
         known_props = [
             'uuid',
@@ -1566,8 +1566,8 @@ class _YamlConfigParser:
         unk_prop = _get_first_unknown_prop(node, known_props)
 
         if unk_prop:
-            raise ConfigError('clock',
-                              'unknown property: "{}"'.format(unk_prop))
+            raise ConfigError('Clock',
+                              'Unknown property: "{}"'.format(unk_prop))
 
         # UUID
         if 'uuid' in node:
@@ -1577,13 +1577,13 @@ class _YamlConfigParser:
                 clock.set_default_uuid()
             else:
                 if not _is_str_prop(uuidp):
-                    raise ConfigError('clock',
+                    raise ConfigError('Clock',
                                       '"uuid" property must be a string')
 
                 try:
                     uuidp = uuid.UUID(uuidp)
                 except:
-                    raise ConfigError('clock', 'malformed UUID: "{}"'.format(uuidp))
+                    raise ConfigError('Clock', 'Malformed UUID: "{}"'.format(uuidp))
 
                 clock.uuid = uuidp
 
@@ -1595,7 +1595,7 @@ class _YamlConfigParser:
                 clock.set_default_description()
             else:
                 if not _is_str_prop(desc):
-                    raise ConfigError('clock',
+                    raise ConfigError('Clock',
                                       '"description" property must be a string')
 
                 clock.description = desc
@@ -1608,12 +1608,12 @@ class _YamlConfigParser:
                 clock.set_default_freq()
             else:
                 if not _is_int_prop(freq):
-                    raise ConfigError('clock',
+                    raise ConfigError('Clock',
                                       '"freq" property must be an integer')
 
                 if freq < 1:
-                    raise ConfigError('clock',
-                                      'invalid frequency: {}'.format(freq))
+                    raise ConfigError('Clock',
+                                      'Invalid frequency: {}'.format(freq))
 
                 clock.freq = freq
 
@@ -1625,12 +1625,12 @@ class _YamlConfigParser:
                 clock.set_default_error_cycles()
             else:
                 if not _is_int_prop(error_cycles):
-                    raise ConfigError('clock',
+                    raise ConfigError('Clock',
                                       '"error-cycles" property must be an integer')
 
                 if error_cycles < 0:
-                    raise ConfigError('clock',
-                                      'invalid error cycles: {}'.format(error_cycles))
+                    raise ConfigError('Clock',
+                                      'Invalid error cycles: {}'.format(error_cycles))
 
                 clock.error_cycles = error_cycles
 
@@ -1643,14 +1643,14 @@ class _YamlConfigParser:
                 clock.set_default_offset_cycles()
             else:
                 if not _is_assoc_array_prop(offset):
-                    raise ConfigError('clock',
+                    raise ConfigError('Clock',
                                       '"offset" property must be an associative array')
 
                 unk_prop = _get_first_unknown_prop(offset, ['cycles', 'seconds'])
 
                 if unk_prop:
-                    raise ConfigError('clock',
-                                      'unknown offset property: "{}"'.format(unk_prop))
+                    raise ConfigError('Clock',
+                                      'Unknown offset property: "{}"'.format(unk_prop))
 
                 # cycles
                 if 'cycles' in offset:
@@ -1660,12 +1660,12 @@ class _YamlConfigParser:
                         clock.set_default_offset_cycles()
                     else:
                         if not _is_int_prop(offset_cycles):
-                            raise ConfigError('clock\'s "offset" property',
+                            raise ConfigError('Clock\'s "offset" property',
                                               '"cycles" property must be an integer')
 
                         if offset_cycles < 0:
-                            raise ConfigError('clock\'s "offset" property',
-                                              'invalid cycles: {}'.format(offset_cycles))
+                            raise ConfigError('Clock\'s "offset" property',
+                                              'Invalid cycles: {}'.format(offset_cycles))
 
                         clock.offset_cycles = offset_cycles
 
@@ -1677,12 +1677,12 @@ class _YamlConfigParser:
                         clock.set_default_offset_seconds()
                     else:
                         if not _is_int_prop(offset_seconds):
-                            raise ConfigError('clock\'s "offset" property',
+                            raise ConfigError('Clock\'s "offset" property',
                                               '"seconds" property must be an integer')
 
                         if offset_seconds < 0:
-                            raise ConfigError('clock\'s "offset" property',
-                                              'invalid seconds: {}'.format(offset_seconds))
+                            raise ConfigError('Clock\'s "offset" property',
+                                              'Invalid seconds: {}'.format(offset_seconds))
 
                         clock.offset_seconds = offset_seconds
 
@@ -1694,7 +1694,7 @@ class _YamlConfigParser:
                 clock.set_default_absolute()
             else:
                 if not _is_bool_prop(absolute):
-                    raise ConfigError('clock',
+                    raise ConfigError('Clock',
                                       '"absolute" property must be a boolean')
 
                 clock.absolute = absolute
@@ -1712,8 +1712,8 @@ class _YamlConfigParser:
         if self._version >= 201:
             if '$return-ctype' in node:
                 if return_ctype_node is not None:
-                    raise ConfigError('clock',
-                                      'cannot specify both "return-ctype" and "$return-ctype" properties: prefer "$return-ctype"')
+                    raise ConfigError('Clock',
+                                      'Cannot specify both "return-ctype" and "$return-ctype" properties: prefer "$return-ctype"')
 
                 return_ctype_prop = '$return-ctype'
                 return_ctype_node = node[return_ctype_prop]
@@ -1723,7 +1723,7 @@ class _YamlConfigParser:
                 clock.set_default_return_ctype()
             else:
                 if not _is_str_prop(return_ctype_node):
-                    raise ConfigError('clock',
+                    raise ConfigError('Clock',
                                       '"{}" property of must be a string'.format(return_ctype_prop))
 
                 clock.return_ctype = return_ctype_node
@@ -1742,23 +1742,23 @@ class _YamlConfigParser:
             return
 
         if not _is_assoc_array_prop(clocks_node):
-            raise ConfigError('metadata',
+            raise ConfigError('Metadata',
                               '"clocks" property must be an associative array')
 
         for clock_name, clock_node in clocks_node.items():
             if not _is_valid_identifier(clock_name):
-                raise ConfigError('metadata',
-                                  'invalid clock name: "{}"'.format(clock_name))
+                raise ConfigError('Metadata',
+                                  'Invalid clock name: "{}"'.format(clock_name))
 
             if clock_name in self._clocks:
-                raise ConfigError('metadata',
-                                  'duplicate clock "{}"'.format(clock_name))
+                raise ConfigError('Metadata',
+                                  'Duplicate clock "{}"'.format(clock_name))
 
             try:
                 clock = self._create_clock(clock_node)
             except ConfigError as exc:
-                exc.append_ctx('metadata',
-                               'cannot create clock "{}"'.format(clock_name))
+                exc.append_ctx('Metadata',
+                               'Cannot create clock "{}"'.format(clock_name))
                 raise
 
             clock.name = clock_name
@@ -1776,21 +1776,21 @@ class _YamlConfigParser:
             return env
 
         if not _is_assoc_array_prop(env_node):
-            raise ConfigError('metadata',
+            raise ConfigError('Metadata',
                               '"env" property must be an associative array')
 
         for env_name, env_value in env_node.items():
             if env_name in env:
-                raise ConfigError('metadata',
-                                  'duplicate environment variable "{}"'.format(env_name))
+                raise ConfigError('Metadata',
+                                  'Duplicate environment variable "{}"'.format(env_name))
 
             if not _is_valid_identifier(env_name):
-                raise ConfigError('metadata',
-                                  'invalid environment variable name: "{}"'.format(env_name))
+                raise ConfigError('Metadata',
+                                  'Invalid environment variable name: "{}"'.format(env_name))
 
             if not _is_int_prop(env_value) and not _is_str_prop(env_value):
-                raise ConfigError('metadata',
-                                  'invalid environment variable value ("{}"): expecting integer or string'.format(env_name))
+                raise ConfigError('Metadata',
+                                  'Invalid environment variable value ("{}"): expecting integer or string'.format(env_name))
 
             env[env_name] = env_value
 
@@ -1812,8 +1812,8 @@ class _YamlConfigParser:
         if self._version >= 201:
             if '$log-levels' in metadata_node:
                 if log_levels_node is not None:
-                    raise ConfigError('metadata',
-                                      'cannot specify both "log-levels" and "$log-levels" properties of metadata object: prefer "$log-levels"')
+                    raise ConfigError('Metadata',
+                                      'Cannot specify both "log-levels" and "$log-levels" properties of metadata object: prefer "$log-levels"')
 
                 log_levels_prop = '$log-levels'
                 log_levels_node = metadata_node[log_levels_prop]
@@ -1822,21 +1822,21 @@ class _YamlConfigParser:
             return
 
         if not _is_assoc_array_prop(log_levels_node):
-            raise ConfigError('metadata',
+            raise ConfigError('Metadata',
                               '"{}" property (metadata) must be an associative array'.format(log_levels_prop))
 
         for ll_name, ll_value in log_levels_node.items():
             if ll_name in self._log_levels:
                 raise ConfigError('"{}" property"'.format(log_levels_prop),
-                                  'duplicate entry "{}"'.format(ll_name))
+                                  'Duplicate entry "{}"'.format(ll_name))
 
             if not _is_int_prop(ll_value):
                 raise ConfigError('"{}" property"'.format(log_levels_prop),
-                                  'invalid entry ("{}"): expecting an integer'.format(ll_name))
+                                  'Invalid entry ("{}"): expecting an integer'.format(ll_name))
 
             if ll_value < 0:
                 raise ConfigError('"{}" property"'.format(log_levels_prop),
-                                  'invalid entry ("{}"): value must be positive'.format(ll_name))
+                                  'Invalid entry ("{}"): value must be positive'.format(ll_name))
 
             self._log_levels[ll_name] = ll_value
 
@@ -1845,12 +1845,12 @@ class _YamlConfigParser:
         trace = metadata.Trace()
 
         if 'trace' not in metadata_node:
-            raise ConfigError('metadata', 'missing "trace" property')
+            raise ConfigError('Metadata', 'Missing "trace" property')
 
         trace_node = metadata_node['trace']
 
         if not _is_assoc_array_prop(trace_node):
-            raise ConfigError('metadata',
+            raise ConfigError('Metadata',
                               '"trace" property must be an associative array')
 
         unk_prop = _get_first_unknown_prop(trace_node, [
@@ -1860,8 +1860,8 @@ class _YamlConfigParser:
         ])
 
         if unk_prop:
-            raise ConfigError('trace',
-                              'unknown property: "{}"'.format(unk_prop))
+            raise ConfigError('Trace',
+                              'Unknown property: "{}"'.format(unk_prop))
 
         # set byte order (already parsed)
         trace.byte_order = self._bo
@@ -1871,7 +1871,7 @@ class _YamlConfigParser:
             uuidp = trace_node['uuid']
 
             if not _is_str_prop(uuidp):
-                raise ConfigError('trace',
+                raise ConfigError('Trace',
                                   '"uuid" property must be a string')
 
             if uuidp == 'auto':
@@ -1880,8 +1880,8 @@ class _YamlConfigParser:
                 try:
                     uuidp = uuid.UUID(uuidp)
                 except:
-                    raise ConfigError('trace',
-                                      'malformed UUID: "{}"'.format(uuidp))
+                    raise ConfigError('Trace',
+                                      'Malformed UUID: "{}"'.format(uuidp))
 
             trace.uuid = uuidp
 
@@ -1890,8 +1890,8 @@ class _YamlConfigParser:
             try:
                 ph_type = self._create_type(trace_node['packet-header-type'])
             except ConfigError as exc:
-                exc.append_ctx('trace',
-                               'cannot create packet header type')
+                exc.append_ctx('Trace',
+                               'Cannot create packet header type')
                 raise
 
             trace.packet_header_type = ph_type
@@ -1908,8 +1908,8 @@ class _YamlConfigParser:
         event = metadata.Event()
 
         if not _is_assoc_array_prop(event_node):
-            raise ConfigError('event',
-                              'expecting associative array')
+            raise ConfigError('Event',
+                              'Expecting associative array')
 
         unk_prop = _get_first_unknown_prop(event_node, [
             'log-level',
@@ -1918,8 +1918,8 @@ class _YamlConfigParser:
         ])
 
         if unk_prop:
-            raise ConfigError('event',
-                              'unknown property: "{}"'.format(unk_prop))
+            raise ConfigError('Event',
+                              'Unknown property: "{}"'.format(unk_prop))
 
         if 'log-level' in event_node and event_node['log-level'] is not None:
             ll_node = event_node['log-level']
@@ -1928,19 +1928,19 @@ class _YamlConfigParser:
                 ll_value = self._lookup_log_level(event_node['log-level'])
 
                 if ll_value is None:
-                    raise ConfigError('event\'s "log-level" property',
-                                      'cannot find log level "{}"'.format(ll_node))
+                    raise ConfigError('Event\'s "log-level" property',
+                                      'Cannot find log level "{}"'.format(ll_node))
 
                 ll = metadata.LogLevel(event_node['log-level'], ll_value)
             elif _is_int_prop(ll_node):
                 if ll_node < 0:
-                    raise ConfigError('event\'s "log-level" property',
-                                      'invalid value {}: value must be positive'.format(ll_node))
+                    raise ConfigError('Event\'s "log-level" property',
+                                      'Invalid value {}: value must be positive'.format(ll_node))
 
                 ll = metadata.LogLevel(None, ll_node)
             else:
-                raise ConfigError('event\'s "log-level" property',
-                                  'must be either a string or an integer')
+                raise ConfigError('Event\'s "log-level" property',
+                                  'Must be either a string or an integer')
 
             event.log_level = ll
 
@@ -1950,8 +1950,8 @@ class _YamlConfigParser:
             try:
                 t = self._create_type(event_node['context-type'])
             except ConfigError as exc:
-                exc.append_ctx('event',
-                               'cannot create context type object')
+                exc.append_ctx('Event',
+                               'Cannot create context type object')
                 raise
 
             event.context_type = t
@@ -1960,8 +1960,8 @@ class _YamlConfigParser:
             try:
                 t = self._create_type(event_node['payload-type'])
             except ConfigError as exc:
-                exc.append_ctx('event',
-                               'cannot create payload type object')
+                exc.append_ctx('Event',
+                               'Cannot create payload type object')
                 raise
 
             event.payload_type = t
@@ -1972,7 +1972,7 @@ class _YamlConfigParser:
         stream = metadata.Stream()
 
         if not _is_assoc_array_prop(stream_node):
-            raise ConfigError('stream objects must be associative arrays')
+            raise ConfigError('Stream objects must be associative arrays')
 
         known_props = [
             'packet-context-type',
@@ -1992,15 +1992,15 @@ class _YamlConfigParser:
             if unk_prop == '$default':
                 add = ' (use version 2.2 or greater)'
 
-            raise ConfigError('stream',
-                              'unknown property{}: "{}"'.format(add, unk_prop))
+            raise ConfigError('Stream',
+                              'Unknown property{}: "{}"'.format(add, unk_prop))
 
         if 'packet-context-type' in stream_node and stream_node['packet-context-type'] is not None:
             try:
                 t = self._create_type(stream_node['packet-context-type'])
             except ConfigError as exc:
-                exc.append_ctx('stream',
-                               'cannot create packet context type object')
+                exc.append_ctx('Stream',
+                               'Cannot create packet context type object')
                 raise
 
             stream.packet_context_type = t
@@ -2009,8 +2009,8 @@ class _YamlConfigParser:
             try:
                 t = self._create_type(stream_node['event-header-type'])
             except ConfigError as exc:
-                exc.append_ctx('stream',
-                               'cannot create event header type object')
+                exc.append_ctx('Stream',
+                               'Cannot create event header type object')
                 raise
 
             stream.event_header_type = t
@@ -2019,25 +2019,25 @@ class _YamlConfigParser:
             try:
                 t = self._create_type(stream_node['event-context-type'])
             except ConfigError as exc:
-                exc.append_ctx('stream',
-                               'cannot create event context type object')
+                exc.append_ctx('Stream',
+                               'Cannot create event context type object')
                 raise
 
             stream.event_context_type = t
 
         if 'events' not in stream_node:
-            raise ConfigError('stream',
-                              'missing "events" property')
+            raise ConfigError('Stream',
+                              'Missing "events" property')
 
         events = stream_node['events']
 
         if events is not None:
             if not _is_assoc_array_prop(events):
-                raise ConfigError('stream',
+                raise ConfigError('Stream',
                                   '"events" property must be an associative array')
 
             if not events:
-                raise ConfigError('stream', 'at least one event is needed')
+                raise ConfigError('Stream', 'At least one event is needed')
 
             cur_id = 0
 
@@ -2045,8 +2045,8 @@ class _YamlConfigParser:
                 try:
                     ev = self._create_event(ev_node)
                 except ConfigError as exc:
-                    exc.append_ctx('stream',
-                                   'cannot create event "{}"'.format(ev_name))
+                    exc.append_ctx('Stream',
+                                   'Cannot create event "{}"'.format(ev_name))
                     raise
 
                 ev.id = cur_id
@@ -2058,13 +2058,13 @@ class _YamlConfigParser:
             default_node = stream_node['$default']
 
             if not _is_bool_prop(default_node):
-                raise ConfigError('stream',
-                                  'invalid "$default" property: expecting a boolean')
+                raise ConfigError('Stream',
+                                  'Invalid "$default" property: expecting a boolean')
 
             if default_node:
                 if self._meta.default_stream_name is not None and self._meta.default_stream_name != stream_name:
-                    fmt = 'cannot specify more than one default stream (default stream already set to "{}")'
-                    raise ConfigError('stream',
+                    fmt = 'Cannot specify more than one default stream (default stream already set to "{}")'
+                    raise ConfigError('Stream',
                                       fmt.format(self._meta.default_stream_name))
 
                 self._meta.default_stream_name = stream_name
@@ -2075,18 +2075,18 @@ class _YamlConfigParser:
         streams = collections.OrderedDict()
 
         if 'streams' not in metadata_node:
-            raise ConfigError('metadata',
-                              'missing "streams" property')
+            raise ConfigError('Metadata',
+                              'Missing "streams" property')
 
         streams_node = metadata_node['streams']
 
         if not _is_assoc_array_prop(streams_node):
-            raise ConfigError('metadata',
+            raise ConfigError('Metadata',
                               '"streams" property must be an associative array')
 
         if not streams_node:
-            raise ConfigError('metadata\'s "streams" property',
-                              'at least one stream is needed')
+            raise ConfigError('Metadata\'s "streams" property',
+                              'At least one stream is needed')
 
         cur_id = 0
 
@@ -2094,8 +2094,8 @@ class _YamlConfigParser:
             try:
                 stream = self._create_stream(stream_name, stream_node)
             except ConfigError as exc:
-                exc.append_ctx('metadata',
-                               'cannot create stream "{}"'.format(stream_name))
+                exc.append_ctx('Metadata',
+                               'Cannot create stream "{}"'.format(stream_name))
                 raise
 
             stream.id = cur_id
@@ -2109,14 +2109,14 @@ class _YamlConfigParser:
         self._meta = metadata.Metadata()
 
         if 'metadata' not in root:
-            raise ConfigError('configuration',
-                              'missing "metadata" property')
+            raise ConfigError('Configuration',
+                              'Missing "metadata" property')
 
         metadata_node = root['metadata']
 
         if not _is_assoc_array_prop(metadata_node):
-            raise ConfigError('configuration\'s "metadata" property',
-                              'must be an associative array')
+            raise ConfigError('Configuration\'s "metadata" property',
+                              'Must be an associative array')
 
         known_props = [
             'type-aliases',
@@ -2144,15 +2144,15 @@ class _YamlConfigParser:
             if unk_prop == '$default-stream':
                 add = ' (use version 2.2 or greater)'
 
-            raise ConfigError('metadata',
-                              'unknown property{}: "{}"'.format(add, unk_prop))
+            raise ConfigError('Metadata',
+                              'Unknown property{}: "{}"'.format(add, unk_prop))
 
         if '$default-stream' in metadata_node and metadata_node['$default-stream'] is not None:
             default_stream_node = metadata_node['$default-stream']
 
             if not _is_str_prop(default_stream_node):
-                raise ConfigError('metadata\'s "$default-stream" property',
-                                  'expecting a string')
+                raise ConfigError('Metadata\'s "$default-stream" property',
+                                  'Expecting a string')
 
             self._meta.default_stream_name = default_stream_node
 
@@ -2169,20 +2169,20 @@ class _YamlConfigParser:
 
     def _get_version(self, root):
         if 'version' not in root:
-            raise ConfigError('configuration',
-                              'missing "version" property')
+            raise ConfigError('Configuration',
+                              'Missing "version" property')
 
         version_node = root['version']
 
         if not _is_str_prop(version_node):
-            raise ConfigError('configuration\'s "version" property',
-                              'must be a string')
+            raise ConfigError('Configuration\'s "version" property',
+                              'Must be a string')
 
         version_node = version_node.strip()
 
         if version_node not in ['2.0', '2.1', '2.2']:
-            raise ConfigError('configuration',
-                              'unsupported version ({}): versions 2.0, 2.1, and 2.2 are supported'.format(version_node))
+            raise ConfigError('Configuration',
+                              'Unsupported version ({}): versions 2.0, 2.1, and 2.2 are supported'.format(version_node))
 
         # convert version string to comparable version integer
         parts = version_node.split('.')
@@ -2202,12 +2202,12 @@ class _YamlConfigParser:
             return def_prefix
 
         if not _is_str_prop(prefix_node):
-            raise ConfigError('configuration\'s "prefix" property',
-                              'must be a string')
+            raise ConfigError('Configuration\'s "prefix" property',
+                              'Must be a string')
 
         if not _is_valid_identifier(prefix_node):
-            raise ConfigError('configuration\'s "prefix" property',
-                              'must be a valid C identifier')
+            raise ConfigError('Configuration\'s "prefix" property',
+                              'Must be a valid C identifier')
 
         return prefix_node
 
@@ -2220,8 +2220,8 @@ class _YamlConfigParser:
         options_node = root['options']
 
         if not _is_assoc_array_prop(options_node):
-            raise ConfigError('configuration\'s "options" property',
-                              'must be an associative array')
+            raise ConfigError('Configuration\'s "options" property',
+                              'Must be an associative array')
 
         known_props = [
             'gen-prefix-def',
@@ -2230,15 +2230,15 @@ class _YamlConfigParser:
         unk_prop = _get_first_unknown_prop(options_node, known_props)
 
         if unk_prop:
-            raise ConfigError('configuration\'s "options" property',
-                              'unknown property: "{}"'.format(unk_prop))
+            raise ConfigError('Configuration\'s "options" property',
+                              'Unknown property: "{}"'.format(unk_prop))
 
         if 'gen-prefix-def' in options_node and options_node['gen-prefix-def'] is not None:
             gen_prefix_def_node = options_node['gen-prefix-def']
 
             if not _is_bool_prop(gen_prefix_def_node):
-                raise ConfigError('configuration\'s "options" property',
-                                  'invalid option "gen-prefix-def": expecting a boolean')
+                raise ConfigError('Configuration\'s "options" property',
+                                  'Invalid option "gen-prefix-def": expecting a boolean')
 
             cfg_options.gen_prefix_def = gen_prefix_def_node
 
@@ -2246,8 +2246,8 @@ class _YamlConfigParser:
             gen_default_stream_def_node = options_node['gen-default-stream-def']
 
             if not _is_bool_prop(gen_default_stream_def_node):
-                raise ConfigError('configuration\'s "options" property',
-                                  'invalid option "gen-default-stream-def": expecting a boolean')
+                raise ConfigError('Configuration\'s "options" property',
+                                  'Invalid option "gen-default-stream-def": expecting a boolean')
 
             cfg_options.gen_default_stream_def = gen_default_stream_def_node
 
@@ -2277,8 +2277,8 @@ class _YamlConfigParser:
 
             if norm_path in self._include_stack:
                 base_path = self._get_last_include_file()
-                raise ConfigError('in "{}"',
-                                  'cannot recursively include file "{}"'.format(base_path, norm_path))
+                raise ConfigError('In "{}"',
+                                  'Cannot recursively include file "{}"'.format(base_path, norm_path))
 
             self._include_stack.append(norm_path)
 
@@ -2287,8 +2287,8 @@ class _YamlConfigParser:
 
         if not self._ignore_include_not_found:
             base_path = self._get_last_include_file()
-            raise ConfigError('in "{}"',
-                              'cannot include file "{}": file not found in include directories'.format(base_path, yaml_path))
+            raise ConfigError('In "{}"',
+                              'Cannot include file "{}": file not found in include directories'.format(base_path, yaml_path))
 
         return None
 
@@ -2303,12 +2303,12 @@ class _YamlConfigParser:
             for include_path in include_node:
                 if not _is_str_prop(include_path):
                     raise ConfigError('"$include" property',
-                                      'expecting array of strings')
+                                      'Expecting array of strings')
 
             return include_node
 
         raise ConfigError('"$include" property',
-                          'expecting string or array of strings')
+                          'Expecting string or array of strings')
 
     def _update_node(self, base_node, overlay_node):
         for olay_key, olay_value in overlay_node.items():
@@ -2366,7 +2366,7 @@ class _YamlConfigParser:
             try:
                 overlay_node = process_base_include_cb(overlay_node)
             except ConfigError as exc:
-                exc.append_ctx('in "{}"'.format(cur_base_path))
+                exc.append_ctx('In "{}"'.format(cur_base_path))
                 raise
 
             # pop include stack now that we're done including
@@ -2412,7 +2412,7 @@ class _YamlConfigParser:
                         events_node[key] = self._process_event_include(event_node)
                     except ConfigError as exc:
                         exc.append_ctx('"$include" property',
-                                       'cannot process includes of event object "{}"'.format(key))
+                                       'Cannot process includes of event object "{}"'.format(key))
                         raise
 
         return self._process_node_include(stream_node, 'stream',
@@ -2448,7 +2448,7 @@ class _YamlConfigParser:
                         clocks_node[key] = self._process_clock_include(clock_node)
                     except ConfigError as exc:
                         exc.append_ctx('"$include" property',
-                                       'cannot process includes of clock object "{}"'.format(key))
+                                       'Cannot process includes of clock object "{}"'.format(key))
                         raise
 
             if 'streams' in metadata_node:
@@ -2467,7 +2467,7 @@ class _YamlConfigParser:
                         streams_node[key] = self._process_stream_include(stream_node)
                     except ConfigError as exc:
                         exc.append_ctx('"$include" property',
-                                       'cannot process includes of stream object "{}"'.format(key))
+                                       'Cannot process includes of stream object "{}"'.format(key))
                         raise
 
         return self._process_node_include(metadata_node, 'metadata',
@@ -2525,17 +2525,17 @@ class _YamlConfigParser:
             with open(yaml_path, 'r') as f:
                 node = yaml.load(f, OLoader)
         except (OSError, IOError) as e:
-            raise ConfigError('configuration',
-                              'cannot open file "{}"'.format(yaml_path))
+            raise ConfigError('Configuration',
+                              'Cannot open file "{}"'.format(yaml_path))
         except ConfigError as exc:
-            exc.append_ctx('configuration',
-                           'unknown error while trying to load file "{}"'.format(yaml_path))
+            exc.append_ctx('Configuration',
+                           'Unknown error while trying to load file "{}"'.format(yaml_path))
             raise
 
         # loaded node must be an associate array
         if not _is_assoc_array_prop(node):
-            raise ConfigError('configuration',
-                              'root of YAML file "{}" must be an associative array'.format(yaml_path))
+            raise ConfigError('Configuration',
+                              'Root of YAML file "{}" must be an associative array'.format(yaml_path))
 
         return node
 
@@ -2550,13 +2550,13 @@ class _YamlConfigParser:
         try:
             root = self._yaml_ordered_load(yaml_path)
         except ConfigError as exc:
-            exc.append_ctx('configuration',
-                           'cannot parse YAML file "{}"'.format(yaml_path))
+            exc.append_ctx('Configuration',
+                           'Cannot parse YAML file "{}"'.format(yaml_path))
             raise
 
         if not _is_assoc_array_prop(root):
-            raise ConfigError('configuration',
-                              'must be an associative array')
+            raise ConfigError('Configuration',
+                              'Must be an associative array')
 
         # get the config version
         self._version = self._get_version(root)
@@ -2578,8 +2578,8 @@ class _YamlConfigParser:
             if unk_prop == 'options':
                 add = ' (use version 2.2 or greater)'
 
-            raise ConfigError('configuration',
-                              'unknown property{}: "{}"'.format(add, unk_prop))
+            raise ConfigError('Configuration',
+                              'Unknown property{}: "{}"'.format(add, unk_prop))
 
         # process includes if supported
         if self._version >= 201:
@@ -2606,6 +2606,6 @@ def from_yaml_file(path, include_dirs, ignore_include_not_found, dump_config):
 
         return cfg
     except ConfigError as exc:
-        exc.append_ctx('configuration',
-                       'cannot create configuration from YAML file "{}"'.format(path))
+        exc.append_ctx('Configuration',
+                       'Cannot create configuration from YAML file "{}"'.format(path))
         raise

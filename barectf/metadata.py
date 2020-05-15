@@ -277,7 +277,7 @@ class Enum(Type):
         elif type(key) is int:
             return self.label_of(key)
 
-        raise TypeError('wrong subscript type')
+        raise TypeError('Wrong subscript type')
 
 
 class String(Type):

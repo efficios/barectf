@@ -121,7 +121,7 @@ def run():
         import traceback
 
         traceback.print_exc()
-        _perror('unknown exception: {}'.format(e))
+        _perror('Unknown exception: {}'.format(e))
 
     # replace prefix if needed
     if args.prefix:
@@ -136,7 +136,7 @@ def run():
     try:
         _write_file(args.metadata_dir, 'metadata', metadata)
     except Exception as e:
-        _perror('cannot write metadata file: {}'.format(e))
+        _perror('Cannot write metadata file: {}'.format(e))
 
     # create generator
     generator = barectf.gen.CCodeGenerator(config)
@@ -150,7 +150,7 @@ def run():
         _write_file(args.headers_dir, generator.get_bitfield_header_filename(),
                     bitfield_header)
     except Exception as e:
-        _perror('cannot write header files: {}'.format(e))
+        _perror('Cannot write header files: {}'.format(e))
 
     # generate C source
     c_src = generator.generate_c_src()
@@ -159,4 +159,4 @@ def run():
         _write_file(args.code_dir, '{}.c'.format(config.prefix.rstrip('_')),
                     c_src)
     except Exception as e:
-        _perror('cannot write C source file: {}'.format(e))
+        _perror('Cannot write C source file: {}'.format(e))
