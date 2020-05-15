@@ -33,7 +33,7 @@ load ../../common
   [ -f bctf-bitfield.h ]
 
   # test should be more extensive than that, but it's a start
-  $CC -c bctf.c
+  "$CC" -c bctf.c
   nm bctf.o | grep bctf_init
   nm bctf.o | grep bctf_my_other_stream_close_packet
   nm bctf.o | grep bctf_my_other_stream_open_packet
