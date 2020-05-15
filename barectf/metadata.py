@@ -48,7 +48,7 @@ class Type:
 
     @property
     def is_dynamic(self):
-        raise NotImplementedError()
+        return False
 
 
 class PropertyMapping:
@@ -165,10 +165,6 @@ class Integer(Type):
     def property_mappings(self):
         return self._property_mappings
 
-    @property
-    def is_dynamic(self):
-        return False
-
 
 class FloatingPoint(Type):
     def __init__(self):
@@ -228,10 +224,6 @@ class FloatingPoint(Type):
     def align(self, value):
         self._align = value
 
-    @property
-    def is_dynamic(self):
-        return False
-
 
 class Enum(Type):
     def __init__(self):
@@ -286,10 +278,6 @@ class Enum(Type):
             return self.label_of(key)
 
         raise TypeError('wrong subscript type')
-
-    @property
-    def is_dynamic(self):
-        return False
 
 
 class String(Type):
@@ -347,17 +335,6 @@ class Array(Type):
     def length(self, value):
         self._length = value
 
-    @property
-    def is_variable_length(self):
-        return type(self._length) is not int
-
-    @property
-    def is_dynamic(self):
-        if self.is_variable_length:
-            return True
-
-        return self.element_type.is_dynamic
-
 
 class Struct(Type):
     def __init__(self):
@@ -392,14 +369,6 @@ class Struct(Type):
         return align
 
     @property
-    def is_dynamic(self):
-        for field in self.fields.values():
-            if field.is_dynamic:
-                return True
-
-        return False
-
-    @property
     def fields(self):
         return self._fields
 
@@ -408,77 +377,6 @@ class Struct(Type):
 
     def __len__(self):
         return len(self._fields)
-
-
-class Variant(Type):
-    def __init__(self):
-        self.set_default_tag()
-        self.set_default_types()
-
-    def set_default_tag(self):
-        self._tag = None
-
-    def set_default_types(self):
-        self._types = collections.OrderedDict()
-
-    @property
-    def align(self):
-        single_type = self.get_single_type()
-
-        if single_type is not None:
-            return single_type.align
-
-        # if all the possible types have the same alignment, then
-        # there's only one possible alignment
-        align = None
-
-        for t in self.types.values():
-            if t.align is None:
-                return
-
-            if align is None:
-                # first
-                align = t.align
-            else:
-                if t.align != align:
-                    return
-
-        return align
-
-    @property
-    def size(self):
-        single_type = self.get_single_type()
-
-        if single_type is not None:
-            return single_type.size
-
-    @property
-    def tag(self):
-        return self._tag
-
-    @tag.setter
-    def tag(self, value):
-        self._tag = value
-
-    @property
-    def types(self):
-        return self._types
-
-    def __getitem__(self, key):
-        return self.types[key]
-
-    def get_single_type(self):
-        if len(self.members) == 1:
-            return list(self.members.values())[0]
-
-    @property
-    def is_dynamic(self):
-        single_type = self.get_single_type()
-
-        if single_type is not None:
-            return single_type.is_dynamic
-
-        return True
 
 
 class Trace:
@@ -680,10 +578,8 @@ class Event:
         self._payload_type = value
 
     def __getitem__(self, key):
-        if type(self.payload_type) in [Struct, Variant]:
-            return self.payload_type[key]
-
-        raise TypeError('{} is not subscriptable')
+        assert(type(self.payload_type) is Struct)
+        return self.payload_type[key]
 
 
 class Stream:

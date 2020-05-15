@@ -53,8 +53,6 @@ class Config:
         try:
             validator = _MetadataTypesHistologyValidator()
             validator.validate(meta)
-            validator = _MetadataDynamicTypesValidator()
-            validator.validate(meta)
             validator = _MetadataSpecialFieldsValidator()
             validator.validate(meta)
         except Exception as e:
@@ -229,7 +227,7 @@ def _get_first_unknown_prop(node, known_props):
 #
 #   * all header/contexts are at least byte-aligned
 #   * all integer and floating point number sizes to be <= 64
-#   * no inner structures, arrays, or variants
+#   * no inner structures or arrays
 class _BarectfMetadataValidator:
     def __init__(self):
         self._type_to_validate_type_func = {
@@ -239,7 +237,6 @@ class _BarectfMetadataValidator:
             metadata.String: self._validate_string_type,
             metadata.Struct: self._validate_struct_type,
             metadata.Array: self._validate_array_type,
-            metadata.Variant: self._validate_variant_type,
         }
 
     def _validate_int_type(self, t, entity_root):
@@ -274,9 +271,6 @@ class _BarectfMetadataValidator:
 
     def _validate_array_type(self, t, entity_root):
         raise ConfigError('array types are not supported as of this version')
-
-    def _validate_variant_type(self, t, entity_root):
-        raise ConfigError('variant types are not supported as of this version')
 
     def _validate_type(self, t, entity_root):
         self._type_to_validate_type_func[type(t)](t, entity_root)
@@ -583,28 +577,6 @@ class _MetadataSpecialFieldsValidator:
                 raise ConfigError('invalid stream "{}"'.format(stream.name), e)
 
 
-class _MetadataDynamicTypesValidatorStackEntry:
-    def __init__(self, base_t):
-        self._base_t = base_t
-        self._index = 0
-
-    @property
-    def index(self):
-        return self._index
-
-    @index.setter
-    def index(self, value):
-        self._index = value
-
-    @property
-    def base_t(self):
-        return self._base_t
-
-    @base_t.setter
-    def base_t(self, value):
-        self._base_t = value
-
-
 # Entities. Order of values is important here.
 @enum.unique
 class _Entity(enum.IntEnum):
@@ -614,400 +586,6 @@ class _Entity(enum.IntEnum):
     STREAM_EVENT_CONTEXT = 3
     EVENT_CONTEXT = 4
     EVENT_PAYLOAD = 5
-
-
-# This validator validates dynamic metadata types, that is, it ensures
-# variable-length array lengths and variant tags actually point to
-# something that exists. It also checks that variable-length array
-# lengths point to integer types and variant tags to enumeration types.
-class _MetadataDynamicTypesValidator:
-    def __init__(self):
-        self._type_to_visit_type_func = {
-            metadata.Integer: None,
-            metadata.FloatingPoint: None,
-            metadata.Enum: None,
-            metadata.String: None,
-            metadata.Struct: self._visit_struct_type,
-            metadata.Array: self._visit_array_type,
-            metadata.Variant: self._visit_variant_type,
-        }
-
-        self._cur_trace = None
-        self._cur_stream = None
-        self._cur_event = None
-
-    def _lookup_path_from_base(self, path, parts, base, start_index,
-                               base_is_current, from_t):
-        index = start_index
-        cur_t = base
-        found_path = []
-
-        while index < len(parts):
-            part = parts[index]
-            next_t = None
-
-            if type(cur_t) is metadata.Struct:
-                enumerated_items = enumerate(cur_t.fields.items())
-
-                # lookup each field
-                for i, (field_name, field_type) in enumerated_items:
-                    if field_name == part:
-                        next_t = field_type
-                        found_path.append((i, field_type))
-
-                if next_t is None:
-                    raise ConfigError('invalid path "{}": cannot find field "{}" in structure type'.format(path, part))
-            elif type(cur_t) is metadata.Variant:
-                enumerated_items = enumerate(cur_t.types.items())
-
-                # lookup each type
-                for i, (type_name, type_type) in enumerated_items:
-                    if type_name == part:
-                        next_t = type_type
-                        found_path.append((i, type_type))
-
-                if next_t is None:
-                    raise ConfigError('invalid path "{}": cannot find type "{}" in variant type'.format(path, part))
-            else:
-                raise ConfigError('invalid path "{}": requesting "{}" in a non-variant, non-structure type'.format(path, part))
-
-            cur_t = next_t
-            index += 1
-
-        # make sure that the pointed type is not the pointing type
-        if from_t is cur_t:
-            raise ConfigError('invalid path "{}": pointing to self'.format(path))
-
-        # if we're here, we found the type; however, it could be located
-        # _after_ the variant/VLA looking for it, if the pointing
-        # and pointed types are in the same entity, so compare the
-        # current stack entries indexes to our index path in that case
-        if not base_is_current:
-            return cur_t
-
-        for index, entry in enumerate(self._stack):
-            if index == len(found_path):
-                # end of index path; valid so far
-                break
-
-            if found_path[index][0] > entry.index:
-                raise ConfigError('invalid path "{}": pointed type is after pointing type'.format(path))
-
-        # also make sure that both pointed and pointing types share
-        # a common structure ancestor
-        for index, entry in enumerate(self._stack):
-            if index == len(found_path):
-                break
-
-            if entry.base_t is not found_path[index][1]:
-                # found common ancestor
-                if type(entry.base_t) is metadata.Variant:
-                    raise ConfigError('invalid path "{}": type cannot be reached because pointed and pointing types are in the same variant type'.format(path))
-
-        return cur_t
-
-    def _lookup_path_from_top(self, path, parts):
-        if len(parts) != 1:
-            raise ConfigError('invalid path "{}": multipart relative path not supported'.format(path))
-
-        find_name = parts[0]
-        index = len(self._stack) - 1
-        got_struct = False
-
-        # check stack entries in reversed order
-        for entry in reversed(self._stack):
-            # structure base type
-            if type(entry.base_t) is metadata.Struct:
-                got_struct = True
-                enumerated_items = enumerate(entry.base_t.fields.items())
-
-                # lookup each field, until the current visiting index is met
-                for i, (field_name, field_type) in enumerated_items:
-                    if i == entry.index:
-                        break
-
-                    if field_name == find_name:
-                        return field_type
-
-            # variant base type
-            elif type(entry.base_t) is metadata.Variant:
-                enumerated_items = enumerate(entry.base_t.types.items())
-
-                # lookup each type, until the current visiting index is met
-                for i, (type_name, type_type) in enumerated_items:
-                    if i == entry.index:
-                        break
-
-                    if type_name == find_name:
-                        if not got_struct:
-                            raise ConfigError('invalid path "{}": type cannot be reached because pointed and pointing types are in the same variant type'.format(path))
-
-                        return type_type
-
-        # nothing returned here: cannot find type
-        raise ConfigError('invalid path "{}": cannot find type in current context'.format(path))
-
-    def _lookup_path(self, path, from_t):
-        parts = path.lower().split('.')
-        base = None
-        base_is_current = False
-
-        if len(parts) >= 3:
-            if parts[0] == 'trace':
-                if parts[1] == 'packet' and parts[2] == 'header':
-                    # make sure packet header exists
-                    if self._cur_trace.packet_header_type is None:
-                        raise ConfigError('invalid path "{}": no defined trace packet header type'.format(path))
-
-                    base = self._cur_trace.packet_header_type
-
-                    if self._cur_entity == _Entity.TRACE_PACKET_HEADER:
-                        base_is_current = True
-                else:
-                    raise ConfigError('invalid path "{}": unknown names after "trace"'.format(path))
-            elif parts[0] == 'stream':
-                if parts[1] == 'packet' and parts[2] == 'context':
-                    if self._cur_entity < _Entity.STREAM_PACKET_CONTEXT:
-                        raise ConfigError('invalid path "{}": cannot access stream packet context here'.format(path))
-
-                    if self._cur_stream.packet_context_type is None:
-                        raise ConfigError('invalid path "{}": no defined stream packet context type'.format(path))
-
-                    base = self._cur_stream.packet_context_type
-
-                    if self._cur_entity == _Entity.STREAM_PACKET_CONTEXT:
-                        base_is_current = True
-                elif parts[1] == 'event':
-                    if parts[2] == 'header':
-                        if self._cur_entity < _Entity.STREAM_EVENT_HEADER:
-                            raise ConfigError('invalid path "{}": cannot access stream event header here'.format(path))
-
-                        if self._cur_stream.event_header_type is None:
-                            raise ConfigError('invalid path "{}": no defined stream event header type'.format(path))
-
-                        base = self._cur_stream.event_header_type
-
-                        if self._cur_entity == _Entity.STREAM_EVENT_HEADER:
-                            base_is_current = True
-                    elif parts[2] == 'context':
-                        if self._cur_entity < _Entity.STREAM_EVENT_CONTEXT:
-                            raise ConfigError('invalid path "{}": cannot access stream event context here'.format(path))
-
-                        if self._cur_stream.event_context_type is None:
-                            raise ConfigError('invalid path "{}": no defined stream event context type'.format(path))
-
-                        base = self._cur_stream.event_context_type
-
-                        if self._cur_entity == _Entity.STREAM_EVENT_CONTEXT:
-                            base_is_current = True
-                    else:
-                        raise ConfigError('invalid path "{}": unknown names after "stream.event"'.format(path))
-                else:
-                    raise ConfigError('invalid path "{}": unknown names after "stream"'.format(path))
-
-            if base is not None:
-                start_index = 3
-
-        if len(parts) >= 2 and base is None:
-            if parts[0] == 'event':
-                if parts[1] == 'context':
-                    if self._cur_entity < _Entity.EVENT_CONTEXT:
-                        raise ConfigError('invalid path "{}": cannot access event context here'.format(path))
-
-                    if self._cur_event.context_type is None:
-                        raise ConfigError('invalid path "{}": no defined event context type'.format(path))
-
-                    base = self._cur_event.context_type
-
-                    if self._cur_entity == _Entity.EVENT_CONTEXT:
-                        base_is_current = True
-                elif parts[1] == 'payload' or parts[1] == 'fields':
-                    if self._cur_entity < _Entity.EVENT_PAYLOAD:
-                        raise ConfigError('invalid path "{}": cannot access event payload here'.format(path))
-
-                    if self._cur_event.payload_type is None:
-                        raise ConfigError('invalid path "{}": no defined event payload type'.format(path))
-
-                    base = self._cur_event.payload_type
-
-                    if self._cur_entity == _Entity.EVENT_PAYLOAD:
-                        base_is_current = True
-                else:
-                    raise ConfigError('invalid path "{}": unknown names after "event"'.format(path))
-
-            if base is not None:
-                start_index = 2
-
-        if base is not None:
-            return self._lookup_path_from_base(path, parts, base, start_index,
-                                               base_is_current, from_t)
-        else:
-            return self._lookup_path_from_top(path, parts)
-
-    def _stack_reset(self):
-        self._stack = []
-
-    def _stack_push(self, base_t):
-        entry = _MetadataDynamicTypesValidatorStackEntry(base_t)
-        self._stack.append(entry)
-
-    def _stack_pop(self):
-        self._stack.pop()
-
-    def _stack_incr_index(self):
-        self._stack[-1].index += 1
-
-    def _visit_struct_type(self, t):
-        self._stack_push(t)
-
-        for field_name, field_type in t.fields.items():
-            try:
-                self._visit_type(field_type)
-            except Exception as e:
-                raise ConfigError('in structure type\'s field "{}"'.format(field_name), e)
-
-            self._stack_incr_index()
-
-        self._stack_pop()
-
-    def _visit_array_type(self, t):
-        if t.is_variable_length:
-            # find length type
-            try:
-                length_type = self._lookup_path(t.length, t)
-            except Exception as e:
-                raise ConfigError('invalid array type\'s length', e)
-
-            # make sure length type an unsigned integer
-            if type(length_type) is not metadata.Integer:
-                raise ConfigError('array type\'s length does not point to an integer type')
-
-            if length_type.signed:
-                raise ConfigError('array type\'s length does not point to an unsigned integer type')
-
-        self._visit_type(t.element_type)
-
-    def _visit_variant_type(self, t):
-        # find tag type
-        try:
-            tag_type = self._lookup_path(t.tag, t)
-        except Exception as e:
-            raise ConfigError('invalid variant type\'s tag', e)
-
-        # make sure tag type is an enumeration
-        if type(tag_type) is not metadata.Enum:
-            raise ConfigError('variant type\'s tag does not point to an enumeration type')
-
-        # verify that each variant type's type exists as an enumeration member
-        for tag_name in t.types.keys():
-            if tag_name not in tag_type.members:
-                raise ConfigError('cannot find variant type\'s type "{}" in pointed tag type'.format(tag_name))
-
-        self._stack_push(t)
-
-        for type_name, type_type in t.types.items():
-            try:
-                self._visit_type(type_type)
-            except Exception as e:
-                raise ConfigError('in variant type\'s type "{}"'.format(type_name), e)
-
-            self._stack_incr_index()
-
-        self._stack_pop()
-
-    def _visit_type(self, t):
-        if t is None:
-            return
-
-        if type(t) in self._type_to_visit_type_func:
-            func = self._type_to_visit_type_func[type(t)]
-
-            if func is not None:
-                func(t)
-
-    def _visit_event(self, ev):
-        ev_name = ev.name
-
-        # set current event
-        self._cur_event = ev
-
-        # visit event context type
-        self._stack_reset()
-        self._cur_entity = _Entity.EVENT_CONTEXT
-
-        try:
-            self._visit_type(ev.context_type)
-        except Exception as e:
-            raise ConfigError('invalid context type in event "{}"'.format(ev_name), e)
-
-        # visit event payload type
-        self._stack_reset()
-        self._cur_entity = _Entity.EVENT_PAYLOAD
-
-        try:
-            self._visit_type(ev.payload_type)
-        except Exception as e:
-            raise ConfigError('invalid payload type in event "{}"'.format(ev_name), e)
-
-    def _visit_stream(self, stream):
-        stream_name = stream.name
-
-        # set current stream
-        self._cur_stream = stream
-
-        # reset current event
-        self._cur_event = None
-
-        # visit stream packet context type
-        self._stack_reset()
-        self._cur_entity = _Entity.STREAM_PACKET_CONTEXT
-
-        try:
-            self._visit_type(stream.packet_context_type)
-        except Exception as e:
-            raise ConfigError('invalid packet context type in stream "{}"'.format(stream_name), e)
-
-        # visit stream event header type
-        self._stack_reset()
-        self._cur_entity = _Entity.STREAM_EVENT_HEADER
-
-        try:
-            self._visit_type(stream.event_header_type)
-        except Exception as e:
-            raise ConfigError('invalid event header type in stream "{}"'.format(stream_name), e)
-
-        # visit stream event context type
-        self._stack_reset()
-        self._cur_entity = _Entity.STREAM_EVENT_CONTEXT
-
-        try:
-            self._visit_type(stream.event_context_type)
-        except Exception as e:
-            raise ConfigError('invalid event context type in stream "{}"'.format(stream_name), e)
-
-        # visit events
-        for ev in stream.events.values():
-            try:
-                self._visit_event(ev)
-            except Exception as e:
-                raise ConfigError('invalid stream "{}"'.format(stream_name))
-
-    def validate(self, meta):
-        # set current trace
-        self._cur_trace = meta.trace
-
-        # visit trace packet header type
-        self._stack_reset()
-        self._cur_entity = _Entity.TRACE_PACKET_HEADER
-
-        try:
-            self._visit_type(meta.trace.packet_header_type)
-        except Exception as e:
-            raise ConfigError('invalid packet header type in trace', e)
-
-        # visit streams
-        for stream in meta.streams.values():
-            self._visit_stream(stream)
 
 
 # Since type inheritance allows types to be only partially defined at
@@ -1023,7 +601,6 @@ class _MetadataTypesHistologyValidator:
             metadata.String: self._validate_string_histology,
             metadata.Struct: self._validate_struct_histology,
             metadata.Array: self._validate_array_histology,
-            metadata.Variant: self._validate_variant_histology,
         }
 
     def _validate_integer_histology(self, t):
@@ -1105,22 +682,6 @@ class _MetadataTypesHistologyValidator:
             self._validate_type_histology(t.element_type)
         except Exception as e:
             raise ConfigError('invalid array type\'s element type', e)
-
-    def _validate_variant_histology(self, t):
-        # tag is set
-        if t.tag is None:
-            raise ConfigError('missing variant type\'s tag')
-
-        # there's at least one type
-        if not t.types:
-            raise ConfigError('variant type needs at least one type')
-
-        # all types are valid
-        for type_name, type_t in t.types.items():
-            try:
-                self._validate_type_histology(type_t)
-            except Exception as e:
-                raise ConfigError('invalid variant type\'s type "{}"'.format(type_name), e)
 
     def _validate_type_histology(self, t):
         if t is None:
@@ -1207,8 +768,6 @@ class _YamlConfigParser:
             'struct': self._create_struct,
             'structure': self._create_struct,
             'array': self._create_array,
-            'var': self._create_variant,
-            'variant': self._create_variant,
         }
         self._type_to_create_type_func = {
             metadata.Integer: self._create_integer,
@@ -1217,7 +776,6 @@ class _YamlConfigParser:
             metadata.String: self._create_string,
             metadata.Struct: self._create_struct,
             metadata.Array: self._create_array,
-            metadata.Variant: self._create_variant,
         }
         self._include_dirs = include_dirs
         self._ignore_include_not_found = ignore_include_not_found
@@ -1704,8 +1262,8 @@ class _YamlConfigParser:
         if 'length' in node:
             length = node['length']
 
-            if not _is_int_prop(length) and not _is_str_prop(length):
-                raise ConfigError('"length" property of array type object must be an integer or a string')
+            if not _is_int_prop(length):
+                raise ConfigError('"length" property of array type object must be an integer')
 
             if type(length) is int and length < 0:
                 raise ConfigError('invalid static array length: {}'.format(length))
@@ -1720,50 +1278,6 @@ class _YamlConfigParser:
                 obj.element_type = self._create_type(node['element-type'])
             except Exception as e:
                 raise ConfigError('cannot create array type\'s element type', e)
-
-        return obj
-
-    def _create_variant(self, obj, node):
-        if obj is None:
-            # create variant object
-            obj = metadata.Variant()
-
-        unk_prop = self._get_first_unknown_type_prop(node, [
-            'tag',
-            'types',
-        ])
-
-        if unk_prop:
-            raise ConfigError('unknown variant type object property: "{}"'.format(unk_prop))
-
-        # tag
-        if 'tag' in node:
-            tag = node['tag']
-
-            if not _is_str_prop(tag):
-                raise ConfigError('"tag" property of variant type object must be a string')
-
-            # do not validate variant tag for the moment; will be done in a
-            # second phase
-            obj.tag = tag
-
-        # element type
-        if 'types' in node:
-            types = node['types']
-
-            if not _is_assoc_array_prop(types):
-                raise ConfigError('"types" property of variant type object must be an associative array')
-
-            # do not validate type names for the moment; will be done in a
-            # second phase
-            for type_name, type_node in types.items():
-                if not _is_valid_identifier(type_name):
-                    raise ConfigError('"{}" is not a valid type name for variant type'.format(type_name))
-
-                try:
-                    obj.types[type_name] = self._create_type(type_node)
-                except Exception as e:
-                    raise ConfigError('cannot create variant type\'s type "{}"'.format(type_name), e)
 
         return obj
 

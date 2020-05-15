@@ -121,7 +121,7 @@ def _fill_array_lengths(t, lengths):
         _fill_array_lengths(t.element_type, lengths)
 
 
-def _gen_struct_variant_entry(name, t, cg):
+def _gen_struct_entry(name, t, cg):
     real_t = _find_deepest_array_element_type(t)
     _gen_type(real_t, cg)
     cg.append_to_last_line(' {}'.format(name))
@@ -142,7 +142,7 @@ def _gen_struct(t, cg):
     cg.indent()
 
     for field_name, field_type in t.fields.items():
-        _gen_struct_variant_entry(field_name, field_type, cg)
+        _gen_struct_entry(field_name, field_type, cg)
 
     cg.unindent()
 
@@ -152,28 +152,12 @@ def _gen_struct(t, cg):
     cg.add_line('}} align({})'.format(t.min_align))
 
 
-def _gen_variant(t, cg):
-    cg.add_line('variant <{}> {{'.format(t.tag))
-    cg.indent()
-
-    for type_name, type_type in t.types.items():
-        _gen_struct_variant_entry(type_name, type_type, cg)
-
-    cg.unindent()
-
-    if not t.types:
-        cg.add_glue()
-
-    cg.add_line('}')
-
-
 _type_to_gen_type_func = {
     metadata.Integer: _gen_integer,
     metadata.FloatingPoint: _gen_float,
     metadata.Enum: _gen_enum,
     metadata.String: _gen_string,
     metadata.Struct: _gen_struct,
-    metadata.Variant: _gen_variant,
 }
 
 
