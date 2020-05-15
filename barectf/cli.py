@@ -118,6 +118,9 @@ def run():
     except barectf.config.ConfigError as e:
         _pconfig_error(e)
     except Exception as e:
+        import traceback
+
+        traceback.print_exc()
         _perror('unknown exception: {}'.format(e))
 
     # replace prefix if needed
