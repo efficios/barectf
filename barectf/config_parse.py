@@ -456,6 +456,11 @@ def _get_first_unknown_prop(node, known_props):
         return prop_name
 
 
+def _append_error_ctx(exc, obj_name, msg=None):
+    exc.append_ctx(obj_name, msg)
+    raise
+
+
 # This validator validates the configured metadata for barectf specific
 # needs.
 #
@@ -503,8 +508,7 @@ class _BarectfMetadataValidator:
             try:
                 self._validate_type(field_type, False)
             except ConfigParseError as exc:
-                exc.append_ctx('Structure type\' field "{}"'.format(field_name))
-                raise
+                _append_error_ctx(exc, 'Structure type\' field "{}"'.format(field_name))
 
     def _validate_array_type(self, t, entity_root):
         raise ConfigParseError('Array type', 'Not supported as of this version')
@@ -533,8 +537,7 @@ class _BarectfMetadataValidator:
         try:
             self._validate_entity(meta.trace.packet_header_type)
         except ConfigParseError as exc:
-            exc.append_ctx('Trace', 'Invalid packet header type')
-            raise
+            _append_error_ctx(exc, 'Trace', 'Invalid packet header type')
 
         for stream_name, stream in meta.streams.items():
             if not _is_valid_identifier(stream_name):
@@ -545,27 +548,24 @@ class _BarectfMetadataValidator:
             try:
                 self._validate_entity(stream.packet_context_type)
             except ConfigParseError as exc:
-                exc.append_ctx('Stream "{}"'.format(stream_name),
-                               'Invalid packet context type')
-                raise
+                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name),
+                                  'Invalid packet context type')
 
             self._cur_entity = _Entity.STREAM_EVENT_HEADER
 
             try:
                 self._validate_entity(stream.event_header_type)
             except ConfigParseError as exc:
-                exc.append_ctx('Stream "{}"'.format(stream_name),
-                               'Invalid event header type')
-                raise
+                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name),
+                                  'Invalid event header type')
 
             self._cur_entity = _Entity.STREAM_EVENT_CONTEXT
 
             try:
                 self._validate_entity(stream.event_context_type)
             except ConfigParseError as exc:
-                exc.append_ctx('Stream "{}"'.format(stream_name),
-                               'Invalid event context type'.format(stream_name))
-                raise
+                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name),
+                                  'Invalid event context type'.format(stream_name))
 
             try:
                 for ev_name, ev in stream.events.items():
@@ -578,24 +578,21 @@ class _BarectfMetadataValidator:
                     try:
                         self._validate_entity(ev.context_type)
                     except ConfigParseError as exc:
-                        exc.append_ctx('Event "{}"'.format(ev_name),
-                                       'Invalid context type')
-                        raise
+                        _append_error_ctx(exc, 'Event "{}"'.format(ev_name),
+                                          'Invalid context type')
 
                     self._cur_entity = _Entity.EVENT_PAYLOAD
 
                     try:
                         self._validate_entity(ev.payload_type)
                     except ConfigParseError as exc:
-                        exc.append_ctx('Event "{}"'.format(ev_name),
-                                       'Invalid payload type')
-                        raise
+                        _append_error_ctx(exc, 'Event "{}"'.format(ev_name),
+                                          'Invalid payload type')
 
                     if stream.is_event_empty(ev):
                         raise ConfigParseError('Event "{}"'.format(ev_name), 'Empty')
             except ConfigParseError as exc:
-                exc.append_ctx('Stream "{}"'.format(stream_name))
-                raise
+                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name))
 
     def _validate_default_stream(self, meta):
         if meta.default_stream_name:
@@ -866,8 +863,7 @@ class _MetadataSpecialFieldsValidator:
             try:
                 self._validate_stream(stream)
             except ConfigParseError as exc:
-                exc.append_ctx('Stream "{}"'.format(stream.name), 'Invalid')
-                raise
+                _append_error_ctx(exc, 'Stream "{}"'.format(stream.name), 'Invalid')
 
 
 # Entities. Order of values is important here.
@@ -966,8 +962,7 @@ class _MetadataTypesHistologyValidator:
             try:
                 self._validate_type_histology(field_type)
             except ConfigParseError as exc:
-                exc.append_ctx('Structure type\'s field "{}"'.format(field_name))
-                raise
+                _append_error_ctx(exc, 'Structure type\'s field "{}"'.format(field_name))
 
     def _validate_array_histology(self, t):
         # length is set
@@ -982,8 +977,7 @@ class _MetadataTypesHistologyValidator:
         try:
             self._validate_type_histology(t.element_type)
         except ConfigParseError as exc:
-            exc.append_ctx('Array type', 'Invalid element type')
-            raise
+            _append_error_ctx(exc, 'Array type', 'Invalid element type')
 
     def _validate_type_histology(self, t):
         if t is None:
@@ -1007,17 +1001,15 @@ class _MetadataTypesHistologyValidator:
         try:
             self._validate_entity_type_histology(ev.context_type)
         except ConfigParseError as exc:
-            exc.append_ctx('Event "{}"'.format(ev.name),
-                           'Invalid context type')
-            raise
+            _append_error_ctx(exc, 'Event "{}"'.format(ev.name),
+                              'Invalid context type')
 
         # validate event payload type
         try:
             self._validate_entity_type_histology(ev.payload_type)
         except ConfigParseError as exc:
-            exc.append_ctx('Event "{}"'.format(ev.name),
-                           'Invalid payload type')
-            raise
+            _append_error_ctx(exc, 'Event "{}"'.format(ev.name),
+                              'Invalid payload type')
 
     def _validate_stream_types_histology(self, stream):
         stream_name = stream.name
@@ -1026,42 +1018,37 @@ class _MetadataTypesHistologyValidator:
         try:
             self._validate_entity_type_histology(stream.packet_context_type)
         except ConfigParseError as exc:
-            exc.append_ctx('Stream "{}"'.format(stream_name),
-                           'Invalid packet context type')
-            raise
+            _append_error_ctx(exc, 'Stream "{}"'.format(stream_name),
+                              'Invalid packet context type')
 
         # validate stream event header type
         try:
             self._validate_entity_type_histology(stream.event_header_type)
         except ConfigParseError as exc:
-            exc.append_ctx('Stream "{}"'.format(stream_name),
-                           'Invalid event header type')
-            raise
+            _append_error_ctx(exc, 'Stream "{}"'.format(stream_name),
+                              'Invalid event header type')
 
         # validate stream event context type
         try:
             self._validate_entity_type_histology(stream.event_context_type)
         except ConfigParseError as exc:
-            exc.append_ctx('Stream "{}"'.format(stream_name),
-                           'Invalid event context type')
-            raise
+            _append_error_ctx(exc, 'Stream "{}"'.format(stream_name),
+                              'Invalid event context type')
 
         # validate events
         for ev in stream.events.values():
             try:
                 self._validate_event_types_histology(ev)
             except ConfigParseError as exc:
-                exc.append_ctx('Stream "{}"'.format(stream_name),
-                               'Invalid event')
-                raise
+                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name),
+                                  'Invalid event')
 
     def validate(self, meta):
         # validate trace packet header type
         try:
             self._validate_entity_type_histology(meta.trace.packet_header_type)
         except ConfigParseError as exc:
-            exc.append_ctx('Metadata\'s trace', 'Invalid packet header type')
-            raise
+            _append_error_ctx(exc, 'Metadata\'s trace', 'Invalid packet header type')
 
         # validate streams
         for stream in meta.streams.values():
@@ -1454,8 +1441,7 @@ class _YamlConfigParser:
             try:
                 obj.value_type = self._create_type(value_type_node)
             except ConfigParseError as exc:
-                exc.append_ctx('Enumeration type', 'Cannot create integer type')
-                raise
+                _append_error_ctx(exc, 'Enumeration type', 'Cannot create integer type')
 
         # members
         if 'members' in node:
@@ -1618,9 +1604,8 @@ class _YamlConfigParser:
                     try:
                         obj.fields[field_name] = self._create_type(field_node)
                     except ConfigParseError as exc:
-                        exc.append_ctx('Structure type',
-                                       'Cannot create field "{}"'.format(field_name))
-                        raise
+                        _append_error_ctx(exc, 'Structure type',
+                                          'Cannot create field "{}"'.format(field_name))
 
         return obj
 
@@ -1659,8 +1644,7 @@ class _YamlConfigParser:
             try:
                 obj.element_type = self._create_type(node['element-type'])
             except ConfigParseError as exc:
-                exc.append_ctx('Array type', 'Cannot create element type')
-                raise
+                _append_error_ctx(exc, 'Array type', 'Cannot create element type')
 
         return obj
 
@@ -1755,9 +1739,8 @@ class _YamlConfigParser:
             try:
                 t = self._create_type(ta_type)
             except ConfigParseError as exc:
-                exc.append_ctx('Metadata',
-                               'Cannot create type alias "{}"'.format(ta_name))
-                raise
+                _append_error_ctx(exc, 'Metadata',
+                                  'Cannot create type alias "{}"'.format(ta_name))
 
             self._tas[ta_name] = t
 
@@ -1976,9 +1959,8 @@ class _YamlConfigParser:
             try:
                 clock = self._create_clock(clock_node)
             except ConfigParseError as exc:
-                exc.append_ctx('Metadata',
-                               'Cannot create clock "{}"'.format(clock_name))
-                raise
+                _append_error_ctx(exc, 'Metadata',
+                                  'Cannot create clock "{}"'.format(clock_name))
 
             clock.name = clock_name
             self._clocks[clock_name] = clock
@@ -2109,9 +2091,8 @@ class _YamlConfigParser:
             try:
                 ph_type = self._create_type(trace_node['packet-header-type'])
             except ConfigParseError as exc:
-                exc.append_ctx('Trace',
-                               'Cannot create packet header type')
-                raise
+                _append_error_ctx(exc, 'Trace',
+                                  'Cannot create packet header type')
 
             trace.packet_header_type = ph_type
 
@@ -2168,9 +2149,8 @@ class _YamlConfigParser:
             try:
                 t = self._create_type(event_node['context-type'])
             except ConfigParseError as exc:
-                exc.append_ctx('Event',
-                               'Cannot create context type object')
-                raise
+                _append_error_ctx(exc, 'Event',
+                                  'Cannot create context type object')
 
             event.context_type = t
 
@@ -2178,9 +2158,8 @@ class _YamlConfigParser:
             try:
                 t = self._create_type(event_node['payload-type'])
             except ConfigParseError as exc:
-                exc.append_ctx('Event',
-                               'Cannot create payload type object')
-                raise
+                _append_error_ctx(exc, 'Event',
+                                  'Cannot create payload type object')
 
             event.payload_type = t
 
@@ -2217,9 +2196,8 @@ class _YamlConfigParser:
             try:
                 t = self._create_type(stream_node['packet-context-type'])
             except ConfigParseError as exc:
-                exc.append_ctx('Stream',
-                               'Cannot create packet context type object')
-                raise
+                _append_error_ctx(exc, 'Stream',
+                                  'Cannot create packet context type object')
 
             stream.packet_context_type = t
 
@@ -2227,9 +2205,8 @@ class _YamlConfigParser:
             try:
                 t = self._create_type(stream_node['event-header-type'])
             except ConfigParseError as exc:
-                exc.append_ctx('Stream',
-                               'Cannot create event header type object')
-                raise
+                _append_error_ctx(exc, 'Stream',
+                                  'Cannot create event header type object')
 
             stream.event_header_type = t
 
@@ -2237,9 +2214,8 @@ class _YamlConfigParser:
             try:
                 t = self._create_type(stream_node['event-context-type'])
             except ConfigParseError as exc:
-                exc.append_ctx('Stream',
-                               'Cannot create event context type object')
-                raise
+                _append_error_ctx(exc, 'Stream',
+                                  'Cannot create event context type object')
 
             stream.event_context_type = t
 
@@ -2262,9 +2238,8 @@ class _YamlConfigParser:
                 try:
                     ev = self._create_event(ev_node)
                 except ConfigParseError as exc:
-                    exc.append_ctx('Stream',
-                                   'Cannot create event "{}"'.format(ev_name))
-                    raise
+                    _append_error_ctx(exc, 'Stream',
+                                      'Cannot create event "{}"'.format(ev_name))
 
                 ev.id = cur_id
                 ev.name = ev_name
@@ -2311,9 +2286,8 @@ class _YamlConfigParser:
             try:
                 stream = self._create_stream(stream_name, stream_node)
             except ConfigParseError as exc:
-                exc.append_ctx('Metadata',
-                               'Cannot create stream "{}"'.format(stream_name))
-                raise
+                _append_error_ctx(exc, 'Metadata',
+                                  'Cannot create stream "{}"'.format(stream_name))
 
             stream.id = cur_id
             stream.name = str(stream_name)
@@ -2389,15 +2363,13 @@ class _YamlConfigParser:
             validator = _MetadataSpecialFieldsValidator()
             validator.validate(self._meta)
         except ConfigParseError as exc:
-            exc.append_ctx('Metadata')
-            raise
+            _append_error_ctx(exc, 'Metadata')
 
         try:
             validator = _BarectfMetadataValidator()
             validator.validate(self._meta)
         except ConfigParseError as exc:
-            exc.append_ctx('barectf metadata')
-            raise
+            _append_error_ctx(exc, 'barectf metadata')
 
         return self._meta
 
@@ -2602,8 +2574,7 @@ class _YamlConfigParser:
             try:
                 overlay_node = process_base_include_cb(overlay_node)
             except ConfigParseError as exc:
-                exc.append_ctx('In "{}"'.format(cur_base_path))
-                raise
+                _append_error_ctx(exc, 'In "{}"'.format(cur_base_path))
 
             # pop include stack now that we're done including
             del self._include_stack[-1]
@@ -2647,9 +2618,8 @@ class _YamlConfigParser:
                     try:
                         events_node[key] = self._process_event_include(event_node)
                     except ConfigParseError as exc:
-                        exc.append_ctx('"$include" property',
-                                       'Cannot process includes of event object "{}"'.format(key))
-                        raise
+                        _append_error_ctx(exc, '"$include" property',
+                                          'Cannot process includes of event object "{}"'.format(key))
 
         return self._process_node_include(stream_node, 'stream',
                                           self._process_stream_include,
@@ -2683,9 +2653,8 @@ class _YamlConfigParser:
                     try:
                         clocks_node[key] = self._process_clock_include(clock_node)
                     except ConfigParseError as exc:
-                        exc.append_ctx('"$include" property',
-                                       'Cannot process includes of clock object "{}"'.format(key))
-                        raise
+                        _append_error_ctx(exc, '"$include" property',
+                                          'Cannot process includes of clock object "{}"'.format(key))
 
             if 'streams' in metadata_node:
                 streams_node = metadata_node['streams']
@@ -2702,9 +2671,8 @@ class _YamlConfigParser:
                     try:
                         streams_node[key] = self._process_stream_include(stream_node)
                     except ConfigParseError as exc:
-                        exc.append_ctx('"$include" property',
-                                       'Cannot process includes of stream object "{}"'.format(key))
-                        raise
+                        _append_error_ctx(exc, '"$include" property',
+                                          'Cannot process includes of stream object "{}"'.format(key))
 
         return self._process_node_include(metadata_node, 'metadata',
                                           self._process_metadata_include,
@@ -2764,9 +2732,8 @@ class _YamlConfigParser:
             raise ConfigParseError('Configuration',
                                    'Cannot open file "{}"'.format(yaml_path))
         except ConfigParseError as exc:
-            exc.append_ctx('Configuration',
-                           'Unknown error while trying to load file "{}"'.format(yaml_path))
-            raise
+            _append_error_ctx(exc, 'Configuration',
+                              'Unknown error while trying to load file "{}"'.format(yaml_path))
 
         # loaded node must be an associate array
         if not _is_assoc_array_prop(node):
@@ -2786,9 +2753,8 @@ class _YamlConfigParser:
         try:
             root = self._yaml_ordered_load(yaml_path)
         except ConfigParseError as exc:
-            exc.append_ctx('Configuration',
-                           'Cannot parse YAML file "{}"'.format(yaml_path))
-            raise
+            _append_error_ctx(exc, 'Configuration',
+                              'Cannot parse YAML file "{}"'.format(yaml_path))
 
         if not _is_assoc_array_prop(root):
             raise ConfigParseError('Configuration',
@@ -2840,6 +2806,5 @@ def _from_file(path, include_dirs, ignore_include_not_found, dump_config):
                                    dump_config)
         return parser.parse(path)
     except ConfigParseError as exc:
-        exc.append_ctx('Configuration',
-                       'Cannot create configuration from YAML file "{}"'.format(path))
-        raise
+        _append_error_ctx(exc, 'Configuration',
+                          'Cannot create configuration from YAML file "{}"'.format(path))
