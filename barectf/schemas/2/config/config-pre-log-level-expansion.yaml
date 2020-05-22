@@ -1,0 +1,84 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2020 Philippe Proulx <pproulx@efficios.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+$schema: http://json-schema.org/draft-07/schema#
+$id: https://barectf.org/schemas/2/config/config-pre-log-level-expansion.json
+title: Configuration object before log level expansions
+definitions:
+  opt-log-levels:
+    title: Log level values object
+    oneOf:
+      - type: object
+        patternProperties:
+          '':
+            type: integer
+            minimum: 0
+      - type: 'null'
+type: object
+properties:
+  metadata:
+    title: Metadata object before log level expansions
+    type: object
+    oneOf:
+      - required:
+          - $log-levels
+      - required:
+          - log-levels
+      - allOf:
+          - not:
+              required:
+                - $log-levels
+          - not:
+              required:
+                - log-levels
+    properties:
+      $log-levels:
+        $ref: '#/definitions/opt-log-levels'
+      log-levels:
+        $ref: '#/definitions/opt-log-levels'
+      streams:
+        title: Streams object before log level expansions
+        type: object
+        patternProperties:
+          '':
+            title: Stream object before log level expansions
+            type: object
+            properties:
+              events:
+                type: object
+                patternProperties:
+                  '':
+                    type: object
+                    properties:
+                      log-level:
+                        oneOf:
+                          - type: string
+                          - type: integer
+                            minimum: 0
+                          - type: 'null'
+            required:
+              - events
+    required:
+      - streams
+required:
+  - metadata

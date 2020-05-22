@@ -1,0 +1,109 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2020 Philippe Proulx <pproulx@efficios.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+$schema: http://json-schema.org/draft-07/schema#
+$id: https://barectf.org/schemas/2/config/config-pre-field-type-expansion.json
+title: Configuration object before field type expansions
+definitions:
+  partial-field-type:
+    title: Partial field type object
+    oneOf:
+      - type: string
+      - type: object
+        allOf:
+          - oneOf:
+            - properties:
+                class:
+                  type: string
+              required:
+                - class
+            - properties:
+                inherit:
+                  type: string
+              required:
+                - inherit
+            - properties:
+                $inherit:
+                  type: string
+              required:
+                - $inherit
+          - properties:
+              value-type:
+                $ref: '#/definitions/partial-field-type'
+              element-type:
+                $ref: '#/definitions/partial-field-type'
+              fields:
+                type: object
+                patternProperties:
+                  '':
+                    $ref: '#/definitions/partial-field-type'
+      - type: 'null'
+type: object
+properties:
+  metadata:
+    title: Metadata object before field type expansions
+    type: object
+    properties:
+      type-aliases:
+        title: Type aliases object before field type expansions
+        type: object
+        patternProperties:
+          '':
+            $ref: '#/definitions/partial-field-type'
+      trace:
+        title: Trace object before field type expansions
+        type: object
+        properties:
+          packet-header-type:
+            $ref: '#/definitions/partial-field-type'
+      streams:
+        title: Streams object before field type expansions
+        type: object
+        patternProperties:
+          '':
+            title: Stream object before field type expansions
+            type: object
+            properties:
+              packet-context-type:
+                $ref: '#/definitions/partial-field-type'
+              event-header-type:
+                $ref: '#/definitions/partial-field-type'
+              event-context-type:
+                $ref: '#/definitions/partial-field-type'
+              events:
+                type: object
+                patternProperties:
+                  '':
+                    type: object
+                    properties:
+                      context-type:
+                        $ref: '#/definitions/partial-field-type'
+                      payload-type:
+                        $ref: '#/definitions/partial-field-type'
+            required:
+              - events
+    required:
+      - trace
+      - streams
+required:
+  - metadata
