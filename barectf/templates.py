@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2015-2016 Philippe Proulx <pproulx@efficios.com>
+# Copyright (c) 2015-2020 Philippe Proulx <pproulx@efficios.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -320,7 +320,7 @@ _HEADER_BEGIN = '''#ifndef _{ucprefix}H
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2016 Philippe Proulx <pproulx@efficios.com>
+ * Copyright (c) 2015-2020 Philippe Proulx <pproulx@efficios.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -388,7 +388,7 @@ _HEADER_END = '''#ifdef __cplusplus
 _C_SRC = '''/*
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2016 Philippe Proulx <pproulx@efficios.com>
+ * Copyright (c) 2015-2020 Philippe Proulx <pproulx@efficios.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -600,7 +600,7 @@ _BITFIELD = '''#ifndef _$PREFIX$BITFIELD_H
  *
  * Bitfields read/write functions.
  *
- * Copyright 2010 - Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+ * Copyright (c) 2010-2020 Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
