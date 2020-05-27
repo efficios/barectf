@@ -89,11 +89,11 @@ def _parse_args():
     # validate output directories
     for d in [args.code_dir, args.headers_dir, args.metadata_dir] + args.include_dir:
         if not os.path.isdir(d):
-            _perror('"{}" is not an existing directory'.format(d))
+            _perror('`{}` is not an existing directory'.format(d))
 
     # validate that configuration file exists
     if not os.path.isfile(args.config):
-        _perror('"{}" is not an existing, regular file'.format(args.config))
+        _perror('`{}` is not an existing, regular file'.format(args.config))
 
     # append current working directory and provided include directory
     args.include_dir += [os.getcwd(), resource_filename(__name__, 'include')]

@@ -326,7 +326,7 @@ class _Metadata(_PseudoObj):
 class _RefResolver(jsonschema.RefResolver):
     def resolve_remote(self, uri):
         # this must never happen: all our schemas are local
-        raise RuntimeError('Missing local schema with URI "{}"'.format(uri))
+        raise RuntimeError('Missing local schema with URI `{}`'.format(uri))
 
 
 # Schema validator which considers all the schemas found in the barectf
@@ -406,7 +406,7 @@ class _SchemaValidator:
         except jsonschema.ValidationError as exc:
             # convert to barectf `ConfigParseError` exception
             contexts = ['Configuration object']
-            contexts += ['"{}" property'.format(p) for p in exc.absolute_path]
+            contexts += ['`{}` property'.format(p) for p in exc.absolute_path]
             schema_ctx = ''
 
             if len(exc.context) > 0:
@@ -414,7 +414,7 @@ class _SchemaValidator:
                 schema_ctx = ': {}'.format(msgs)
 
             new_exc = ConfigParseError(contexts.pop(),
-                                       '{}{} (from schema "{}")'.format(exc.message,
+                                       '{}{} (from schema `{}`)'.format(exc.message,
                                                                         schema_ctx,
                                                                         schema_short_id))
 
@@ -465,7 +465,7 @@ def _validate_identifier(iden, ctx_obj_name, prop):
     }
 
     if iden in ctf_keywords:
-        fmt = 'Invalid {} (not a valid identifier): "{}"'
+        fmt = 'Invalid {} (not a valid identifier): `{}`'
         raise ConfigParseError(ctx_obj_name, fmt.format(prop, iden))
 
 
@@ -523,7 +523,7 @@ class _BarectfMetadataValidator:
             try:
                 self._validate_type(field_type, False)
             except ConfigParseError as exc:
-                _append_error_ctx(exc, 'Structure type\'s field "{}"'.format(field_name))
+                _append_error_ctx(exc, 'Structure type\'s field `{}`'.format(field_name))
 
     def _validate_array_type(self, t, entity_root):
         raise ConfigParseError('Array type', 'Not supported as of this version')
@@ -563,7 +563,7 @@ class _BarectfMetadataValidator:
             try:
                 self._validate_entity(stream.packet_context_type)
             except ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name),
+                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name),
                                   'Invalid packet context type')
 
             self._cur_entity = _Entity.STREAM_EVENT_HEADER
@@ -571,7 +571,7 @@ class _BarectfMetadataValidator:
             try:
                 self._validate_entity(stream.event_header_type)
             except ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name),
+                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name),
                                   'Invalid event header type')
 
             self._cur_entity = _Entity.STREAM_EVENT_CONTEXT
@@ -579,13 +579,13 @@ class _BarectfMetadataValidator:
             try:
                 self._validate_entity(stream.event_context_type)
             except ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name),
+                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name),
                                   'Invalid event context type'.format(stream_name))
 
             try:
                 for ev_name, ev in stream.events.items():
                     _validate_identifier(ev_name,
-                                         'Stream "{}"'.format(stream_name),
+                                         'Stream `{}`'.format(stream_name),
                                          'event name')
 
                     self._cur_entity = _Entity.EVENT_CONTEXT
@@ -593,7 +593,7 @@ class _BarectfMetadataValidator:
                     try:
                         self._validate_entity(ev.context_type)
                     except ConfigParseError as exc:
-                        _append_error_ctx(exc, 'Event "{}"'.format(ev_name),
+                        _append_error_ctx(exc, 'Event `{}`'.format(ev_name),
                                           'Invalid context type')
 
                     self._cur_entity = _Entity.EVENT_PAYLOAD
@@ -601,18 +601,18 @@ class _BarectfMetadataValidator:
                     try:
                         self._validate_entity(ev.payload_type)
                     except ConfigParseError as exc:
-                        _append_error_ctx(exc, 'Event "{}"'.format(ev_name),
+                        _append_error_ctx(exc, 'Event `{}`'.format(ev_name),
                                           'Invalid payload type')
 
                     if stream.is_event_empty(ev):
-                        raise ConfigParseError('Event "{}"'.format(ev_name), 'Empty')
+                        raise ConfigParseError('Event `{}`'.format(ev_name), 'Empty')
             except ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name))
+                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name))
 
     def _validate_default_stream(self, meta):
         if meta.default_stream_name:
             if meta.default_stream_name not in meta.streams.keys():
-                fmt = 'Default stream name ("{}") does not exist'
+                fmt = 'Default stream name (`{}`) does not exist'
                 raise ConfigParseError('barectf metadata',
                                        fmt.format(meta.default_stream_name))
 
@@ -624,85 +624,85 @@ class _BarectfMetadataValidator:
 # This validator validates special fields of trace, stream, and event
 # types.
 #
-# For example, it checks that the "stream_id" field exists in the trace
+# For example, it checks that the `stream_id` field exists in the trace
 # packet header if there's more than one stream, and much more.
 class _MetadataSpecialFieldsValidator:
     def _validate_trace_packet_header_type(self, t):
-        # needs "stream_id" field?
+        # needs `stream_id` field?
         if len(self._meta.streams) > 1:
             # yes
             if t is None:
-                raise ConfigParseError('"packet-header-type" property',
-                                       'Need "stream_id" field (more than one stream), but trace packet header type is missing')
+                raise ConfigParseError('`packet-header-type` property',
+                                       'Need `stream_id` field (more than one stream), but trace packet header type is missing')
 
             if type(t) is not _Struct:
-                raise ConfigParseError('"packet-header-type" property',
-                                       'Need "stream_id" field (more than one stream), but trace packet header type is not a structure type')
+                raise ConfigParseError('`packet-header-type` property',
+                                       'Need `stream_id` field (more than one stream), but trace packet header type is not a structure type')
 
             if 'stream_id' not in t.fields:
-                raise ConfigParseError('"packet-header-type" property',
-                                       'Need "stream_id" field (more than one stream)')
+                raise ConfigParseError('`packet-header-type` property',
+                                       'Need `stream_id` field (more than one stream)')
 
-        # validate "magic" and "stream_id" types
+        # validate `magic` and `stream_id` types
         if type(t) is not _Struct:
             return
 
         for i, (field_name, field_type) in enumerate(t.fields.items()):
             if field_name == 'magic':
                 if type(field_type) is not _Integer:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"magic" field must be an integer type')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`magic` field must be an integer type')
 
                 if field_type.signed or field_type.size != 32:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"magic" field must be a 32-bit unsigned integer type')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`magic` field must be a 32-bit unsigned integer type')
 
                 if i != 0:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"magic" field must be the first trace packet header type\'s field')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`magic` field must be the first trace packet header type\'s field')
             elif field_name == 'stream_id':
                 if type(field_type) is not _Integer:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"stream_id" field must be an integer type')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`stream_id` field must be an integer type')
 
                 if field_type.signed:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"stream_id" field must be an unsigned integer type')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`stream_id` field must be an unsigned integer type')
 
-                # "id" size can fit all event IDs
+                # `id` size can fit all event IDs
                 if len(self._meta.streams) > (1 << field_type.size):
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"stream_id" field\' size is too small for the number of trace streams')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`stream_id` field\' size is too small for the number of trace streams')
             elif field_name == 'uuid':
                 if self._meta.trace.uuid is None:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"uuid" field specified, but no trace UUID provided')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`uuid` field specified, but no trace UUID provided')
 
                 if type(field_type) is not _Array:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"uuid" field must be an array')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`uuid` field must be an array')
 
                 if field_type.length != 16:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"uuid" field must be an array of 16 bytes')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`uuid` field must be an array of 16 bytes')
 
                 element_type = field_type.element_type
 
                 if type(element_type) is not _Integer:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"uuid" field must be an array of 16 unsigned bytes')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`uuid` field must be an array of 16 unsigned bytes')
 
                 if element_type.size != 8:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"uuid" field must be an array of 16 unsigned bytes')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`uuid` field must be an array of 16 unsigned bytes')
 
                 if element_type.signed:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"uuid" field must be an array of 16 unsigned bytes')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`uuid` field must be an array of 16 unsigned bytes')
 
                 if element_type.real_align != 8:
-                    raise ConfigParseError('"packet-header-type" property',
-                                           '"uuid" field must be an array of 16 unsigned, byte-aligned bytes')
+                    raise ConfigParseError('`packet-header-type` property',
+                                           '`uuid` field must be an array of 16 unsigned, byte-aligned bytes')
 
     def _validate_trace(self, meta):
         self._validate_trace_packet_header_type(meta.trace.packet_header_type)
@@ -712,13 +712,13 @@ class _MetadataSpecialFieldsValidator:
 
         if type(t) is None:
             raise ConfigParseError('Stream',
-                                   'Missing "packet-context-type" property')
+                                   'Missing `packet-context-type` property')
 
         if type(t) is not _Struct:
-            raise ConfigParseError('"packet-context-type" property',
+            raise ConfigParseError('`packet-context-type` property',
                                    'Expecting a structure type')
 
-        # "timestamp_begin", if exists, is an unsigned integer type,
+        # `timestamp_begin`, if exists, is an unsigned integer type,
         # mapped to a clock
         ts_begin = None
 
@@ -726,18 +726,18 @@ class _MetadataSpecialFieldsValidator:
             ts_begin = t.fields['timestamp_begin']
 
             if type(ts_begin) is not _Integer:
-                raise ConfigParseError('"packet-context-type" property',
-                                       '"timestamp_begin" field must be an integer type')
+                raise ConfigParseError('`packet-context-type` property',
+                                       '`timestamp_begin` field must be an integer type')
 
             if ts_begin.signed:
-                raise ConfigParseError('"packet-context-type" property',
-                                       '"timestamp_begin" field must be an unsigned integer type')
+                raise ConfigParseError('`packet-context-type` property',
+                                       '`timestamp_begin` field must be an unsigned integer type')
 
             if not ts_begin.property_mappings:
-                raise ConfigParseError('"packet-context-type" property',
-                                       '"timestamp_begin" field must be mapped to a clock')
+                raise ConfigParseError('`packet-context-type` property',
+                                       '`timestamp_begin` field must be mapped to a clock')
 
-        # "timestamp_end", if exists, is an unsigned integer type,
+        # `timestamp_end`, if exists, is an unsigned integer type,
         # mapped to a clock
         ts_end = None
 
@@ -745,130 +745,130 @@ class _MetadataSpecialFieldsValidator:
             ts_end = t.fields['timestamp_end']
 
             if type(ts_end) is not _Integer:
-                raise ConfigParseError('"packet-context-type" property',
-                                       '"timestamp_end" field must be an integer type')
+                raise ConfigParseError('`packet-context-type` property',
+                                       '`timestamp_end` field must be an integer type')
 
             if ts_end.signed:
-                raise ConfigParseError('"packet-context-type" property',
-                                       '"timestamp_end" field must be an unsigned integer type')
+                raise ConfigParseError('`packet-context-type` property',
+                                       '`timestamp_end` field must be an unsigned integer type')
 
             if not ts_end.property_mappings:
-                raise ConfigParseError('"packet-context-type" property',
-                                       '"timestamp_end" field must be mapped to a clock')
+                raise ConfigParseError('`packet-context-type` property',
+                                       '`timestamp_end` field must be mapped to a clock')
 
-        # "timestamp_begin" and "timestamp_end" exist together
+        # `timestamp_begin` and `timestamp_end` exist together
         if (('timestamp_begin' in t.fields) ^ ('timestamp_end' in t.fields)):
-            raise ConfigParseError('"timestamp_begin" and "timestamp_end" fields must be defined together in stream packet context type')
+            raise ConfigParseError('`timestamp_begin` and `timestamp_end` fields must be defined together in stream packet context type')
 
-        # "timestamp_begin" and "timestamp_end" are mapped to the same clock
+        # `timestamp_begin` and `timestamp_end` are mapped to the same clock
         if ts_begin is not None and ts_end is not None:
             if ts_begin.property_mappings[0].object.name != ts_end.property_mappings[0].object.name:
-                raise ConfigParseError('"timestamp_begin" and "timestamp_end" fields must be mapped to the same clock object in stream packet context type')
+                raise ConfigParseError('`timestamp_begin` and `timestamp_end` fields must be mapped to the same clock object in stream packet context type')
 
-        # "events_discarded", if exists, is an unsigned integer type
+        # `events_discarded`, if exists, is an unsigned integer type
         if 'events_discarded' in t.fields:
             events_discarded = t.fields['events_discarded']
 
             if type(events_discarded) is not _Integer:
-                raise ConfigParseError('"packet-context-type" property',
-                                       '"events_discarded" field must be an integer type')
+                raise ConfigParseError('`packet-context-type` property',
+                                       '`events_discarded` field must be an integer type')
 
             if events_discarded.signed:
-                raise ConfigParseError('"packet-context-type" property',
-                                       '"events_discarded" field must be an unsigned integer type')
+                raise ConfigParseError('`packet-context-type` property',
+                                       '`events_discarded` field must be an unsigned integer type')
 
-        # "packet_size" and "content_size" must exist
+        # `packet_size` and `content_size` must exist
         if 'packet_size' not in t.fields:
-            raise ConfigParseError('"packet-context-type" property',
-                                   'Missing "packet_size" field in stream packet context type')
+            raise ConfigParseError('`packet-context-type` property',
+                                   'Missing `packet_size` field in stream packet context type')
 
         packet_size = t.fields['packet_size']
 
-        # "content_size" and "content_size" must exist
+        # `content_size` and `content_size` must exist
         if 'content_size' not in t.fields:
-            raise ConfigParseError('"packet-context-type" property',
-                                   'Missing "content_size" field in stream packet context type')
+            raise ConfigParseError('`packet-context-type` property',
+                                   'Missing `content_size` field in stream packet context type')
 
         content_size = t.fields['content_size']
 
-        # "packet_size" is an unsigned integer type
+        # `packet_size` is an unsigned integer type
         if type(packet_size) is not _Integer:
-            raise ConfigParseError('"packet-context-type" property',
-                                   '"packet_size" field in stream packet context type must be an integer type')
+            raise ConfigParseError('`packet-context-type` property',
+                                   '`packet_size` field in stream packet context type must be an integer type')
 
         if packet_size.signed:
-            raise ConfigParseError('"packet-context-type" property',
-                                   '"packet_size" field in stream packet context type must be an unsigned integer type')
+            raise ConfigParseError('`packet-context-type` property',
+                                   '`packet_size` field in stream packet context type must be an unsigned integer type')
 
-        # "content_size" is an unsigned integer type
+        # `content_size` is an unsigned integer type
         if type(content_size) is not _Integer:
-            raise ConfigParseError('"packet-context-type" property',
-                                   '"content_size" field in stream packet context type must be an integer type')
+            raise ConfigParseError('`packet-context-type` property',
+                                   '`content_size` field in stream packet context type must be an integer type')
 
         if content_size.signed:
-            raise ConfigParseError('"packet-context-type" property',
-                                   '"content_size" field in stream packet context type must be an unsigned integer type')
+            raise ConfigParseError('`packet-context-type` property',
+                                   '`content_size` field in stream packet context type must be an unsigned integer type')
 
-        # "packet_size" size should be greater than or equal to "content_size" size
+        # `packet_size` size should be greater than or equal to `content_size` size
         if content_size.size > packet_size.size:
-            raise ConfigParseError('"packet-context-type" property',
-                                   '"content_size" field size must be lesser than or equal to "packet_size" field size')
+            raise ConfigParseError('`packet-context-type` property',
+                                   '`content_size` field size must be lesser than or equal to `packet_size` field size')
 
     def _validate_stream_event_header(self, stream):
         t = stream.event_header_type
 
-        # needs "id" field?
+        # needs `id` field?
         if len(stream.events) > 1:
             # yes
             if t is None:
-                raise ConfigParseError('"event-header-type" property',
-                                       'Need "id" field (more than one event), but stream event header type is missing')
+                raise ConfigParseError('`event-header-type` property',
+                                       'Need `id` field (more than one event), but stream event header type is missing')
 
             if type(t) is not _Struct:
-                raise ConfigParseError('"event-header-type" property',
-                                       'Need "id" field (more than one event), but stream event header type is not a structure type')
+                raise ConfigParseError('`event-header-type` property',
+                                       'Need `id` field (more than one event), but stream event header type is not a structure type')
 
             if 'id' not in t.fields:
-                raise ConfigParseError('"event-header-type" property',
-                                       'Need "id" field (more than one event)')
+                raise ConfigParseError('`event-header-type` property',
+                                       'Need `id` field (more than one event)')
 
-        # validate "id" and "timestamp" types
+        # validate `id` and `timestamp` types
         if type(t) is not _Struct:
             return
 
-        # "timestamp", if exists, is an unsigned integer type,
+        # `timestamp`, if exists, is an unsigned integer type,
         # mapped to a clock
         if 'timestamp' in t.fields:
             ts = t.fields['timestamp']
 
             if type(ts) is not _Integer:
-                raise ConfigParseError('"event-header-type" property',
-                                       '"timestamp" field must be an integer type')
+                raise ConfigParseError('`event-header-type` property',
+                                       '`timestamp` field must be an integer type')
 
             if ts.signed:
-                raise ConfigParseError('"event-header-type" property',
-                                       '"timestamp" field must be an unsigned integer type')
+                raise ConfigParseError('`event-header-type` property',
+                                       '`timestamp` field must be an unsigned integer type')
 
             if not ts.property_mappings:
-                raise ConfigParseError('"event-header-type" property',
-                                       '"timestamp" field must be mapped to a clock')
+                raise ConfigParseError('`event-header-type` property',
+                                       '`timestamp` field must be mapped to a clock')
 
         if 'id' in t.fields:
             eid = t.fields['id']
 
-            # "id" is an unsigned integer type
+            # `id` is an unsigned integer type
             if type(eid) is not _Integer:
-                raise ConfigParseError('"event-header-type" property',
-                                       '"id" field must be an integer type')
+                raise ConfigParseError('`event-header-type` property',
+                                       '`id` field must be an integer type')
 
             if eid.signed:
-                raise ConfigParseError('"event-header-type" property',
-                                       '"id" field must be an unsigned integer type')
+                raise ConfigParseError('`event-header-type` property',
+                                       '`id` field must be an unsigned integer type')
 
-            # "id" size can fit all event IDs
+            # `id` size can fit all event IDs
             if len(stream.events) > (1 << eid.size):
-                raise ConfigParseError('"event-header-type" property',
-                                       '"id" field\' size is too small for the number of stream events')
+                raise ConfigParseError('`event-header-type` property',
+                                       '`id` field\' size is too small for the number of stream events')
 
     def _validate_stream(self, stream):
         self._validate_stream_packet_context(stream)
@@ -882,7 +882,7 @@ class _MetadataSpecialFieldsValidator:
             try:
                 self._validate_stream(stream)
             except ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream "{}"'.format(stream.name), 'Invalid')
+                _append_error_ctx(exc, 'Stream `{}`'.format(stream.name), 'Invalid')
 
 
 class _YamlConfigParser:
@@ -916,7 +916,7 @@ class _YamlConfigParser:
 
         if clock is None:
             raise ConfigParseError('Integer type\'s clock property mapping',
-                                   'Invalid clock name "{}"'.format(clock_name))
+                                   'Invalid clock name `{}`'.format(clock_name))
 
         prop_mapping = _PropertyMapping()
         prop_mapping.object = clock
@@ -1046,12 +1046,12 @@ class _YamlConfigParser:
 
                         if mn > mx:
                             raise ConfigParseError('Enumeration type',
-                                                   'Invalid member ("{}"): invalid range ({} > {})'.format(label, mn, mx))
+                                                   'Invalid member (`{}`): invalid range ({} > {})'.format(label, mn, mx))
 
                         value = (mn, mx)
                         cur = mx + 1
 
-                name_fmt = 'Enumeration type\'s member "{}"'
+                name_fmt = 'Enumeration type\'s member `{}`'
                 msg_fmt = 'Value {} is outside the value type range [{}, {}]'
 
                 if value[0] < value_min or value[0] > value_max:
@@ -1102,7 +1102,7 @@ class _YamlConfigParser:
                     obj.fields[field_name] = self._create_type(field_node)
                 except ConfigParseError as exc:
                     _append_error_ctx(exc, 'Structure type',
-                                      'Cannot create field "{}"'.format(field_name))
+                                      'Cannot create field `{}`'.format(field_name))
 
         return obj
 
@@ -1134,7 +1134,7 @@ class _YamlConfigParser:
             try:
                 clock.uuid = uuid.UUID(uuid_node)
             except:
-                raise ConfigParseError('Clock', 'Malformed UUID: "{}"'.format(uuid_node))
+                raise ConfigParseError('Clock', 'Malformed UUID: `{}`'.format(uuid_node))
 
         # description
         descr_node = node.get('description')
@@ -1201,7 +1201,7 @@ class _YamlConfigParser:
                 clock = self._create_clock(clock_node)
             except ConfigParseError as exc:
                 _append_error_ctx(exc, 'Metadata',
-                                  'Cannot create clock "{}"'.format(clock_name))
+                                  'Cannot create clock `{}`'.format(clock_name))
 
             clock.name = clock_name
             self._clocks[clock_name] = clock
@@ -1238,7 +1238,7 @@ class _YamlConfigParser:
                     trace.uuid = uuid.UUID(uuid_node)
                 except:
                     raise ConfigParseError('Trace',
-                                           'Malformed UUID: "{}"'.format(uuid_node))
+                                           'Malformed UUID: `{}`'.format(uuid_node))
 
         # packet header type
         pht_node = trace_node.get('packet-header-type')
@@ -1321,7 +1321,7 @@ class _YamlConfigParser:
                 ev = self._create_event(ev_node)
             except ConfigParseError as exc:
                 _append_error_ctx(exc, 'Stream',
-                                  'Cannot create event "{}"'.format(ev_name))
+                                  'Cannot create event `{}`'.format(ev_name))
 
             ev.id = cur_id
             ev.name = ev_name
@@ -1332,7 +1332,7 @@ class _YamlConfigParser:
 
         if default_node is not None:
             if self._meta.default_stream_name is not None and self._meta.default_stream_name != stream_name:
-                fmt = 'Cannot specify more than one default stream (default stream already set to "{}")'
+                fmt = 'Cannot specify more than one default stream (default stream already set to `{}`)'
                 raise ConfigParseError('Stream',
                                        fmt.format(self._meta.default_stream_name))
 
@@ -1350,7 +1350,7 @@ class _YamlConfigParser:
                 stream = self._create_stream(stream_name, stream_node)
             except ConfigParseError as exc:
                 _append_error_ctx(exc, 'Metadata',
-                                  'Cannot create stream "{}"'.format(stream_name))
+                                  'Cannot create stream `{}`'.format(stream_name))
 
             stream.id = cur_id
             stream.name = stream_name
@@ -1389,7 +1389,7 @@ class _YamlConfigParser:
 
     def _get_prefix(self, config_node):
         prefix = config_node.get('prefix', 'barectf_')
-        _validate_identifier(prefix, '"prefix" property', 'prefix')
+        _validate_identifier(prefix, '`prefix` property', 'prefix')
         return prefix
 
     def _get_options(self, config_node):
@@ -1431,8 +1431,8 @@ class _YamlConfigParser:
 
             if norm_path in self._include_stack:
                 base_path = self._get_last_include_file()
-                raise ConfigParseError('In "{}"',
-                                       'Cannot recursively include file "{}"'.format(base_path,
+                raise ConfigParseError('In `{}`',
+                                       'Cannot recursively include file `{}`'.format(base_path,
                                                                                      norm_path))
 
             self._include_stack.append(norm_path)
@@ -1442,8 +1442,8 @@ class _YamlConfigParser:
 
         if not self._ignore_include_not_found:
             base_path = self._get_last_include_file()
-            raise ConfigParseError('In "{}"',
-                                   'Cannot include file "{}": file not found in include directories'.format(base_path,
+            raise ConfigParseError('In `{}`',
+                                   'Cannot include file `{}`: file not found in include directories'.format(base_path,
                                                                                                             yaml_path))
 
     def _get_include_paths(self, include_node):
@@ -1513,7 +1513,7 @@ class _YamlConfigParser:
             try:
                 overlay_node = process_base_include_cb(overlay_node)
             except ConfigParseError as exc:
-                _append_error_ctx(exc, 'In "{}"'.format(cur_base_path))
+                _append_error_ctx(exc, 'In `{}`'.format(cur_base_path))
 
             # pop inclusion stack now that we're done including
             del self._include_stack[-1]
@@ -1668,13 +1668,13 @@ class _YamlConfigParser:
                     # didn't resolve the alias yet, as a given node can
                     # refer to the same field type alias more than once.
                     if alias in alias_set:
-                        fmt = 'Cycle detected during the "{}" type alias resolution'
+                        fmt = 'Cycle detected during the `{}` type alias resolution'
                         raise ConfigParseError(from_descr, fmt.format(alias))
 
                     # try to load field type alias node named `alias`
                     if alias not in type_aliases_node:
                         raise ConfigParseError(from_descr,
-                                               'Type alias "{}" does not exist'.format(alias))
+                                               'Type alias `{}` does not exist'.format(alias))
 
                     # resolve it
                     alias_set.add(alias)
@@ -1701,11 +1701,11 @@ class _YamlConfigParser:
 
         def resolve_field_type_aliases_from(parent_node, key, parent_node_type_name,
                                             parent_node_name=None):
-            from_descr = '"{}" property of {}'.format(key,
+            from_descr = '`{}` property of {}'.format(key,
                                                       parent_node_type_name)
 
             if parent_node_name is not None:
-                from_descr += ' "{}"'.format(parent_node_name)
+                from_descr += ' `{}`'.format(parent_node_name)
 
             resolve_field_type_aliases(parent_node, key, from_descr)
 
@@ -1731,7 +1731,7 @@ class _YamlConfigParser:
                     resolve_field_type_aliases_from(event, 'payload-type', 'event',
                                                     event_name)
             except ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name))
+                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name))
 
         # we don't need the `type-aliases` node anymore
         del metadata_node['type-aliases']
@@ -1835,12 +1835,12 @@ class _YamlConfigParser:
 
                     if type(ll_node) is str:
                         if ll_node not in log_levels_node:
-                            raise ConfigParseError('Event "{}"'.format(event_name),
-                                                   'Log level "{}" does not exist'.format(ll_node))
+                            raise ConfigParseError('Event `{}`'.format(event_name),
+                                                   'Log level `{}` does not exist'.format(ll_node))
 
                         event[prop_name] = log_levels_node[ll_node]
             except ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream "{}"'.format(stream_name))
+                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name))
 
     def _yaml_ordered_dump(self, node, **kwds):
         class ODumper(yaml.Dumper):
@@ -1873,15 +1873,15 @@ class _YamlConfigParser:
                 node = yaml.load(f, OLoader)
         except (OSError, IOError) as e:
             raise ConfigParseError('Configuration',
-                                   'Cannot open file "{}"'.format(yaml_path))
+                                   'Cannot open file `{}`'.format(yaml_path))
         except ConfigParseError as exc:
             _append_error_ctx(exc, 'Configuration',
-                                   'Unknown error while trying to load file "{}"'.format(yaml_path))
+                                   'Unknown error while trying to load file `{}`'.format(yaml_path))
 
         # loaded node must be an associate array
         if type(node) is not collections.OrderedDict:
             raise ConfigParseError('Configuration',
-                                   'Root of YAML file "{}" must be an associative array'.format(yaml_path))
+                                   'Root of YAML file `{}` must be an associative array'.format(yaml_path))
 
         return node
 
@@ -1898,7 +1898,7 @@ class _YamlConfigParser:
             config_node = self._yaml_ordered_load(yaml_path)
         except ConfigParseError as exc:
             _append_error_ctx(exc, 'Configuration',
-                                   'Cannot parse YAML file "{}"'.format(yaml_path))
+                                   'Cannot parse YAML file `{}`'.format(yaml_path))
 
         # Make sure the configuration object is minimally valid, that
         # is, it contains a valid `version` property.
@@ -1976,4 +1976,4 @@ def _from_file(path, include_dirs, ignore_include_not_found, dump_config):
         return parser.parse(path)
     except ConfigParseError as exc:
         _append_error_ctx(exc, 'Configuration',
-                               'Cannot create configuration from YAML file "{}"'.format(path))
+                               'Cannot create configuration from YAML file `{}`'.format(path))
