@@ -80,7 +80,7 @@ struct {prefix}ctx {{
 }};'''
 
 
-_CTX_BEGIN = '''/* context for stream "{sname}" */
+_CTX_BEGIN = '''/* context for stream `{sname}` */
 struct {prefix}{sname}_ctx {{
 	/* parent */
 	struct {prefix}ctx parent;
@@ -116,7 +116,7 @@ _FUNC_INIT_BODY = '''{{
 }}'''
 
 
-_FUNC_OPEN_PROTO_BEGIN = '''/* open packet for stream "{sname}" */
+_FUNC_OPEN_PROTO_BEGIN = '''/* open packet for stream `{sname}` */
 void {prefix}{sname}_open_packet(
 	struct {prefix}{sname}_ctx *ctx'''
 
@@ -165,7 +165,7 @@ _FUNC_OPEN_BODY_END = '''
 }'''
 
 
-_FUNC_CLOSE_PROTO = '''/* close packet for stream "{sname}" */
+_FUNC_CLOSE_PROTO = '''/* close packet for stream `{sname}` */
 void {prefix}{sname}_close_packet(struct {prefix}{sname}_ctx *ctx)'''
 
 
@@ -213,7 +213,7 @@ _FUNC_CLOSE_BODY_END = '''
 _DEFINE_DEFAULT_STREAM_TRACE = '#define {prefix}trace_{evname} {prefix}{sname}_trace_{evname}'
 
 
-_FUNC_TRACE_PROTO_BEGIN = '''/* trace (stream "{sname}", event "{evname}") */
+_FUNC_TRACE_PROTO_BEGIN = '''/* trace (stream `{sname}`, event `{evname}`) */
 void {prefix}{sname}_trace_{evname}(
 	struct {prefix}{sname}_ctx *ctx'''
 

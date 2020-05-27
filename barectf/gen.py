@@ -558,7 +558,7 @@ class CCodeGenerator:
                     if len(action.names) == 1:
                         line = 'align {} structure'.format(_PREFIX_TO_NAME[action.names[0]])
                     else:
-                        fmt = 'align field "{}" ({})'
+                        fmt = 'align field `{}` ({})'
                         line = fmt.format(action.names[-1],
                                           _PREFIX_TO_NAME[action.names[0]])
 
@@ -568,7 +568,7 @@ class CCodeGenerator:
                 self._cg.add_empty_line()
             elif type(action) is _SerializeSerializationAction:
                 assert(len(action.names) >= 2)
-                fmt = 'add size of field "{}" ({})'
+                fmt = 'add size of field `{}` ({})'
                 line = fmt.format(action.names[-1], _PREFIX_TO_NAME[action.names[0]])
                 self._cg.add_cc_line(line)
 
@@ -665,7 +665,7 @@ class CCodeGenerator:
                     if len(action.names) == 1:
                         line = 'align {} structure'.format(_PREFIX_TO_NAME[action.names[0]])
                     else:
-                        fmt = 'align field "{}" ({})'
+                        fmt = 'align field `{}` ({})'
                         line = fmt.format(action.names[-1],
                                           _PREFIX_TO_NAME[action.names[0]])
 
@@ -675,7 +675,7 @@ class CCodeGenerator:
                 self._cg.add_empty_line()
             elif type(action) is _SerializeSerializationAction:
                 assert(len(action.names) >= 2)
-                fmt = 'serialize field "{}" ({})'
+                fmt = 'serialize field `{}` ({})'
                 line = fmt.format(action.names[-1],
                                   _PREFIX_TO_NAME[action.names[0]])
                 self._cg.add_cc_line(line)
@@ -846,7 +846,7 @@ class CCodeGenerator:
         self._cg.add_lines(tmpl.format(prefix=self._cfg.prefix))
 
     def _generate_field_name_cc_line(self, field_name):
-        self._cg.add_cc_line('"{}" field'.format(field_name))
+        self._cg.add_cc_line('`{}` field'.format(field_name))
 
     def _save_serialization_action(self, name, action):
         self._saved_serialization_actions[name] = action
@@ -899,7 +899,7 @@ class CCodeGenerator:
                         if len(action.names) == 1:
                             line = 'align trace packet header structure'
                         else:
-                            line = 'align field "{}"'.format(action.names[-1])
+                            line = 'align field `{}`'.format(action.names[-1])
 
                         self._cg.add_cc_line(line)
 
@@ -907,7 +907,7 @@ class CCodeGenerator:
                     self._cg.add_empty_line()
                 elif type(action) is _SerializeSerializationAction:
                     assert(len(action.names) >= 2)
-                    fmt = 'serialize field "{}"'
+                    fmt = 'serialize field `{}`'
                     line = fmt.format(action.names[-1])
                     self._cg.add_cc_line(line)
                     field_name = action.names[-1]
@@ -961,7 +961,7 @@ class CCodeGenerator:
                         if len(action.names) == 1:
                             line = 'align stream packet context structure'
                         else:
-                            line = 'align field "{}"'.format(action.names[-1])
+                            line = 'align field `{}`'.format(action.names[-1])
 
                         self._cg.add_cc_line(line)
 
@@ -969,7 +969,7 @@ class CCodeGenerator:
                     self._cg.add_empty_line()
                 elif type(action) is _SerializeSerializationAction:
                     assert(len(action.names) >= 2)
-                    fmt = 'serialize field "{}"'
+                    fmt = 'serialize field `{}`'
                     line = fmt.format(action.names[-1])
                     self._cg.add_cc_line(line)
                     field_name = action.names[-1]
