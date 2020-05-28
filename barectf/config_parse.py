@@ -632,9 +632,6 @@ class _BarectfMetadataValidator:
 
 # This validator validates special fields of trace, stream, and event
 # types.
-#
-# For example, it checks that the `stream_id` field exists in the trace
-# packet header if there's more than one stream, and much more.
 class _MetadataSpecialFieldsValidator:
     def _validate_trace_packet_header_type(self, t):
         # needs `stream_id` field?
@@ -644,182 +641,43 @@ class _MetadataSpecialFieldsValidator:
                 raise ConfigParseError('`packet-header-type` property',
                                        'Need `stream_id` field (more than one stream), but trace packet header type is missing')
 
-            if type(t) is not _Struct:
-                raise ConfigParseError('`packet-header-type` property',
-                                       'Need `stream_id` field (more than one stream), but trace packet header type is not a structure type')
-
             if 'stream_id' not in t.fields:
                 raise ConfigParseError('`packet-header-type` property',
                                        'Need `stream_id` field (more than one stream)')
 
-        # validate `magic` and `stream_id` types
-        if type(t) is not _Struct:
+        if t is None:
             return
 
+        # `magic` and `stream_id`
         for i, (field_name, field_type) in enumerate(t.fields.items()):
             if field_name == 'magic':
-                if type(field_type) is not _Integer:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`magic` field must be an integer type')
-
-                if field_type.signed or field_type.size != 32:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`magic` field must be a 32-bit unsigned integer type')
-
                 if i != 0:
                     raise ConfigParseError('`packet-header-type` property',
                                            '`magic` field must be the first trace packet header type\'s field')
             elif field_name == 'stream_id':
-                if type(field_type) is not _Integer:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`stream_id` field must be an integer type')
-
-                if field_type.signed:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`stream_id` field must be an unsigned integer type')
-
                 # `id` size can fit all event IDs
                 if len(self._meta.streams) > (1 << field_type.size):
                     raise ConfigParseError('`packet-header-type` property',
                                            '`stream_id` field\' size is too small for the number of trace streams')
-            elif field_name == 'uuid':
-                if self._meta.trace.uuid is None:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`uuid` field specified, but no trace UUID provided')
-
-                if type(field_type) is not _Array:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`uuid` field must be an array')
-
-                if field_type.length != 16:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`uuid` field must be an array of 16 bytes')
-
-                element_type = field_type.element_type
-
-                if type(element_type) is not _Integer:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`uuid` field must be an array of 16 unsigned bytes')
-
-                if element_type.size != 8:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`uuid` field must be an array of 16 unsigned bytes')
-
-                if element_type.signed:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`uuid` field must be an array of 16 unsigned bytes')
-
-                if element_type.real_align != 8:
-                    raise ConfigParseError('`packet-header-type` property',
-                                           '`uuid` field must be an array of 16 unsigned, byte-aligned bytes')
 
     def _validate_trace(self, meta):
         self._validate_trace_packet_header_type(meta.trace.packet_header_type)
 
     def _validate_stream_packet_context(self, stream):
         t = stream.packet_context_type
+        assert t is not None
 
-        if type(t) is None:
-            raise ConfigParseError('Stream',
-                                   'Missing `packet-context-type` property')
-
-        if type(t) is not _Struct:
-            raise ConfigParseError('`packet-context-type` property',
-                                   'Expecting a structure type')
-
-        # `timestamp_begin`, if exists, is an unsigned integer type,
-        # mapped to a clock
-        ts_begin = None
-
-        if 'timestamp_begin' in t.fields:
-            ts_begin = t.fields['timestamp_begin']
-
-            if type(ts_begin) is not _Integer:
-                raise ConfigParseError('`packet-context-type` property',
-                                       '`timestamp_begin` field must be an integer type')
-
-            if ts_begin.signed:
-                raise ConfigParseError('`packet-context-type` property',
-                                       '`timestamp_begin` field must be an unsigned integer type')
-
-            if not ts_begin.property_mappings:
-                raise ConfigParseError('`packet-context-type` property',
-                                       '`timestamp_begin` field must be mapped to a clock')
-
-        # `timestamp_end`, if exists, is an unsigned integer type,
-        # mapped to a clock
-        ts_end = None
-
-        if 'timestamp_end' in t.fields:
-            ts_end = t.fields['timestamp_end']
-
-            if type(ts_end) is not _Integer:
-                raise ConfigParseError('`packet-context-type` property',
-                                       '`timestamp_end` field must be an integer type')
-
-            if ts_end.signed:
-                raise ConfigParseError('`packet-context-type` property',
-                                       '`timestamp_end` field must be an unsigned integer type')
-
-            if not ts_end.property_mappings:
-                raise ConfigParseError('`packet-context-type` property',
-                                       '`timestamp_end` field must be mapped to a clock')
-
-        # `timestamp_begin` and `timestamp_end` exist together
-        if (('timestamp_begin' in t.fields) ^ ('timestamp_end' in t.fields)):
-            raise ConfigParseError('`timestamp_begin` and `timestamp_end` fields must be defined together in stream packet context type')
+        # `timestamp_begin` and `timestamp_end`
+        ts_begin = t.fields.get('timestamp_begin')
+        ts_end = t.fields.get('timestamp_end')
 
         # `timestamp_begin` and `timestamp_end` are mapped to the same clock
         if ts_begin is not None and ts_end is not None:
             if ts_begin.property_mappings[0].object.name != ts_end.property_mappings[0].object.name:
                 raise ConfigParseError('`timestamp_begin` and `timestamp_end` fields must be mapped to the same clock object in stream packet context type')
 
-        # `events_discarded`, if exists, is an unsigned integer type
-        if 'events_discarded' in t.fields:
-            events_discarded = t.fields['events_discarded']
-
-            if type(events_discarded) is not _Integer:
-                raise ConfigParseError('`packet-context-type` property',
-                                       '`events_discarded` field must be an integer type')
-
-            if events_discarded.signed:
-                raise ConfigParseError('`packet-context-type` property',
-                                       '`events_discarded` field must be an unsigned integer type')
-
-        # `packet_size` and `content_size` must exist
-        if 'packet_size' not in t.fields:
-            raise ConfigParseError('`packet-context-type` property',
-                                   'Missing `packet_size` field in stream packet context type')
-
-        packet_size = t.fields['packet_size']
-
-        # `content_size` and `content_size` must exist
-        if 'content_size' not in t.fields:
-            raise ConfigParseError('`packet-context-type` property',
-                                   'Missing `content_size` field in stream packet context type')
-
-        content_size = t.fields['content_size']
-
-        # `packet_size` is an unsigned integer type
-        if type(packet_size) is not _Integer:
-            raise ConfigParseError('`packet-context-type` property',
-                                   '`packet_size` field in stream packet context type must be an integer type')
-
-        if packet_size.signed:
-            raise ConfigParseError('`packet-context-type` property',
-                                   '`packet_size` field in stream packet context type must be an unsigned integer type')
-
-        # `content_size` is an unsigned integer type
-        if type(content_size) is not _Integer:
-            raise ConfigParseError('`packet-context-type` property',
-                                   '`content_size` field in stream packet context type must be an integer type')
-
-        if content_size.signed:
-            raise ConfigParseError('`packet-context-type` property',
-                                   '`content_size` field in stream packet context type must be an unsigned integer type')
-
-        # `packet_size` size should be greater than or equal to `content_size` size
-        if content_size.size > packet_size.size:
+        # `packet_size` size must be greater than or equal to `content_size` size
+        if t.fields['content_size'].size > t.fields['packet_size'].size:
             raise ConfigParseError('`packet-context-type` property',
                                    '`content_size` field size must be lesser than or equal to `packet_size` field size')
 
@@ -833,47 +691,17 @@ class _MetadataSpecialFieldsValidator:
                 raise ConfigParseError('`event-header-type` property',
                                        'Need `id` field (more than one event), but stream event header type is missing')
 
-            if type(t) is not _Struct:
-                raise ConfigParseError('`event-header-type` property',
-                                       'Need `id` field (more than one event), but stream event header type is not a structure type')
-
             if 'id' not in t.fields:
                 raise ConfigParseError('`event-header-type` property',
                                        'Need `id` field (more than one event)')
 
-        # validate `id` and `timestamp` types
-        if type(t) is not _Struct:
+        if t is None:
             return
 
-        # `timestamp`, if exists, is an unsigned integer type,
-        # mapped to a clock
-        if 'timestamp' in t.fields:
-            ts = t.fields['timestamp']
+        # `id`
+        eid = t.fields.get('id')
 
-            if type(ts) is not _Integer:
-                raise ConfigParseError('`event-header-type` property',
-                                       '`timestamp` field must be an integer type')
-
-            if ts.signed:
-                raise ConfigParseError('`event-header-type` property',
-                                       '`timestamp` field must be an unsigned integer type')
-
-            if not ts.property_mappings:
-                raise ConfigParseError('`event-header-type` property',
-                                       '`timestamp` field must be mapped to a clock')
-
-        if 'id' in t.fields:
-            eid = t.fields['id']
-
-            # `id` is an unsigned integer type
-            if type(eid) is not _Integer:
-                raise ConfigParseError('`event-header-type` property',
-                                       '`id` field must be an integer type')
-
-            if eid.signed:
-                raise ConfigParseError('`event-header-type` property',
-                                       '`id` field must be an unsigned integer type')
-
+        if eid is not None:
             # `id` size can fit all event IDs
             if len(stream.events) > (1 << eid.size):
                 raise ConfigParseError('`event-header-type` property',

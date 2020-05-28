@@ -54,6 +54,62 @@ definitions:
       $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/struct-field-type
     else:
       type: 'null'
+  unsigned-int-field-type:
+    allOf:
+      - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/int-field-type
+      - properties:
+          signed:
+            const: false
+  unsigned-int-field-type-ts:
+    allOf:
+      - $ref: '#/definitions/unsigned-int-field-type'
+      - properties:
+          property-mappings:
+            type: array
+        required:
+          - property-mappings
+  packet-header-type-prop:
+    allOf:
+      - $ref: '#/definitions/opt-struct-field-type'
+      - if:
+          type: object
+          properties:
+            fields:
+              type: object
+        then:
+          properties:
+            fields:
+              properties:
+                magic:
+                  allOf:
+                    - $ref: '#/definitions/unsigned-int-field-type'
+                    - properties:
+                        size:
+                          const: 32
+                uuid:
+                  allOf:
+                    - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/array-field-type
+                    - properties:
+                        length:
+                          const: 16
+                        element-type:
+                          allOf:
+                            - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/int-field-type
+                            - properties:
+                                size:
+                                  const: 8
+                                signed:
+                                  const: false
+                                align:
+                                  enum:
+                                    - 1
+                                    - 2
+                                    - 4
+                                    - 8
+                stream_id:
+                  $ref: '#/definitions/unsigned-int-field-type'
+                stream_instance_id:
+                  $ref: '#/definitions/unsigned-int-field-type'
   trace:
     title: Trace object
     type: object
@@ -71,7 +127,7 @@ definitions:
         else:
           type: 'null'
       packet-header-type:
-        $ref: '#/definitions/opt-struct-field-type'
+        $ref: '#/definitions/packet-header-type-prop'
     required:
       - byte-order
     additionalProperties: false
@@ -135,6 +191,50 @@ definitions:
       pattern: '^[A-Za-z_][A-Za-z0-9_]*$'
     else:
       type: 'null'
+  packet-context-type-prop:
+    allOf:
+      - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/struct-field-type
+      - properties:
+          fields:
+            properties:
+              packet_size:
+                $ref: '#/definitions/unsigned-int-field-type'
+              content_size:
+                $ref: '#/definitions/unsigned-int-field-type'
+              events_discarded:
+                $ref: '#/definitions/unsigned-int-field-type'
+              packet_seq_num:
+                $ref: '#/definitions/unsigned-int-field-type'
+              timestamp_begin:
+                $ref: '#/definitions/unsigned-int-field-type-ts'
+              timestamp_end:
+                $ref: '#/definitions/unsigned-int-field-type-ts'
+            required:
+              - packet_size
+              - content_size
+            dependencies:
+              timestamp_begin:
+                - timestamp_end
+              timestamp_end:
+                - timestamp_begin
+        required:
+          - fields
+  event-header-type-prop:
+    allOf:
+      - $ref: '#/definitions/opt-struct-field-type'
+      - if:
+          type: object
+          properties:
+            fields:
+              type: object
+        then:
+          properties:
+            fields:
+              properties:
+                id:
+                  $ref: '#/definitions/unsigned-int-field-type'
+                timestamp:
+                  $ref: '#/definitions/unsigned-int-field-type-ts'
   stream:
     title: Stream object
     type: object
@@ -142,9 +242,9 @@ definitions:
       $default:
         $ref: '#/definitions/opt-bool'
       packet-context-type:
-        $ref: '#/definitions/opt-struct-field-type'
+        $ref: '#/definitions/packet-context-type-prop'
       event-header-type:
-        $ref: '#/definitions/opt-struct-field-type'
+        $ref: '#/definitions/event-header-type-prop'
       event-context-type:
         $ref: '#/definitions/opt-struct-field-type'
       events:
@@ -156,6 +256,7 @@ definitions:
         additionalProperties: false
         minProperties: 1
     required:
+      - packet-context-type
       - events
     additionalProperties: false
   event:
