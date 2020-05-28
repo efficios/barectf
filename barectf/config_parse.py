@@ -407,7 +407,15 @@ class _SchemaValidator:
         except jsonschema.ValidationError as exc:
             # convert to barectf `ConfigParseError` exception
             contexts = ['Configuration object']
-            contexts += ['`{}` property'.format(p) for p in exc.absolute_path]
+
+            for elem in exc.absolute_path:
+                if type(elem) is int:
+                    ctx = 'Element {}'.format(elem)
+                else:
+                    ctx = '`{}` property'.format(elem)
+
+                contexts.append(ctx)
+
             schema_ctx = ''
 
             if len(exc.context) > 0:
