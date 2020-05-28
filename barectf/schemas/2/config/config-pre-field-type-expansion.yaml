@@ -27,37 +27,39 @@ title: Configuration object before field type expansions
 definitions:
   partial-field-type:
     title: Partial field type object
-    oneOf:
-      - type: string
-      - type: object
-        allOf:
-          - oneOf:
-            - properties:
-                class:
-                  type: string
-              required:
-                - class
-            - properties:
-                inherit:
-                  type: string
-              required:
-                - inherit
-            - properties:
-                $inherit:
-                  type: string
-              required:
-                - $inherit
-          - properties:
-              value-type:
-                $ref: '#/definitions/partial-field-type'
-              element-type:
-                $ref: '#/definitions/partial-field-type'
-              fields:
-                type: object
-                patternProperties:
-                  '':
-                    $ref: '#/definitions/partial-field-type'
-      - type: 'null'
+    if:
+      type: object
+    then:
+      oneOf:
+        - properties:
+            class:
+              type: string
+          required:
+            - class
+        - properties:
+            inherit:
+              type: string
+          required:
+            - inherit
+        - properties:
+            $inherit:
+              type: string
+          required:
+            - $inherit
+      properties:
+        value-type:
+          $ref: '#/definitions/partial-field-type'
+        element-type:
+          $ref: '#/definitions/partial-field-type'
+        fields:
+          type: object
+          patternProperties:
+            '':
+              $ref: '#/definitions/partial-field-type'
+    else:
+      oneOf:
+        - type: string
+        - type: 'null'
 type: object
 properties:
   metadata:

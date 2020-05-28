@@ -27,20 +27,26 @@ title: Effective field type object
 definitions:
   byte-order-prop:
     title: Byte order property value
-    oneOf:
-      - $ref: https://barectf.org/schemas/2/config/byte-order-prop.json
-      - type: 'null'
+    if:
+      type: object
+    then:
+      $ref: https://barectf.org/schemas/2/config/byte-order-prop.json
+    else:
+      type: 'null'
   align-prop:
     title: Alignment property value
-    oneOf:
-      - type: integer
-        minimum: 1
-      - type: 'null'
+    if:
+      type: integer
+    then:
+      minimum: 1
+    else:
+      type: 'null'
   encoding-prop:
     title: Encoding property value
-    oneOf:
-      - type: string
-        enum:
+    if:
+      type: string
+    then:
+      enum:
         - utf8
         - UTF8
         - utf-8
@@ -52,7 +58,8 @@ definitions:
         - none
         - None
         - NONE
-      - type: 'null'
+    else:
+      type: 'null'
   int-field-type-class-prop:
     type: string
     enum:
@@ -77,39 +84,43 @@ definitions:
       byte-order:
         $ref: '#/definitions/byte-order-prop'
       base:
-        type: string
-        oneOf:
-          - enum:
+        if:
+          type: string
+        then:
+          enum:
             - bin
             - oct
             - dec
             - hex
-          - type: 'null'
+        else:
+          type: 'null'
       encoding:
         $ref: '#/definitions/encoding-prop'
       property-mappings:
-        oneOf:
-          - type: array
-            items:
-              type: object
-              properties:
-                type:
-                  type: string
-                  const: clock
-                name:
-                  type: string
-                  pattern: '^[A-Za-z_][A-Za-z0-9_]*$'
-                property:
-                  type: string
-                  const: value
-              required:
-                - type
-                - name
-                - property
-              additionalProperties: false
-            minItems: 1
-            maxItems: 1
-          - type: 'null'
+        if:
+          type: array
+        then:
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                const: clock
+              name:
+                type: string
+                pattern: '^[A-Za-z_][A-Za-z0-9_]*$'
+              property:
+                type: string
+                const: value
+            required:
+              - type
+              - name
+              - property
+            additionalProperties: false
+          minItems: 1
+          maxItems: 1
+        else:
+          type: 'null'
     required:
       - class
       - size
@@ -172,24 +183,28 @@ definitions:
       members:
         type: array
         items:
-          anyOf:
-            - type: string
-            - type: object
-              properties:
-                label:
-                  type: string
-                value:
-                  oneOf:
-                    - type: integer
-                    - type: array
-                      items:
-                        type: integer
-                      minItems: 2
-                      maxItems: 2
-              required:
-                - label
-                - value
-              additionalProperties: false
+          if:
+            type: object
+          then:
+            properties:
+              label:
+                type: string
+              value:
+                if:
+                  type: array
+                then:
+                  items:
+                    type: integer
+                  minItems: 2
+                  maxItems: 2
+                else:
+                  type: integer
+            additionalProperties: false
+            required:
+              - label
+              - value
+          else:
+            type: string
     required:
       - class
       - value-type
@@ -243,13 +258,15 @@ definitions:
       min-align:
         $ref: '#/definitions/align-prop'
       fields:
-        oneOf:
-          - type: object
-            patternProperties:
-              '^[A-Za-z_][A-Za-z0-9_]*$':
-                $ref: '#/definitions/field-type'
-            additionalProperties: false
-          - type: 'null'
+        if:
+          type: object
+        then:
+          patternProperties:
+            '^[A-Za-z_][A-Za-z0-9_]*$':
+              $ref: '#/definitions/field-type'
+          additionalProperties: false
+        else:
+          type: 'null'
     required:
       - class
     additionalProperties: false

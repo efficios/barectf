@@ -34,18 +34,26 @@ definitions:
       - type: string
       - type: 'null'
   opt-int-min-0:
-    oneOf:
-      - type: integer
-        minimum: 0
-      - type: 'null'
+    if:
+      type: integer
+    then:
+      minimum: 0
+    else:
+      type: 'null'
   opt-field-type:
-    oneOf:
-      - $ref: https://barectf.org/schemas/2/config/field-type.json
-      - type: 'null'
+    if:
+      type: object
+    then:
+      $ref: https://barectf.org/schemas/2/config/field-type.json
+    else:
+      type: 'null'
   opt-struct-field-type:
-    oneOf:
-      - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/struct-field-type
-      - type: 'null'
+    if:
+      type: object
+    then:
+      $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/struct-field-type
+    else:
+      type: 'null'
   trace:
     title: Trace object
     type: object
@@ -53,11 +61,15 @@ definitions:
       byte-order:
         $ref: https://barectf.org/schemas/2/config/byte-order-prop.json
       uuid:
-        oneOf:
-          - $ref: https://barectf.org/schemas/2/config/uuid-prop.json
-          - type: string
-            const: auto
-          - type: 'null'
+        if:
+          type: string
+        then:
+          oneOf:
+            - $ref: https://barectf.org/schemas/2/config/uuid-prop.json
+            - type: string
+              const: auto
+        else:
+          type: 'null'
       packet-header-type:
         $ref: '#/definitions/opt-struct-field-type'
     required:
@@ -80,28 +92,35 @@ definitions:
                 - return-ctype
     properties:
       uuid:
-        oneOf:
-          - $ref: https://barectf.org/schemas/2/config/uuid-prop.json
-          - type: 'null'
+        if:
+          type: object
+        then:
+          $ref: https://barectf.org/schemas/2/config/uuid-prop.json
+        else:
+          type: 'null'
       description:
         $ref: '#/definitions/opt-string'
       freq:
-        oneOf:
-          - type: integer
-            minimum: 1
-          - type: 'null'
+        if:
+          type: integer
+        then:
+          minimum: 1
+        else:
+          type: 'null'
       error-cycles:
         $ref: '#/definitions/opt-int-min-0'
       offset:
-        oneOf:
-          - type: object
-            properties:
-              cycles:
-                $ref: '#/definitions/opt-int-min-0'
-              seconds:
-                $ref: '#/definitions/opt-int-min-0'
-            additionalProperties: false
-          - type: 'null'
+        if:
+          type: object
+        then:
+          properties:
+            cycles:
+              $ref: '#/definitions/opt-int-min-0'
+            seconds:
+              $ref: '#/definitions/opt-int-min-0'
+          additionalProperties: false
+        else:
+          type: 'null'
       absolute:
         $ref: '#/definitions/opt-bool'
       return-ctype:
@@ -110,10 +129,12 @@ definitions:
         $ref: '#/definitions/opt-string'
     additionalProperties: false
   $default-stream:
-    oneOf:
-      - type: string
-        pattern: '^[A-Za-z_][A-Za-z0-9_]*$'
-      - type: 'null'
+    if:
+      type: string
+    then:
+      pattern: '^[A-Za-z_][A-Za-z0-9_]*$'
+    else:
+      type: 'null'
   stream:
     title: Stream object
     type: object
@@ -194,15 +215,17 @@ properties:
         $ref: '#/definitions/trace'
       env:
         title: Environment variables
-        oneOf:
-          - type: object
-            patternProperties:
-              '^[A-Za-z_][A-Za-z0-9_]*$':
-                oneOf:
-                  - type: string
-                  - type: integer
-            additionalProperties: false
-          - type: 'null'
+        if:
+          type: object
+        then:
+          patternProperties:
+            '^[A-Za-z_][A-Za-z0-9_]*$':
+              oneOf:
+                - type: string
+                - type: integer
+          additionalProperties: false
+        else:
+          type: 'null'
       clocks:
         title: Clocks object
         type: object
