@@ -116,13 +116,13 @@ def run():
         config = barectf.config.from_file(args.config, args.include_dir,
                                           args.ignore_include_not_found,
                                           args.dump_config)
-    except barectf.config._ConfigParseError as e:
-        _pconfig_error(e)
-    except Exception as e:
+    except barectf.config._ConfigParseError as exc:
+        _pconfig_error(exc)
+    except Exception as exc:
         import traceback
 
         traceback.print_exc()
-        _perror(f'Unknown exception: {e}')
+        _perror(f'Unknown exception: {exc}')
 
     # replace prefix if needed
     if args.prefix:
@@ -135,8 +135,8 @@ def run():
 
     try:
         _write_file(args.metadata_dir, 'metadata', metadata)
-    except Exception as e:
-        _perror(f'Cannot write metadata file: {e}')
+    except Exception as exc:
+        _perror(f'Cannot write metadata file: {exc}')
 
     # create generator
     generator = barectf.gen.CCodeGenerator(config)
@@ -149,8 +149,8 @@ def run():
         _write_file(args.headers_dir, generator.get_header_filename(), header)
         _write_file(args.headers_dir, generator.get_bitfield_header_filename(),
                     bitfield_header)
-    except Exception as e:
-        _perror(f'Cannot write header files: {e}')
+    except Exception as exc:
+        _perror(f'Cannot write header files: {exc}')
 
     # generate C source
     c_src = generator.generate_c_src()
@@ -158,5 +158,5 @@ def run():
     try:
         _write_file(args.code_dir, '{}.c'.format(config.prefix.rstrip('_')),
                     c_src)
-    except Exception as e:
-        _perror(f'Cannot write C source file: {e}')
+    except Exception as exc:
+        _perror(f'Cannot write C source file: {exc}')
