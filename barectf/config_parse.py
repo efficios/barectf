@@ -515,7 +515,7 @@ def _validate_alignment(align, ctx_obj_name):
 
     if (align & (align - 1)) != 0:
         raise _ConfigParseError(ctx_obj_name,
-                                'Invalid alignment: {}'.format(align))
+                                'Invalid alignment (not a power of two): {}'.format(align))
 
 
 # Appends the context having the object name `obj_name` and the
@@ -558,8 +558,8 @@ class _BarectfMetadataValidator:
 
     def _validate_struct_type(self, t, entity_root):
         if not entity_root:
-            raise _ConfigParseError('Structure type',
-                                    'Inner structure types are not supported as of this version')
+            raise _ConfigParseError('Structure field type',
+                                    'Inner structure field types are not supported as of this version')
 
         for field_name, field_type in t.fields.items():
             if entity_root and self._cur_entity is _Entity.TRACE_PACKET_HEADER:
@@ -570,10 +570,12 @@ class _BarectfMetadataValidator:
             try:
                 self._validate_type(field_type, False)
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Structure type\'s field `{}`'.format(field_name))
+                _append_error_ctx(exc,
+                                  'Structure field type\'s field `{}`'.format(field_name))
 
     def _validate_array_type(self, t, entity_root):
-        raise _ConfigParseError('Array type', 'Not supported as of this version')
+        raise _ConfigParseError('Array field type',
+                                'Not supported as of this version')
 
     def _validate_type(self, t, entity_root):
         func = self._type_to_validate_type_func.get(type(t))
@@ -587,13 +589,70 @@ class _BarectfMetadataValidator:
 
         # make sure root field type has a real alignment of at least 8
         if t.real_align < 8:
-            raise _ConfigParseError('Root type',
-                                    'Alignment must be at least 8')
+            raise _ConfigParseError('Root field type',
+                                    'Effective alignment must be at least 8 (got {})'.format(t.real_align))
 
         assert type(t) is _Struct
 
         # validate field types
         self._validate_type(t, True)
+
+    def _validate_event_entities_and_names(self, stream, ev):
+        try:
+            _validate_identifier(ev.name, 'Event type', 'event type name')
+
+            self._cur_entity = _Entity.EVENT_CONTEXT
+
+            try:
+                self._validate_entity(ev.context_type)
+            except _ConfigParseError as exc:
+                _append_error_ctx(exc, 'Event type',
+                                  'Invalid context field type')
+
+            self._cur_entity = _Entity.EVENT_PAYLOAD
+
+            try:
+                self._validate_entity(ev.payload_type)
+            except _ConfigParseError as exc:
+                _append_error_ctx(exc, 'Event type',
+                                  'Invalid payload field type')
+
+            if stream.is_event_empty(ev):
+                raise _ConfigParseError('Event type', 'Empty')
+        except _ConfigParseError as exc:
+            _append_error_ctx(exc, 'Event type `{}`'.format(ev.name))
+
+    def _validate_stream_entities_and_names(self, stream):
+        try:
+            _validate_identifier(stream.name, 'Stream type', 'stream type name')
+            self._cur_entity = _Entity.STREAM_PACKET_CONTEXT
+
+            try:
+                self._validate_entity(stream.packet_context_type)
+            except _ConfigParseError as exc:
+                _append_error_ctx(exc, 'Stream type',
+                                  'Invalid packet context field type')
+
+            self._cur_entity = _Entity.STREAM_EVENT_HEADER
+
+            try:
+                self._validate_entity(stream.event_header_type)
+            except _ConfigParseError as exc:
+                _append_error_ctx(exc, 'Stream type',
+                                  'Invalid event header field type')
+
+            self._cur_entity = _Entity.STREAM_EVENT_CONTEXT
+
+            try:
+                self._validate_entity(stream.event_context_type)
+            except _ConfigParseError as exc:
+                _append_error_ctx(exc, 'Stream type',
+                                  'Invalid event context field type')
+
+            for ev in stream.events.values():
+                self._validate_event_entities_and_names(stream, ev)
+        except _ConfigParseError as exc:
+            _append_error_ctx(exc, 'Stream type `{}`'.format(stream.name))
 
     def _validate_entities_and_names(self, meta):
         self._cur_entity = _Entity.TRACE_PACKET_HEADER
@@ -601,71 +660,25 @@ class _BarectfMetadataValidator:
         try:
             self._validate_entity(meta.trace.packet_header_type)
         except _ConfigParseError as exc:
-            _append_error_ctx(exc, 'Trace', 'Invalid packet header type')
+            _append_error_ctx(exc, 'Trace type',
+                              'Invalid packet header field type')
 
-        for stream_name, stream in meta.streams.items():
-            _validate_identifier(stream_name, 'Trace', 'stream name')
-            self._cur_entity = _Entity.STREAM_PACKET_CONTEXT
-
-            try:
-                self._validate_entity(stream.packet_context_type)
-            except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name),
-                                  'Invalid packet context type')
-
-            self._cur_entity = _Entity.STREAM_EVENT_HEADER
-
-            try:
-                self._validate_entity(stream.event_header_type)
-            except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name),
-                                  'Invalid event header type')
-
-            self._cur_entity = _Entity.STREAM_EVENT_CONTEXT
-
-            try:
-                self._validate_entity(stream.event_context_type)
-            except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name),
-                                  'Invalid event context type'.format(stream_name))
-
-            try:
-                for ev_name, ev in stream.events.items():
-                    _validate_identifier(ev_name,
-                                         'Stream `{}`'.format(stream_name),
-                                         'event name')
-
-                    self._cur_entity = _Entity.EVENT_CONTEXT
-
-                    try:
-                        self._validate_entity(ev.context_type)
-                    except _ConfigParseError as exc:
-                        _append_error_ctx(exc, 'Event `{}`'.format(ev_name),
-                                          'Invalid context type')
-
-                    self._cur_entity = _Entity.EVENT_PAYLOAD
-
-                    try:
-                        self._validate_entity(ev.payload_type)
-                    except _ConfigParseError as exc:
-                        _append_error_ctx(exc, 'Event `{}`'.format(ev_name),
-                                          'Invalid payload type')
-
-                    if stream.is_event_empty(ev):
-                        raise _ConfigParseError('Event `{}`'.format(ev_name), 'Empty')
-            except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name))
+        for stream in meta.streams.values():
+            self._validate_stream_entities_and_names(stream)
 
     def _validate_default_stream(self, meta):
         if meta.default_stream_name is not None:
             if meta.default_stream_name not in meta.streams.keys():
-                fmt = 'Default stream name (`{}`) does not exist'
-                raise _ConfigParseError('barectf metadata',
+                fmt = 'Default stream type name (`{}`) does not name an existing stream type'
+                raise _ConfigParseError('Metadata',
                                         fmt.format(meta.default_stream_name))
 
     def validate(self, meta):
-        self._validate_entities_and_names(meta)
-        self._validate_default_stream(meta)
+        try:
+            self._validate_entities_and_names(meta)
+            self._validate_default_stream(meta)
+        except _ConfigParseError as exc:
+            _append_error_ctx(exc, 'barectf metadata')
 
 
 # A validator which validates special fields of trace, stream, and event
@@ -673,16 +686,18 @@ class _BarectfMetadataValidator:
 class _MetadataSpecialFieldsValidator:
     # Validates the packet header field type `t`.
     def _validate_trace_packet_header_type(self, t):
+        ctx_obj_name = '`packet-header-type` property'
+
         # If there's more than one stream type, then the `stream_id`
         # (stream type ID) field is required.
         if len(self._meta.streams) > 1:
             if t is None:
-                raise _ConfigParseError('`packet-header-type` property',
-                                        'Need `stream_id` field (more than one stream), but trace packet header type is missing')
+                raise _ConfigParseError('Trace type',
+                                        '`stream_id` field is required (because there\'s more than one stream type), but packet header field type is missing')
 
             if 'stream_id' not in t.fields:
-                raise _ConfigParseError('`packet-header-type` property',
-                                        'Need `stream_id` field (more than one stream)')
+                raise _ConfigParseError(ctx_obj_name,
+                                        '`stream_id` field is required (because there\'s more than one stream type)')
 
         if t is None:
             return
@@ -694,12 +709,12 @@ class _MetadataSpecialFieldsValidator:
         for i, (field_name, field_type) in enumerate(t.fields.items()):
             if field_name == 'magic':
                 if i != 0:
-                    raise _ConfigParseError('`packet-header-type` property',
-                                            '`magic` field must be the first trace packet header type\'s field')
+                    raise _ConfigParseError(ctx_obj_name,
+                                            '`magic` field must be the first packet header field type\'s field')
             elif field_name == 'stream_id':
                 if len(self._meta.streams) > (1 << field_type.size):
-                    raise _ConfigParseError('`packet-header-type` property',
-                                            '`stream_id` field\' size is too small for the number of trace streams')
+                    raise _ConfigParseError(ctx_obj_name,
+                                            '`stream_id` field\'s size is too small to accomodate {} stream types'.format(len(self._meta.streams)))
 
     # Validates the trace type of the metadata object `meta`.
     def _validate_trace(self, meta):
@@ -708,6 +723,7 @@ class _MetadataSpecialFieldsValidator:
     # Validates the packet context field type of the stream type
     # `stream`.
     def _validate_stream_packet_context(self, stream):
+        ctx_obj_name = '`packet-context-type` property'
         t = stream.packet_context_type
         assert t is not None
 
@@ -718,28 +734,30 @@ class _MetadataSpecialFieldsValidator:
 
         if ts_begin is not None and ts_end is not None:
             if ts_begin.property_mappings[0].object.name != ts_end.property_mappings[0].object.name:
-                raise _ConfigParseError('`timestamp_begin` and `timestamp_end` fields must be mapped to the same clock object in stream packet context type')
+                raise _ConfigParseError(ctx_obj_name,
+                                        '`timestamp_begin` and `timestamp_end` fields must be mapped to the same clock value')
 
         # The `packet_size` field type's size must be greater than or
         # equal to the `content_size` field type's size.
         if t.fields['content_size'].size > t.fields['packet_size'].size:
-            raise _ConfigParseError('`packet-context-type` property',
-                                    '`content_size` field size must be lesser than or equal to `packet_size` field size')
+            raise _ConfigParseError(ctx_obj_name,
+                                    '`content_size` field\'s size must be less than or equal to `packet_size` field\'s size')
 
     # Validates the event header field type of the stream type `stream`.
     def _validate_stream_event_header(self, stream):
+        ctx_obj_name = '`event-header-type` property'
         t = stream.event_header_type
 
         # If there's more than one event type, then the `id` (event type
         # ID) field is required.
         if len(stream.events) > 1:
             if t is None:
-                raise _ConfigParseError('`event-header-type` property',
-                                        'Need `id` field (more than one event), but stream event header type is missing')
+                raise _ConfigParseError('Stream type',
+                                        '`id` field is required (because there\'s more than one event type), but event header field type is missing')
 
             if 'id' not in t.fields:
-                raise _ConfigParseError('`event-header-type` property',
-                                        'Need `id` field (more than one event)')
+                raise _ConfigParseError(ctx_obj_name,
+                                        '`id` field is required (because there\'s more than one event type)')
 
         if t is None:
             return
@@ -750,8 +768,8 @@ class _MetadataSpecialFieldsValidator:
 
         if eid is not None:
             if len(stream.events) > (1 << eid.size):
-                raise _ConfigParseError('`event-header-type` property',
-                                        '`id` field\' size is too small for the number of stream events')
+                raise _ConfigParseError(ctx_obj_name,
+                                        '`id` field\'s size is too small to accomodate {} event types'.format(len(stream.events)))
 
     # Validates the stream type `stream`.
     def _validate_stream(self, stream):
@@ -762,13 +780,20 @@ class _MetadataSpecialFieldsValidator:
     # `meta`.
     def validate(self, meta):
         self._meta = meta
-        self._validate_trace(meta)
 
-        for stream in meta.streams.values():
+        try:
             try:
-                self._validate_stream(stream)
+                self._validate_trace(meta)
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream `{}`'.format(stream.name), 'Invalid')
+                _append_error_ctx(exc, 'Trace type')
+
+            for stream in meta.streams.values():
+                try:
+                    self._validate_stream(stream)
+                except _ConfigParseError as exc:
+                    _append_error_ctx(exc, 'Stream type `{}`'.format(stream.name))
+        except _ConfigParseError as exc:
+            _append_error_ctx(exc, 'Metadata')
 
 
 # A barectf YAML configuration parser.
@@ -815,8 +840,10 @@ class _YamlConfigParser:
         clock = self._clocks.get(clock_name)
 
         if clock is None:
-            raise _ConfigParseError('Integer type\'s clock property mapping',
-                                    'Invalid clock name `{}`'.format(clock_name))
+            exc = _ConfigParseError('`property-mappings` property',
+                                    'Clock type `{}` does not exist'.format(clock_name))
+            exc.append_ctx('Integer field type')
+            raise exc
 
         prop_mapping = _PropertyMapping()
         prop_mapping.object = clock
@@ -831,7 +858,7 @@ class _YamlConfigParser:
         align_node = node.get('align')
 
         if align_node is not None:
-            _validate_alignment(align_node, 'Integer type')
+            _validate_alignment(align_node, 'Integer field type')
             obj.align = align_node
 
         signed_node = node.get('signed')
@@ -881,7 +908,7 @@ class _YamlConfigParser:
         align_node = node.get('align')
 
         if align_node is not None:
-            _validate_alignment(align_node, 'Floating point number type')
+            _validate_alignment(align_node, 'Floating point number field type')
             obj.align = align_node
 
         obj.byte_order = self._bo
@@ -895,14 +922,15 @@ class _YamlConfigParser:
     # Creates a pseudo enumeration field type from the node `node` and
     # returns it.
     def _create_enum(self, node):
+        ctx_obj_name = 'Enumeration field type'
         obj = _Enum()
 
         # value (integer) field type
         try:
             obj.value_type = self._create_type(node['value-type'])
         except _ConfigParseError as exc:
-            _append_error_ctx(exc, 'Enumeration type',
-                              'Cannot create integer type')
+            _append_error_ctx(exc, ctx_obj_name,
+                              'Cannot create value (integer) field type')
 
         # members
         members_node = node.get('members')
@@ -937,8 +965,10 @@ class _YamlConfigParser:
                         mx = value[1]
 
                         if mn > mx:
-                            raise _ConfigParseError('Enumeration type',
-                                                    'Invalid member (`{}`): invalid range ({} > {})'.format(label, mn, mx))
+                            exc = _ConfigParseError(ctx_obj_name)
+                            exc.append_ctx('Member `{}`'.format(label),
+                                           'Invalid integral range ({} > {})'.format(label, mn, mx))
+                            raise exc
 
                         value = (mn, mx)
                         cur = mx + 1
@@ -946,20 +976,18 @@ class _YamlConfigParser:
                 # Make sure that all the integral values of the range
                 # fits the enumeration field type's integer value field
                 # type depending on its size (bits).
-                name_fmt = 'Enumeration type\'s member `{}`'
+                member_obj_name = 'Member `{}`'.format(label)
                 msg_fmt = 'Value {} is outside the value type range [{}, {}]'
+                msg = msg_fmt.format(value[0], value_min, value_max)
 
-                if value[0] < value_min or value[0] > value_max:
-                    raise _ConfigParseError(name_fmt.format(label),
-                                            msg_fmt.format(value[0],
-                                                           value_min,
-                                                           value_max))
+                try:
+                    if value[0] < value_min or value[0] > value_max:
+                        raise _ConfigParseError(member_obj_name, msg)
 
-                if value[1] < value_min or value[1] > value_max:
-                    raise _ConfigParseError(name_fmt.format(label),
-                                            msg_fmt.format(value[0],
-                                                           value_min,
-                                                           value_max))
+                    if value[1] < value_min or value[1] > value_max:
+                        raise _ConfigParseError(member_obj_name, msg)
+                except _ConfigParseError as exc:
+                    _append_error_ctx(exc, ctx_obj_name)
 
                 obj.members[label] = value
 
@@ -979,23 +1007,24 @@ class _YamlConfigParser:
     # Creates a pseudo structure field type from the node `node` and
     # returns it.
     def _create_struct(self, node):
+        ctx_obj_name = 'Structure field type'
         obj = _Struct()
         min_align_node = node.get('min-align')
 
         if min_align_node is not None:
-            _validate_alignment(min_align_node, 'Structure type')
+            _validate_alignment(min_align_node, ctx_obj_name)
             obj.min_align = min_align_node
 
         fields_node = node.get('fields')
 
         if fields_node is not None:
             for field_name, field_node in fields_node.items():
-                _validate_identifier(field_name, 'Structure type', 'field name')
+                _validate_identifier(field_name, ctx_obj_name, 'field name')
 
                 try:
                     obj.fields[field_name] = self._create_type(field_node)
                 except _ConfigParseError as exc:
-                    _append_error_ctx(exc, 'Structure type',
+                    _append_error_ctx(exc, ctx_obj_name,
                                       'Cannot create field `{}`'.format(field_name))
 
         return obj
@@ -1009,7 +1038,8 @@ class _YamlConfigParser:
         try:
             obj.element_type = self._create_type(node['element-type'])
         except _ConfigParseError as exc:
-            _append_error_ctx(exc, 'Array type', 'Cannot create element type')
+            _append_error_ctx(exc, 'Array field type',
+                              'Cannot create element field type')
 
         return obj
 
@@ -1030,7 +1060,8 @@ class _YamlConfigParser:
             try:
                 clock.uuid = uuid.UUID(uuid_node)
             except:
-                raise _ConfigParseError('Clock', 'Malformed UUID: `{}`'.format(uuid_node))
+                raise _ConfigParseError('Clock type',
+                                        'Malformed UUID `{}`'.format(uuid_node))
 
         descr_node = node.get('description')
 
@@ -1092,14 +1123,14 @@ class _YamlConfigParser:
             return
 
         for clock_name, clock_node in clocks_node.items():
-            _validate_identifier(clock_name, 'Metadata', 'clock name')
+            _validate_identifier(clock_name, 'Metadata', 'clock type name')
             assert clock_name not in self._clocks
 
             try:
                 clock = self._create_clock(clock_node)
             except _ConfigParseError as exc:
                 _append_error_ctx(exc, 'Metadata',
-                                  'Cannot create clock `{}`'.format(clock_name))
+                                  'Cannot create clock type `{}`'.format(clock_name))
 
             clock.name = clock_name
             self._clocks[clock_name] = clock
@@ -1121,6 +1152,7 @@ class _YamlConfigParser:
     # Creates a pseudo trace type from the metadata node `metadata_node`
     # and returns it.
     def _create_trace(self, metadata_node):
+        ctx_obj_name = 'Trace type'
         trace = _Trace()
         trace_node = metadata_node['trace']
         trace.byte_order = self._bo
@@ -1135,8 +1167,8 @@ class _YamlConfigParser:
                 try:
                     trace.uuid = uuid.UUID(uuid_node)
                 except:
-                    raise _ConfigParseError('Trace',
-                                            'Malformed UUID: `{}`'.format(uuid_node))
+                    raise _ConfigParseError(ctx_obj_name,
+                                            'Malformed UUID `{}`'.format(uuid_node))
 
         pht_node = trace_node.get('packet-header-type')
 
@@ -1144,14 +1176,15 @@ class _YamlConfigParser:
             try:
                 trace.packet_header_type = self._create_type(pht_node)
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Trace',
-                                  'Cannot create packet header type')
+                _append_error_ctx(exc, ctx_obj_name,
+                                  'Cannot create packet header field type')
 
         return trace
 
     # Creates a pseudo event type from the event node `event_node` and
     # returns it.
     def _create_event(self, event_node):
+        ctx_obj_name = 'Event type'
         event = _Event()
         log_level_node = event_node.get('log-level')
 
@@ -1165,8 +1198,8 @@ class _YamlConfigParser:
             try:
                 event.context_type = self._create_type(ct_node)
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Event',
-                                  'Cannot create context type object')
+                _append_error_ctx(exc, ctx_obj_name,
+                                  'Cannot create context field type')
 
         pt_node = event_node.get('payload-type')
 
@@ -1174,14 +1207,15 @@ class _YamlConfigParser:
             try:
                 event.payload_type = self._create_type(pt_node)
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Event',
-                                  'Cannot create payload type object')
+                _append_error_ctx(exc, ctx_obj_name,
+                                  'Cannot create payload field type')
 
         return event
 
     # Creates a pseudo stream type named `stream_name` from the stream
     # node `stream_node` and returns it.
     def _create_stream(self, stream_name, stream_node):
+        ctx_obj_name = 'Stream type'
         stream = _Stream()
         pct_node = stream_node.get('packet-context-type')
 
@@ -1189,8 +1223,8 @@ class _YamlConfigParser:
             try:
                 stream.packet_context_type = self._create_type(pct_node)
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream',
-                                  'Cannot create packet context type object')
+                _append_error_ctx(exc, ctx_obj_name,
+                                  'Cannot create packet context field type')
 
         eht_node = stream_node.get('event-header-type')
 
@@ -1198,8 +1232,8 @@ class _YamlConfigParser:
             try:
                 stream.event_header_type = self._create_type(eht_node)
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream',
-                                  'Cannot create event header type object')
+                _append_error_ctx(exc, ctx_obj_name,
+                                  'Cannot create event header field type')
 
         ect_node = stream_node.get('event-context-type')
 
@@ -1207,8 +1241,8 @@ class _YamlConfigParser:
             try:
                 stream.event_context_type = self._create_type(ect_node)
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream',
-                                  'Cannot create event context type object')
+                _append_error_ctx(exc, ctx_obj_name,
+                                  'Cannot create event context field type')
 
         events_node = stream_node['events']
         cur_id = 0
@@ -1217,8 +1251,8 @@ class _YamlConfigParser:
             try:
                 ev = self._create_event(ev_node)
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream',
-                                  'Cannot create event `{}`'.format(ev_name))
+                _append_error_ctx(exc, ctx_obj_name,
+                                  'Cannot create event type `{}`'.format(ev_name))
 
             ev.id = cur_id
             ev.name = ev_name
@@ -1229,8 +1263,8 @@ class _YamlConfigParser:
 
         if default_node is not None:
             if self._meta.default_stream_name is not None and self._meta.default_stream_name != stream_name:
-                fmt = 'Cannot specify more than one default stream (default stream already set to `{}`)'
-                raise _ConfigParseError('Stream',
+                fmt = 'Cannot specify more than one default stream type (default stream type already set to `{}`)'
+                raise _ConfigParseError('Stream type',
                                         fmt.format(self._meta.default_stream_name))
 
             self._meta.default_stream_name = stream_name
@@ -1250,7 +1284,7 @@ class _YamlConfigParser:
                 stream = self._create_stream(stream_name, stream_node)
             except _ConfigParseError as exc:
                 _append_error_ctx(exc, 'Metadata',
-                                  'Cannot create stream `{}`'.format(stream_name))
+                                  'Cannot create stream type `{}`'.format(stream_name))
 
             stream.id = cur_id
             stream.name = stream_name
@@ -1277,15 +1311,8 @@ class _YamlConfigParser:
         self._meta.streams = self._create_streams(metadata_node)
 
         # validate the pseudo metadata object
-        try:
-            _MetadataSpecialFieldsValidator().validate(self._meta)
-        except _ConfigParseError as exc:
-            _append_error_ctx(exc, 'Metadata')
-
-        try:
-            _BarectfMetadataValidator().validate(self._meta)
-        except _ConfigParseError as exc:
-            _append_error_ctx(exc, 'barectf metadata')
+        _MetadataSpecialFieldsValidator().validate(self._meta)
+        _BarectfMetadataValidator().validate(self._meta)
 
         return self._meta
 
@@ -1341,9 +1368,8 @@ class _YamlConfigParser:
 
             if norm_path in self._include_stack:
                 base_path = self._get_last_include_file()
-                raise _ConfigParseError('In `{}`',
-                                        'Cannot recursively include file `{}`'.format(base_path,
-                                                                                     norm_path))
+                raise _ConfigParseError('File `{}`'.format(base_path),
+                                        'Cannot recursively include file `{}`'.format(norm_path))
 
             self._include_stack.append(norm_path)
 
@@ -1352,9 +1378,8 @@ class _YamlConfigParser:
 
         if not self._ignore_include_not_found:
             base_path = self._get_last_include_file()
-            raise _ConfigParseError('In `{}`',
-                                    'Cannot include file `{}`: file not found in include directories'.format(base_path,
-                                                                                                            yaml_path))
+            raise _ConfigParseError('File `{}`'.format(base_path),
+                                    'Cannot include file `{}`: file not found in inclusion directories'.format(yaml_path))
     # Returns a list of all the inclusion file paths as found in the
     # inclusion node `include_node`.
     def _get_include_paths(self, include_node):
@@ -1440,7 +1465,7 @@ class _YamlConfigParser:
             try:
                 overlay_node = process_base_include_cb(overlay_node)
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'In `{}`'.format(cur_base_path))
+                _append_error_ctx(exc, 'File `{}`'.format(cur_base_path))
 
             # pop inclusion stack now that we're done including
             del self._include_stack[-1]
@@ -1618,13 +1643,13 @@ class _YamlConfigParser:
                     # didn't resolve the alias yet, as a given node can
                     # refer to the same field type alias more than once.
                     if alias in alias_set:
-                        fmt = 'Cycle detected during the `{}` type alias resolution'
+                        fmt = 'Cycle detected during the `{}` field type alias resolution'
                         raise _ConfigParseError(from_descr, fmt.format(alias))
 
                     # try to load field type alias node named `alias`
                     if alias not in type_aliases_node:
                         raise _ConfigParseError(from_descr,
-                                                'Type alias `{}` does not exist'.format(alias))
+                                                'Field type alias `{}` does not exist'.format(alias))
 
                     # resolve it
                     alias_set.add(alias)
@@ -1649,40 +1674,36 @@ class _YamlConfigParser:
                     resolve_field_type_aliases(node[pkey], field_name,
                                                from_descr, alias_set)
 
-        def resolve_field_type_aliases_from(parent_node, key, parent_node_type_name,
-                                            parent_node_name=None):
-            from_descr = '`{}` property of {}'.format(key,
-                                                      parent_node_type_name)
-
-            if parent_node_name is not None:
-                from_descr += ' `{}`'.format(parent_node_name)
-
-            resolve_field_type_aliases(parent_node, key, from_descr)
+        def resolve_field_type_aliases_from(parent_node, key):
+            resolve_field_type_aliases(parent_node, key,
+                                       '`{}` property'.format(key))
 
         # set of resolved field type aliases
         resolved_aliases = set()
 
         # Expand field type aliases within trace, stream, and event
         # types now.
-        resolve_field_type_aliases_from(metadata_node['trace'],
-                                        'packet-header-type', 'trace')
+        try:
+            resolve_field_type_aliases_from(metadata_node['trace'],
+                                            'packet-header-type')
+        except _ConfigParseError as exc:
+            _append_error_ctx(exc, 'Trace type')
 
         for stream_name, stream in metadata_node['streams'].items():
-            resolve_field_type_aliases_from(stream, 'packet-context-type',
-                                            'stream', stream_name)
-            resolve_field_type_aliases_from(stream, 'event-header-type',
-                                            'stream', stream_name)
-            resolve_field_type_aliases_from(stream, 'event-context-type',
-                                            'stream', stream_name)
-
             try:
+                resolve_field_type_aliases_from(stream, 'packet-context-type')
+                resolve_field_type_aliases_from(stream, 'event-header-type')
+                resolve_field_type_aliases_from(stream, 'event-context-type')
+
                 for event_name, event in stream['events'].items():
-                    resolve_field_type_aliases_from(event, 'context-type',
-                                                    'event', event_name)
-                    resolve_field_type_aliases_from(event, 'payload-type',
-                                                    'event', event_name)
+                    try:
+                        resolve_field_type_aliases_from(event, 'context-type')
+                        resolve_field_type_aliases_from(event, 'payload-type')
+                    except _ConfigParseError as exc:
+                        _append_error_ctx(exc,
+                                          'Event type `{}`'.format(event_name))
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name))
+                _append_error_ctx(exc, 'Stream type `{}`'.format(stream_name))
 
         # remove the (now unneeded) `type-aliases` node
         del metadata_node['type-aliases']
@@ -1806,12 +1827,14 @@ class _YamlConfigParser:
 
                     if type(ll_node) is str:
                         if ll_node not in log_levels_node:
-                            raise _ConfigParseError('Event `{}`'.format(event_name),
-                                                    'Log level `{}` does not exist'.format(ll_node))
+                            exc = _ConfigParseError('`log-level` property',
+                                                    'Log level alias `{}` does not exist'.format(ll_node))
+                            exc.append_ctx('Event type `{}`'.format(event_name))
+                            raise exc
 
                         event[prop_name] = log_levels_node[ll_node]
             except _ConfigParseError as exc:
-                _append_error_ctx(exc, 'Stream `{}`'.format(stream_name))
+                _append_error_ctx(exc, 'Stream type `{}`'.format(stream_name))
 
     # Dumps the node `node` as YAML, passing `kwds` to yaml.dump().
     def _yaml_ordered_dump(self, node, **kwds):
@@ -1847,21 +1870,13 @@ class _YamlConfigParser:
         try:
             with open(yaml_path, 'r') as f:
                 node = yaml.load(f, OLoader)
-        except (OSError, IOError) as e:
-            raise _ConfigParseError('Configuration',
-                                    'Cannot open file `{}`'.format(yaml_path))
-        except _ConfigParseError as exc:
-            _append_error_ctx(exc, 'Configuration',
-                              'Unknown error while trying to load file `{}`'.format(yaml_path))
+        except (OSError, IOError) as exc:
+            raise _ConfigParseError('File `{}`'.format(yaml_path),
+                                    'Cannot open file: {}'.format(exc))
 
-        # loaded node must be an associate array
-        if type(node) is not collections.OrderedDict:
-            raise _ConfigParseError('Configuration',
-                                    'Root of YAML file `{}` must be an associative array'.format(yaml_path))
-
+        assert type(node) is collections.OrderedDict
         return node
 
-    #
     def _reset(self):
         self._version = None
         self._include_stack = []
@@ -1875,7 +1890,7 @@ class _YamlConfigParser:
             config_node = self._yaml_ordered_load(yaml_path)
         except _ConfigParseError as exc:
             _append_error_ctx(exc, 'Configuration',
-                                   'Cannot parse YAML file `{}`'.format(yaml_path))
+                              'Cannot parse YAML file `{}`'.format(yaml_path))
 
         # Make sure the configuration object is minimally valid, that
         # is, it contains a valid `version` property.
