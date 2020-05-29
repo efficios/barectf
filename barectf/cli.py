@@ -45,17 +45,17 @@ def _pconfig_error(exc):
 
     for ctx in reversed(exc.ctx):
         if ctx.msg is not None:
-            msg = ' {}'.format(ctx.msg)
+            msg = f' {ctx.msg}'
         else:
             msg = ''
-        cprint('  {}:{}'.format(ctx.name, msg), 'red', attrs=['bold'],
-               file=sys.stderr)
+
+        cprint(f'  {ctx.name}:{msg}', 'red', attrs=['bold'], file=sys.stderr)
 
     sys.exit(1)
 
 
 def _psuccess(msg):
-    cprint('{}'.format(msg), 'green', attrs=['bold'])
+    cprint(msg, 'green', attrs=['bold'])
 
 
 def _parse_args():
@@ -90,11 +90,11 @@ def _parse_args():
     # validate output directories
     for d in [args.code_dir, args.headers_dir, args.metadata_dir] + args.include_dir:
         if not os.path.isdir(d):
-            _perror('`{}` is not an existing directory'.format(d))
+            _perror(f'`{d}` is not an existing directory')
 
     # validate that configuration file exists
     if not os.path.isfile(args.config):
-        _perror('`{}` is not an existing, regular file'.format(args.config))
+        _perror(f'`{args.config}` is not an existing, regular file')
 
     # append current working directory and provided include directory
     args.include_dir += [os.getcwd(), resource_filename(__name__, 'include')]
@@ -122,7 +122,7 @@ def run():
         import traceback
 
         traceback.print_exc()
-        _perror('Unknown exception: {}'.format(e))
+        _perror(f'Unknown exception: {e}')
 
     # replace prefix if needed
     if args.prefix:
@@ -136,7 +136,7 @@ def run():
     try:
         _write_file(args.metadata_dir, 'metadata', metadata)
     except Exception as e:
-        _perror('Cannot write metadata file: {}'.format(e))
+        _perror(f'Cannot write metadata file: {e}')
 
     # create generator
     generator = barectf.gen.CCodeGenerator(config)
@@ -150,7 +150,7 @@ def run():
         _write_file(args.headers_dir, generator.get_bitfield_header_filename(),
                     bitfield_header)
     except Exception as e:
-        _perror('Cannot write header files: {}'.format(e))
+        _perror(f'Cannot write header files: {e}')
 
     # generate C source
     c_src = generator.generate_c_src()
@@ -159,4 +159,4 @@ def run():
         _write_file(args.code_dir, '{}.c'.format(config.prefix.rstrip('_')),
                     c_src)
     except Exception as e:
-        _perror('Cannot write C source file: {}'.format(e))
+        _perror(f'Cannot write C source file: {e}')
