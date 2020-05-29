@@ -798,17 +798,23 @@ class _MetadataSpecialFieldsValidator:
 
 # A barectf YAML configuration parser.
 #
-# Build such a parser and then call parse() to get the resulting
-# `config.Config` object.
+# When you build such a parser, it parses the configuration file and
+# creates a corresponding `config.Config` object which you can get with
+# the `config` property.
 #
-# See the comments of parse() for more implementation details about the
+# See the comments of _parse() for more implementation details about the
 # parsing stages and general strategy.
 class _YamlConfigParser:
-    # Builds a barectf YAML configuration parser which considers the
-    # inclusion directories `include_dirs`, ignores nonexistent
-    # inclusion files if `ignore_include_not_found` is `True`, and dumps
-    # the effective configuration (as YAML) if `dump_config` is `True`.
-    def __init__(self, include_dirs, ignore_include_not_found, dump_config):
+    # Builds a barectf YAML configuration parser and parses the
+    # configuration file having the path `path`.
+    #
+    # The parser considers the inclusion directories `include_dirs`,
+    # ignores nonexistent inclusion files if `ignore_include_not_found`
+    # is `True`, and dumps the effective configuration (as YAML) if
+    # `dump_config` is `True`.
+    def __init__(self, path, include_dirs, ignore_include_not_found,
+                 dump_config):
+        self._root_yaml_path = path
         self._class_name_to_create_type_func = {
             'int': self._create_integer,
             'integer': self._create_integer,
@@ -827,6 +833,7 @@ class _YamlConfigParser:
         self._ignore_include_not_found = ignore_include_not_found
         self._dump_config = dump_config
         self._schema_validator = _SchemaValidator()
+        self._parse()
 
     # Sets the default byte order as found in the `metadata_node` node.
     def _set_byte_order(self, metadata_node):
@@ -1877,20 +1884,16 @@ class _YamlConfigParser:
         assert type(node) is collections.OrderedDict
         return node
 
-    def _reset(self):
+    def _parse(self):
         self._version = None
         self._include_stack = []
 
-    def parse(self, yaml_path):
-        self._reset()
-        self._root_yaml_path = yaml_path
-
         # load the configuration object as is from the root YAML file
         try:
-            config_node = self._yaml_ordered_load(yaml_path)
+            config_node = self._yaml_ordered_load(self._root_yaml_path)
         except _ConfigParseError as exc:
             _append_error_ctx(exc, 'Configuration',
-                              'Cannot parse YAML file `{}`'.format(yaml_path))
+                              'Cannot parse YAML file `{}`'.format(self._root_yaml_path))
 
         # Make sure the configuration object is minimally valid, that
         # is, it contains a valid `version` property.
@@ -1958,14 +1961,17 @@ class _YamlConfigParser:
         pseudo_meta = self._create_metadata(config_node)
 
         # create public configuration
-        return config.Config(pseudo_meta.to_public(), prefix, opts)
+        self._config = config.Config(pseudo_meta.to_public(), prefix, opts)
+
+    @property
+    def config(self):
+        return self._config
 
 
 def _from_file(path, include_dirs, ignore_include_not_found, dump_config):
     try:
-        parser = _YamlConfigParser(include_dirs, ignore_include_not_found,
-                                   dump_config)
-        return parser.parse(path)
+        return _YamlConfigParser(path, include_dirs, ignore_include_not_found,
+                                 dump_config).config
     except _ConfigParseError as exc:
         _append_error_ctx(exc, 'Configuration',
                           'Cannot create configuration from YAML file `{}`'.format(path))
