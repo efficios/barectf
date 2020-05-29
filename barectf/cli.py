@@ -126,8 +126,7 @@ def run():
 
     # replace prefix if needed
     if args.prefix:
-        config = barectf.config.Config(config.metadata,
-                                       args.prefix,
+        config = barectf.config.Config(config.metadata, args.prefix,
                                        config.options)
 
     # generate metadata
