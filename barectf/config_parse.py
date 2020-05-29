@@ -26,14 +26,11 @@ from barectf import config
 import pkg_resources
 import collections
 import jsonschema
-import datetime
-import barectf
 import os.path
 import enum
 import yaml
 import uuid
 import copy
-import re
 import os
 
 
@@ -989,7 +986,7 @@ class _YamlConfigParser:
                         if mn > mx:
                             exc = _ConfigParseError(ctx_obj_name)
                             exc.append_ctx('Member `{}`'.format(label),
-                                           'Invalid integral range ({} > {})'.format(label, mn, mx))
+                                           'Invalid integral range ({} > {})'.format(mn, mx))
                             raise exc
 
                         value = (mn, mx)
@@ -1081,9 +1078,9 @@ class _YamlConfigParser:
         if uuid_node is not None:
             try:
                 clock.uuid = uuid.UUID(uuid_node)
-            except:
+            except ValueError as exc:
                 raise _ConfigParseError('Clock type',
-                                        'Malformed UUID `{}`'.format(uuid_node))
+                                        'Malformed UUID `{}`: {}'.format(uuid_node, exc))
 
         descr_node = node.get('description')
 
@@ -1188,9 +1185,9 @@ class _YamlConfigParser:
             else:
                 try:
                     trace.uuid = uuid.UUID(uuid_node)
-                except:
+                except ValueError as exc:
                     raise _ConfigParseError(ctx_obj_name,
-                                            'Malformed UUID `{}`'.format(uuid_node))
+                                            'Malformed UUID `{}`: {}'.format(uuid_node, exc))
 
         pht_node = trace_node.get('packet-header-type')
 
@@ -1402,6 +1399,7 @@ class _YamlConfigParser:
             base_path = self._get_last_include_file()
             raise _ConfigParseError('File `{}`'.format(base_path),
                                     'Cannot include file `{}`: file not found in inclusion directories'.format(yaml_path))
+
     # Returns a list of all the inclusion file paths as found in the
     # inclusion node `include_node`.
     def _get_include_paths(self, include_node):
@@ -1824,9 +1822,9 @@ class _YamlConfigParser:
         if 'log-levels' in metadata_node:
             # barectf 2.1: `log-levels` property was renamed to
             # `$log-levels`
-            assert '$log-levels' not in node
-            node['$log-levels'] = node['log-levels']
-            del node['log-levels']
+            assert '$log-levels' not in metadata_node
+            metadata_node['$log-levels'] = metadata_node['log-levels']
+            del metadata_node['log-levels']
 
         log_levels_key = '$log-levels'
         log_levels_node = metadata_node.get(log_levels_key)
