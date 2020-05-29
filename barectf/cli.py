@@ -22,7 +22,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from pkg_resources import resource_filename
-from termcolor import cprint, colored
+from termcolor import cprint
 import barectf.tsdl182gen
 import barectf.config
 import barectf.gen
@@ -31,7 +31,6 @@ import os.path
 import barectf
 import sys
 import os
-import re
 
 
 def _perror(msg):
