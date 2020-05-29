@@ -71,6 +71,14 @@ def _opt_to_public(obj):
     return obj.to_public()
 
 
+# Pseudo object base class.
+#
+# A concrete pseudo object contains the same data as its public version,
+# but it's mutable.
+#
+# The to_public() method converts the pseudo object to an equivalent
+# public, immutable object, caching the result so as to always return
+# the same Python object.
 class _PseudoObj:
     def __init__(self):
         self._public = None
@@ -326,7 +334,6 @@ class _Metadata(_PseudoObj):
 # it would mean a programming or schema error.
 class _RefResolver(jsonschema.RefResolver):
     def resolve_remote(self, uri):
-        # this must never happen: all our schemas are local
         raise RuntimeError('Missing local schema with URI `{}`'.format(uri))
 
 
@@ -390,7 +397,8 @@ class _SchemaValidator:
         # `collections.OrderedDict` objects to `dict` objects so as to
         # make any error message easier to read (because
         # validator.validate() below uses str() for error messages, and
-        # collections.OrderedDict.__str__() is bulky).
+        # collections.OrderedDict.__str__() returns a somewhat bulky
+        # representation).
         validator.validate(self._dict_from_ordered_dict(instance))
 
     # Validates `instance` using the schema having the short ID
@@ -408,6 +416,9 @@ class _SchemaValidator:
             # convert to barectf `_ConfigParseError` exception
             contexts = ['Configuration object']
 
+            # Each element of the instance's absolute path is either an
+            # integer (array element's index) or a string (object
+            # property's name).
             for elem in exc.absolute_path:
                 if type(elem) is int:
                     ctx = 'Element {}'.format(elem)
@@ -419,6 +430,18 @@ class _SchemaValidator:
             schema_ctx = ''
 
             if len(exc.context) > 0:
+                # According to the documentation of
+                # jsonschema.ValidationError.context(),
+                # the method returns a
+                #
+                # > list of errors from the subschemas
+                #
+                # This contains additional information about the
+                # validation failure which can help the user figure out
+                # what's wrong exactly.
+                #
+                # Join each message with `; ` and append this to our
+                # configuration parsing error's message.
                 msgs = '; '.join([e.message for e in exc.context])
                 schema_ctx = ': {}'.format(msgs)
 
@@ -433,6 +456,8 @@ class _SchemaValidator:
             raise new_exc
 
 
+# Converts the byte order string `bo_str` to a `metadata.ByteOrder`
+# enumerator.
 def _byte_order_str_to_bo(bo_str):
     bo_str = bo_str.lower()
 
@@ -442,6 +467,8 @@ def _byte_order_str_to_bo(bo_str):
         return metadata.ByteOrder.BE
 
 
+# Converts the encoding string `encoding_str` to a `metadata.Encoding`
+# enumerator.
 def _encoding_str_to_encoding(encoding_str):
     encoding_str = encoding_str.lower()
 
@@ -453,6 +480,9 @@ def _encoding_str_to_encoding(encoding_str):
         return metadata.Encoding.NONE
 
 
+# Validates the TSDL identifier `iden`, raising a `_ConfigParseError`
+# exception using `ctx_obj_name` and `prop` to format the message if
+# it's invalid.
 def _validate_identifier(iden, ctx_obj_name, prop):
     assert type(iden) is str
     ctf_keywords = {
@@ -478,6 +508,8 @@ def _validate_identifier(iden, ctx_obj_name, prop):
         raise _ConfigParseError(ctx_obj_name, fmt.format(prop, iden))
 
 
+# Validates the alignment `align`, raising a `_ConfigParseError`
+# exception using `ctx_obj_name` if it's invalid.
 def _validate_alignment(align, ctx_obj_name):
     assert align >= 1
 
@@ -486,6 +518,9 @@ def _validate_alignment(align, ctx_obj_name):
                                 'Invalid alignment: {}'.format(align))
 
 
+# Appends the context having the object name `obj_name` and the
+# (optional) message `msg` to the `_ConfigParseError` exception `exc`
+# and then raises `exc` again.
 def _append_error_ctx(exc, obj_name, msg=None):
     exc.append_ctx(obj_name, msg)
     raise
@@ -504,13 +539,16 @@ class _Entity(enum.IntEnum):
     EVENT_PAYLOAD = 5
 
 
-# This validator validates the configured metadata for barectf specific
-# needs.
+# A validator which validates the configured metadata for barectf
+# specific needs.
 #
 # barectf needs:
 #
-# * All header/contexts are at least byte-aligned.
-# * No nested structures or arrays.
+# * The alignments of all header/context field types are at least 8.
+#
+# * There are no nested structure or array field types, except the
+#   packet header field type's `uuid` field
+#
 class _BarectfMetadataValidator:
     def __init__(self):
         self._type_to_validate_type_func = {
@@ -547,14 +585,14 @@ class _BarectfMetadataValidator:
         if t is None:
             return
 
-        # make sure entity is byte-aligned
+        # make sure root field type has a real alignment of at least 8
         if t.real_align < 8:
             raise _ConfigParseError('Root type',
                                     'Alignment must be at least 8')
 
         assert type(t) is _Struct
 
-        # validate types
+        # validate field types
         self._validate_type(t, True)
 
     def _validate_entities_and_names(self, meta):
@@ -619,7 +657,7 @@ class _BarectfMetadataValidator:
                 _append_error_ctx(exc, 'Stream `{}`'.format(stream_name))
 
     def _validate_default_stream(self, meta):
-        if meta.default_stream_name:
+        if meta.default_stream_name is not None:
             if meta.default_stream_name not in meta.streams.keys():
                 fmt = 'Default stream name (`{}`) does not exist'
                 raise _ConfigParseError('barectf metadata',
@@ -630,13 +668,14 @@ class _BarectfMetadataValidator:
         self._validate_default_stream(meta)
 
 
-# This validator validates special fields of trace, stream, and event
+# A validator which validates special fields of trace, stream, and event
 # types.
 class _MetadataSpecialFieldsValidator:
+    # Validates the packet header field type `t`.
     def _validate_trace_packet_header_type(self, t):
-        # needs `stream_id` field?
+        # If there's more than one stream type, then the `stream_id`
+        # (stream type ID) field is required.
         if len(self._meta.streams) > 1:
-            # yes
             if t is None:
                 raise _ConfigParseError('`packet-header-type` property',
                                         'Need `stream_id` field (more than one stream), but trace packet header type is missing')
@@ -648,45 +687,52 @@ class _MetadataSpecialFieldsValidator:
         if t is None:
             return
 
-        # `magic` and `stream_id`
+        # The `magic` field type must be the first one.
+        #
+        # The `stream_id` field type's size (bits) must be large enough
+        # to accomodate any stream type ID.
         for i, (field_name, field_type) in enumerate(t.fields.items()):
             if field_name == 'magic':
                 if i != 0:
                     raise _ConfigParseError('`packet-header-type` property',
                                             '`magic` field must be the first trace packet header type\'s field')
             elif field_name == 'stream_id':
-                # `id` size can fit all event IDs
                 if len(self._meta.streams) > (1 << field_type.size):
                     raise _ConfigParseError('`packet-header-type` property',
                                             '`stream_id` field\' size is too small for the number of trace streams')
 
+    # Validates the trace type of the metadata object `meta`.
     def _validate_trace(self, meta):
         self._validate_trace_packet_header_type(meta.trace.packet_header_type)
 
+    # Validates the packet context field type of the stream type
+    # `stream`.
     def _validate_stream_packet_context(self, stream):
         t = stream.packet_context_type
         assert t is not None
 
-        # `timestamp_begin` and `timestamp_end`
+        # The `timestamp_begin` and `timestamp_end` field types must be
+        # mapped to the `value` property of the same clock.
         ts_begin = t.fields.get('timestamp_begin')
         ts_end = t.fields.get('timestamp_end')
 
-        # `timestamp_begin` and `timestamp_end` are mapped to the same clock
         if ts_begin is not None and ts_end is not None:
             if ts_begin.property_mappings[0].object.name != ts_end.property_mappings[0].object.name:
                 raise _ConfigParseError('`timestamp_begin` and `timestamp_end` fields must be mapped to the same clock object in stream packet context type')
 
-        # `packet_size` size must be greater than or equal to `content_size` size
+        # The `packet_size` field type's size must be greater than or
+        # equal to the `content_size` field type's size.
         if t.fields['content_size'].size > t.fields['packet_size'].size:
             raise _ConfigParseError('`packet-context-type` property',
                                     '`content_size` field size must be lesser than or equal to `packet_size` field size')
 
+    # Validates the event header field type of the stream type `stream`.
     def _validate_stream_event_header(self, stream):
         t = stream.event_header_type
 
-        # needs `id` field?
+        # If there's more than one event type, then the `id` (event type
+        # ID) field is required.
         if len(stream.events) > 1:
-            # yes
             if t is None:
                 raise _ConfigParseError('`event-header-type` property',
                                         'Need `id` field (more than one event), but stream event header type is missing')
@@ -698,19 +744,22 @@ class _MetadataSpecialFieldsValidator:
         if t is None:
             return
 
-        # `id`
+        # The `id` field type's size (bits) must be large enough to
+        # accomodate any event type ID.
         eid = t.fields.get('id')
 
         if eid is not None:
-            # `id` size can fit all event IDs
             if len(stream.events) > (1 << eid.size):
                 raise _ConfigParseError('`event-header-type` property',
                                         '`id` field\' size is too small for the number of stream events')
 
+    # Validates the stream type `stream`.
     def _validate_stream(self, stream):
         self._validate_stream_packet_context(stream)
         self._validate_stream_event_header(stream)
 
+    # Validates the trace and stream types of the metadata object
+    # `meta`.
     def validate(self, meta):
         self._meta = meta
         self._validate_trace(meta)
@@ -722,7 +771,18 @@ class _MetadataSpecialFieldsValidator:
                 _append_error_ctx(exc, 'Stream `{}`'.format(stream.name), 'Invalid')
 
 
+# A barectf YAML configuration parser.
+#
+# Build such a parser and then call parse() to get the resulting
+# `config.Config` object.
+#
+# See the comments of parse() for more implementation details about the
+# parsing stages and general strategy.
 class _YamlConfigParser:
+    # Builds a barectf YAML configuration parser which considers the
+    # inclusion directories `include_dirs`, ignores nonexistent
+    # inclusion files if `ignore_include_not_found` is `True`, and dumps
+    # the effective configuration (as YAML) if `dump_config` is `True`.
     def __init__(self, include_dirs, ignore_include_not_found, dump_config):
         self._class_name_to_create_type_func = {
             'int': self._create_integer,
@@ -743,10 +803,13 @@ class _YamlConfigParser:
         self._dump_config = dump_config
         self._schema_validator = _SchemaValidator()
 
+    # Sets the default byte order as found in the `metadata_node` node.
     def _set_byte_order(self, metadata_node):
         self._bo = _byte_order_str_to_bo(metadata_node['trace']['byte-order'])
         assert self._bo is not None
 
+    # Sets the clock value property mapping of the pseudo integer field
+    # type object `int_obj` as found in the `prop_mapping_node` node.
     def _set_int_clock_prop_mapping(self, int_obj, prop_mapping_node):
         clock_name = prop_mapping_node['name']
         clock = self._clocks.get(clock_name)
@@ -760,33 +823,28 @@ class _YamlConfigParser:
         prop_mapping.prop = 'value'
         int_obj.property_mappings.append(prop_mapping)
 
+    # Creates a pseudo integer field type from the node `node` and
+    # returns it.
     def _create_integer(self, node):
         obj = _Integer()
-
-        # size
         obj.size = node['size']
-
-        # align
         align_node = node.get('align')
 
         if align_node is not None:
             _validate_alignment(align_node, 'Integer type')
             obj.align = align_node
 
-        # signed
         signed_node = node.get('signed')
 
         if signed_node is not None:
             obj.signed = signed_node
 
-        # byte order
         obj.byte_order = self._bo
         bo_node = node.get('byte-order')
 
         if bo_node is not None:
             obj.byte_order = _byte_order_str_to_bo(bo_node)
 
-        # base
         base_node = node.get('base')
 
         if base_node is not None:
@@ -800,13 +858,11 @@ class _YamlConfigParser:
                 assert base_node == 'hex'
                 obj.base = 16
 
-        # encoding
         encoding_node = node.get('encoding')
 
         if encoding_node is not None:
             obj.encoding = _encoding_str_to_encoding(encoding_node)
 
-        # property mappings
         pm_node = node.get('property-mappings')
 
         if pm_node is not None:
@@ -815,22 +871,19 @@ class _YamlConfigParser:
 
         return obj
 
+    # Creates a pseudo floating point number field type from the node
+    # `node` and returns it.
     def _create_float(self, node):
         obj = _FloatingPoint()
-
-        # size
         size_node = node['size']
         obj.exp_size = size_node['exp']
         obj.mant_size = size_node['mant']
-
-        # align
         align_node = node.get('align')
 
         if align_node is not None:
             _validate_alignment(align_node, 'Floating point number type')
             obj.align = align_node
 
-        # byte order
         obj.byte_order = self._bo
         bo_node = node.get('byte-order')
 
@@ -839,10 +892,12 @@ class _YamlConfigParser:
 
         return obj
 
+    # Creates a pseudo enumeration field type from the node `node` and
+    # returns it.
     def _create_enum(self, node):
         obj = _Enum()
 
-        # value type
+        # value (integer) field type
         try:
             obj.value_type = self._create_type(node['value-type'])
         except _ConfigParseError as exc:
@@ -888,6 +943,9 @@ class _YamlConfigParser:
                         value = (mn, mx)
                         cur = mx + 1
 
+                # Make sure that all the integral values of the range
+                # fits the enumeration field type's integer value field
+                # type depending on its size (bits).
                 name_fmt = 'Enumeration type\'s member `{}`'
                 msg_fmt = 'Value {} is outside the value type range [{}, {}]'
 
@@ -907,10 +965,10 @@ class _YamlConfigParser:
 
         return obj
 
+    # Creates a pseudo string field type from the node `node` and
+    # returns it.
     def _create_string(self, node):
         obj = _String()
-
-        # encoding
         encoding_node = node.get('encoding')
 
         if encoding_node is not None:
@@ -918,17 +976,16 @@ class _YamlConfigParser:
 
         return obj
 
+    # Creates a pseudo structure field type from the node `node` and
+    # returns it.
     def _create_struct(self, node):
         obj = _Struct()
-
-        # minimum alignment
         min_align_node = node.get('min-align')
 
         if min_align_node is not None:
             _validate_alignment(min_align_node, 'Structure type')
             obj.min_align = min_align_node
 
-        # fields
         fields_node = node.get('fields')
 
         if fields_node is not None:
@@ -943,13 +1000,12 @@ class _YamlConfigParser:
 
         return obj
 
+    # Creates a pseudo array field type from the node `node` and returns
+    # it.
     def _create_array(self, node):
         obj = _Array()
-
-        # length
         obj.length = node['length']
 
-        # element type
         try:
             obj.element_type = self._create_type(node['element-type'])
         except _ConfigParseError as exc:
@@ -957,14 +1013,17 @@ class _YamlConfigParser:
 
         return obj
 
+    # Creates a pseudo field type from the node `node` and returns it.
+    #
+    # This method checks the `class` property of `node` to determine
+    # which function of `self._class_name_to_create_type_func` to call
+    # to create the corresponding pseudo field type.
     def _create_type(self, type_node):
         return self._class_name_to_create_type_func[type_node['class']](type_node)
 
+    # Creates a pseudo clock type from the node `node` and returns it.
     def _create_clock(self, node):
-        # create clock object
         clock = _Clock()
-
-        # UUID
         uuid_node = node.get('uuid')
 
         if uuid_node is not None:
@@ -973,41 +1032,34 @@ class _YamlConfigParser:
             except:
                 raise _ConfigParseError('Clock', 'Malformed UUID: `{}`'.format(uuid_node))
 
-        # description
         descr_node = node.get('description')
 
         if descr_node is not None:
             clock.description = descr_node
 
-        # frequency
         freq_node = node.get('freq')
 
         if freq_node is not None:
             clock.freq = freq_node
 
-        # error cycles
         error_cycles_node = node.get('error-cycles')
 
         if error_cycles_node is not None:
             clock.error_cycles = error_cycles_node
 
-        # offset
         offset_node = node.get('offset')
 
         if offset_node is not None:
-            # cycles
             offset_cycles_node = offset_node.get('cycles')
 
             if offset_cycles_node is not None:
                 clock.offset_cycles = offset_cycles_node
 
-            # seconds
             offset_seconds_node = offset_node.get('seconds')
 
             if offset_seconds_node is not None:
                 clock.offset_seconds = offset_seconds_node
 
-        # absolute
         absolute_node = node.get('absolute')
 
         if absolute_node is not None:
@@ -1016,6 +1068,8 @@ class _YamlConfigParser:
         return_ctype_node = node.get('$return-ctype')
 
         if return_ctype_node is None:
+            # barectf 2.1: `return-ctype` property was renamed to
+            # `$return-ctype`
             return_ctype_node = node.get('return-ctype')
 
         if return_ctype_node is not None:
@@ -1023,6 +1077,13 @@ class _YamlConfigParser:
 
         return clock
 
+    # Registers all the clock types of the metadata node
+    # `metadata_node`, creating pseudo clock types during the process,
+    # within this parser.
+    #
+    # The pseudo clock types in `self._clocks` are then accessible when
+    # creating a pseudo integer field type (see _create_integer() and
+    # _set_int_clock_prop_mapping()).
     def _register_clocks(self, metadata_node):
         self._clocks = collections.OrderedDict()
         clocks_node = metadata_node.get('clocks')
@@ -1043,6 +1104,8 @@ class _YamlConfigParser:
             clock.name = clock_name
             self._clocks[clock_name] = clock
 
+    # Creates an environment object (`collections.OrderedDict`) from the
+    # metadata node `metadata_node` and returns it.
     def _create_env(self, metadata_node):
         env_node = metadata_node.get('env')
 
@@ -1055,19 +1118,17 @@ class _YamlConfigParser:
 
         return copy.deepcopy(env_node)
 
+    # Creates a pseudo trace type from the metadata node `metadata_node`
+    # and returns it.
     def _create_trace(self, metadata_node):
-        # create trace object
         trace = _Trace()
-
         trace_node = metadata_node['trace']
-
-        # set byte order (already parsed)
         trace.byte_order = self._bo
-
-        # UUID
         uuid_node = trace_node.get('uuid')
 
         if uuid_node is not None:
+            # The `uuid` property of the trace type node can be `auto`
+            # to make barectf generate a UUID.
             if uuid_node == 'auto':
                 trace.uuid = uuid.uuid1()
             else:
@@ -1077,7 +1138,6 @@ class _YamlConfigParser:
                     raise _ConfigParseError('Trace',
                                             'Malformed UUID: `{}`'.format(uuid_node))
 
-        # packet header type
         pht_node = trace_node.get('packet-header-type')
 
         if pht_node is not None:
@@ -1089,10 +1149,10 @@ class _YamlConfigParser:
 
         return trace
 
+    # Creates a pseudo event type from the event node `event_node` and
+    # returns it.
     def _create_event(self, event_node):
-        # create event object
         event = _Event()
-
         log_level_node = event_node.get('log-level')
 
         if log_level_node is not None:
@@ -1119,10 +1179,10 @@ class _YamlConfigParser:
 
         return event
 
+    # Creates a pseudo stream type named `stream_name` from the stream
+    # node `stream_node` and returns it.
     def _create_stream(self, stream_name, stream_node):
-        # create stream object
         stream = _Stream()
-
         pct_node = stream_node.get('packet-context-type')
 
         if pct_node is not None:
@@ -1177,6 +1237,9 @@ class _YamlConfigParser:
 
         return stream
 
+    # Creates a `collections.OrderedDict` object where keys are stream
+    # type names and values are pseudo stream types from the metadata
+    # node `metadata_node` and returns it.
     def _create_streams(self, metadata_node):
         streams = collections.OrderedDict()
         streams_node = metadata_node['streams']
@@ -1196,6 +1259,8 @@ class _YamlConfigParser:
 
         return streams
 
+    # Creates a pseudo metadata object from the configuration node
+    # `root` and returns it.
     def _create_metadata(self, root):
         self._meta = _Metadata()
         metadata_node = root['metadata']
@@ -1211,7 +1276,7 @@ class _YamlConfigParser:
         self._meta.trace = self._create_trace(metadata_node)
         self._meta.streams = self._create_streams(metadata_node)
 
-        # validate metadata
+        # validate the pseudo metadata object
         try:
             _MetadataSpecialFieldsValidator().validate(self._meta)
         except _ConfigParseError as exc:
@@ -1224,11 +1289,15 @@ class _YamlConfigParser:
 
         return self._meta
 
+    # Gets and validates the tracing prefix as found in the
+    # configuration node `config_node` and returns it.
     def _get_prefix(self, config_node):
         prefix = config_node.get('prefix', 'barectf_')
         _validate_identifier(prefix, '`prefix` property', 'prefix')
         return prefix
 
+    # Gets the options as found in the configuration node `config_node`
+    # and returns a corresponding `config.ConfigOptions` object.
     def _get_options(self, config_node):
         gen_prefix_def = False
         gen_default_stream_def = False
@@ -1242,12 +1311,16 @@ class _YamlConfigParser:
 
         return config.ConfigOptions(gen_prefix_def, gen_default_stream_def)
 
+    # Returns the last included file name from the parser's inclusion
+    # file name stack.
     def _get_last_include_file(self):
         if self._include_stack:
             return self._include_stack[-1]
 
         return self._root_yaml_path
 
+    # Loads the inclusion file having the path `yaml_path` and returns
+    # its content as a `collections.OrderedDict` object.
     def _load_include(self, yaml_path):
         for inc_dir in self._include_dirs:
             # Current inclusion dir + file name path.
@@ -1282,7 +1355,8 @@ class _YamlConfigParser:
             raise _ConfigParseError('In `{}`',
                                     'Cannot include file `{}`: file not found in include directories'.format(base_path,
                                                                                                             yaml_path))
-
+    # Returns a list of all the inclusion file paths as found in the
+    # inclusion node `include_node`.
     def _get_include_paths(self, include_node):
         if include_node is None:
             # none
@@ -1296,23 +1370,39 @@ class _YamlConfigParser:
         assert type(include_node) is list
         return include_node
 
+    # Updates the node `base_node` with an overlay node `overlay_node`.
+    #
+    # Both the inclusion and field type inheritance features use this
+    # update mechanism.
     def _update_node(self, base_node, overlay_node):
         for olay_key, olay_value in overlay_node.items():
             if olay_key in base_node:
                 base_value = base_node[olay_key]
 
                 if type(olay_value) is collections.OrderedDict and type(base_value) is collections.OrderedDict:
-                    # merge dictionaries
+                    # merge both objects
                     self._update_node(base_value, olay_value)
                 elif type(olay_value) is list and type(base_value) is list:
                     # append extension array items to base items
                     base_value += olay_value
                 else:
-                    # fall back to replacing
+                    # fall back to replacing base property
                     base_node[olay_key] = olay_value
             else:
+                # set base property from overlay property
                 base_node[olay_key] = olay_value
 
+    # Processes inclusions using `last_overlay_node` as the last overlay
+    # node to use to "patch" the node.
+    #
+    # If `last_overlay_node` contains an `$include` property, then this
+    # method patches the current base node (initially empty) in order
+    # using the content of the inclusion files (recursively).
+    #
+    # At the end, this method removes the `$include` of
+    # `last_overlay_node` and then patches the current base node with
+    # its other properties before returning the result (always a deep
+    # copy).
     def _process_node_include(self, last_overlay_node,
                               process_base_include_cb,
                               process_children_include_cb=None):
@@ -1372,8 +1462,10 @@ class _YamlConfigParser:
         self._update_node(base_node, last_overlay_node)
         return base_node
 
+    # Process the inclusions of the event type node `event_node`,
+    # returning the effective node.
     def _process_event_include(self, event_node):
-        # Make sure the event object is valid for the inclusion
+        # Make sure the event type node is valid for the inclusion
         # processing stage.
         self._schema_validator.validate(event_node,
                                         '2/config/event-pre-include')
@@ -1382,6 +1474,8 @@ class _YamlConfigParser:
         return self._process_node_include(event_node,
                                           self._process_event_include)
 
+    # Process the inclusions of the stream type node `stream_node`,
+    # returning the effective node.
     def _process_stream_include(self, stream_node):
         def process_children_include(stream_node):
             if 'events' in stream_node:
@@ -1390,7 +1484,7 @@ class _YamlConfigParser:
                 for key in list(events_node):
                     events_node[key] = self._process_event_include(events_node[key])
 
-        # Make sure the stream object is valid for the inclusion
+        # Make sure the stream type node is valid for the inclusion
         # processing stage.
         self._schema_validator.validate(stream_node,
                                         '2/config/stream-pre-include')
@@ -1400,8 +1494,10 @@ class _YamlConfigParser:
                                           self._process_stream_include,
                                           process_children_include)
 
+    # Process the inclusions of the trace type node `trace_node`,
+    # returning the effective node.
     def _process_trace_include(self, trace_node):
-        # Make sure the trace object is valid for the inclusion
+        # Make sure the trace type node is valid for the inclusion
         # processing stage.
         self._schema_validator.validate(trace_node,
                                         '2/config/trace-pre-include')
@@ -1410,8 +1506,10 @@ class _YamlConfigParser:
         return self._process_node_include(trace_node,
                                           self._process_trace_include)
 
+    # Process the inclusions of the clock type node `clock_node`,
+    # returning the effective node.
     def _process_clock_include(self, clock_node):
-        # Make sure the clock object is valid for the inclusion
+        # Make sure the clock type node is valid for the inclusion
         # processing stage.
         self._schema_validator.validate(clock_node,
                                         '2/config/clock-pre-include')
@@ -1420,6 +1518,8 @@ class _YamlConfigParser:
         return self._process_node_include(clock_node,
                                           self._process_clock_include)
 
+    # Process the inclusions of the metadata node `metadata_node`,
+    # returning the effective node.
     def _process_metadata_include(self, metadata_node):
         def process_children_include(metadata_node):
             if 'trace' in metadata_node:
@@ -1437,7 +1537,7 @@ class _YamlConfigParser:
                 for key in list(streams_node):
                     streams_node[key] = self._process_stream_include(streams_node[key])
 
-        # Make sure the metadata object is valid for the inclusion
+        # Make sure the metadata node is valid for the inclusion
         # processing stage.
         self._schema_validator.validate(metadata_node,
                                         '2/config/metadata-pre-include')
@@ -1447,22 +1547,24 @@ class _YamlConfigParser:
                                           self._process_metadata_include,
                                           process_children_include)
 
+    # Process the inclusions of the configuration node `config_node`,
+    # returning the effective node.
     def _process_config_includes(self, config_node):
         # Process inclusions in this order:
         #
-        # 1. Clock object, event objects, and trace objects (the order
-        #    between those is not important).
+        # 1. Clock type node, event type nodes, and trace type nodes
+        #    (the order between those is not important).
         #
-        # 2. Stream objects.
+        # 2. Stream type nodes.
         #
-        # 3. Metadata object.
+        # 3. Metadata node.
         #
         # This is because:
         #
-        # * A metadata object can include clock objects, a trace object,
-        #   stream objects, and event objects (indirectly).
+        # * A metadata node can include clock type nodes, a trace type
+        #   node, stream type nodes, and event type nodes (indirectly).
         #
-        # * A stream object can include event objects.
+        # * A stream type node can include event type nodes.
         #
         # We keep a stack of absolute paths to included files
         # (`self._include_stack`) to detect recursion.
@@ -1472,15 +1574,26 @@ class _YamlConfigParser:
         self._schema_validator.validate(config_node,
                                         '2/config/config-pre-include')
 
-        # Process metadata object inclusions.
+        # Process metadata node inclusions.
         #
         # self._process_metadata_include() returns a new (or the same)
-        # metadata object without any `$include` property in it,
+        # metadata node without any `$include` property in it,
         # recursively.
         config_node['metadata'] = self._process_metadata_include(config_node['metadata'])
 
         return config_node
 
+    # Expands the field type aliases found in the metadata node
+    # `metadata_node` using the aliases of the `type_aliases_node` node.
+    #
+    # This method modifies `metadata_node`.
+    #
+    # When this method returns:
+    #
+    # * Any field type alias is replaced with its full field type
+    #   equivalent.
+    #
+    # * The `type-aliases` property of `metadata_node` is removed.
     def _expand_field_type_aliases(self, metadata_node, type_aliases_node):
         def resolve_field_type_aliases(parent_node, key, from_descr,
                                        alias_set=None):
@@ -1549,7 +1662,8 @@ class _YamlConfigParser:
         # set of resolved field type aliases
         resolved_aliases = set()
 
-        # expand field type aliases within trace, streams, and events now
+        # Expand field type aliases within trace, stream, and event
+        # types now.
         resolve_field_type_aliases_from(metadata_node['trace'],
                                         'packet-header-type', 'trace')
 
@@ -1563,16 +1677,23 @@ class _YamlConfigParser:
 
             try:
                 for event_name, event in stream['events'].items():
-                    resolve_field_type_aliases_from(event, 'context-type', 'event',
-                                                    event_name)
-                    resolve_field_type_aliases_from(event, 'payload-type', 'event',
-                                                    event_name)
+                    resolve_field_type_aliases_from(event, 'context-type',
+                                                    'event', event_name)
+                    resolve_field_type_aliases_from(event, 'payload-type',
+                                                    'event', event_name)
             except _ConfigParseError as exc:
                 _append_error_ctx(exc, 'Stream `{}`'.format(stream_name))
 
-        # we don't need the `type-aliases` node anymore
+        # remove the (now unneeded) `type-aliases` node
         del metadata_node['type-aliases']
 
+    # Applies field type inheritance to all field types found in
+    # `metadata_node`.
+    #
+    # This method modifies `metadata_node`.
+    #
+    # When this method returns, no field type node has an `$inherit` or
+    # `inherit` property.
     def _expand_field_type_inheritance(self, metadata_node):
         def apply_inheritance(parent_node, key):
             if key not in parent_node:
@@ -1630,6 +1751,9 @@ class _YamlConfigParser:
                 apply_inheritance(event, 'context-type')
                 apply_inheritance(event, 'payload-type')
 
+    # Calls _expand_field_type_aliases() and
+    # _expand_field_type_inheritance() if the metadata node
+    # `metadata_node` has a `type-aliases` property.
     def _expand_field_types(self, metadata_node):
         type_aliases_node = metadata_node.get('type-aliases')
 
@@ -1644,9 +1768,19 @@ class _YamlConfigParser:
         # next, apply inheritance to create effective field types
         self._expand_field_type_inheritance(metadata_node)
 
+    # Replaces the textual log levels in event type nodes of the
+    # metadata node `metadata_node` with their numeric equivalent (as
+    # found in the `$log-levels` or `log-levels` node of
+    # `metadata_node`).
+    #
+    # This method modifies `metadata_node`.
+    #
+    # When this method returns, the `$log-levels` or `log-level`
+    # property of `metadata_node` is removed.
     def _expand_log_levels(self, metadata_node):
         if 'log-levels' in metadata_node:
-            # barectf 2.1: `log-levels` property was renamed to `$log-levels`
+            # barectf 2.1: `log-levels` property was renamed to
+            # `$log-levels`
             assert '$log-levels' not in node
             node['$log-levels'] = node['log-levels']
             del node['log-levels']
@@ -1679,6 +1813,7 @@ class _YamlConfigParser:
             except _ConfigParseError as exc:
                 _append_error_ctx(exc, 'Stream `{}`'.format(stream_name))
 
+    # Dumps the node `node` as YAML, passing `kwds` to yaml.dump().
     def _yaml_ordered_dump(self, node, **kwds):
         class ODumper(yaml.Dumper):
             pass
@@ -1692,6 +1827,10 @@ class _YamlConfigParser:
         # Python -> YAML
         return yaml.dump(node, Dumper=ODumper, **kwds)
 
+    # Loads the content of the YAML file having the path `yaml_path` as
+    # a Python object.
+    #
+    # All YAML maps are loaded as `collections.OrderedDict` objects.
     def _yaml_ordered_load(self, yaml_path):
         class OLoader(yaml.Loader):
             pass
@@ -1722,6 +1861,7 @@ class _YamlConfigParser:
 
         return node
 
+    #
     def _reset(self):
         self._version = None
         self._include_stack = []
@@ -1770,7 +1910,7 @@ class _YamlConfigParser:
         #    After this step, the `type-aliases` property of the
         #    `metadata` node is gone.
         #
-        # 2. Applies inheritance following the `$inherit`/`inherit`
+        # 2. Applies inheritance, following the `$inherit`/`inherit`
         #    properties.
         #
         #    After this step, field type objects do not contain
