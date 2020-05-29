@@ -116,7 +116,7 @@ def run():
         config = barectf.config.from_file(args.config, args.include_dir,
                                           args.ignore_include_not_found,
                                           args.dump_config)
-    except barectf.config.ConfigParseError as e:
+    except barectf.config._ConfigParseError as e:
         _pconfig_error(e)
     except Exception as e:
         import traceback

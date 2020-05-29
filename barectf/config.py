@@ -24,7 +24,7 @@
 from barectf import config_parse
 
 
-ConfigParseError = config_parse.ConfigParseError
+_ConfigParseError = config_parse._ConfigParseError
 
 
 class Config:
