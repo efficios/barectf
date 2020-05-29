@@ -21,8 +21,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from barectf import metadata
-from barectf import config
+import barectf.metadata
+import barectf.config
 import pkg_resources
 import collections
 import jsonschema
@@ -118,7 +118,8 @@ class _PropertyMapping(_PseudoObj):
         self.prop = None
 
     def _to_public(self):
-        return metadata.PropertyMapping(self.object.to_public(), self.prop)
+        return barectf.metadata.PropertyMapping(self.object.to_public(),
+                                                self.prop)
 
 
 class _Integer(_PseudoObj):
@@ -129,7 +130,7 @@ class _Integer(_PseudoObj):
         self.align = None
         self.signed = False
         self.base = 10
-        self.encoding = metadata.Encoding.NONE
+        self.encoding = barectf.metadata.Encoding.NONE
         self.property_mappings = []
 
     @property
@@ -144,9 +145,9 @@ class _Integer(_PseudoObj):
 
     def _to_public(self):
         prop_mappings = [pm.to_public() for pm in self.property_mappings]
-        return metadata.Integer(self.size, self.byte_order, self.align,
-                                self.signed, self.base, self.encoding,
-                                prop_mappings)
+        return barectf.metadata.Integer(self.size, self.byte_order, self.align,
+                                        self.signed, self.base, self.encoding,
+                                        prop_mappings)
 
 
 class _FloatingPoint(_PseudoObj):
@@ -162,8 +163,8 @@ class _FloatingPoint(_PseudoObj):
         return self.align
 
     def _to_public(self):
-        return metadata.FloatingPoint(self.exp_size, self.mant_size,
-                                      self.byte_order, self.align)
+        return barectf.metadata.FloatingPoint(self.exp_size, self.mant_size,
+                                              self.byte_order, self.align)
 
 
 class _Enum(_PseudoObj):
@@ -177,20 +178,20 @@ class _Enum(_PseudoObj):
         return self.value_type.real_align
 
     def _to_public(self):
-        return metadata.Enum(self.value_type.to_public(), self.members)
+        return barectf.metadata.Enum(self.value_type.to_public(), self.members)
 
 
 class _String(_PseudoObj):
     def __init__(self):
         super().__init__()
-        self.encoding = metadata.Encoding.UTF8
+        self.encoding = barectf.metadata.Encoding.UTF8
 
     @property
     def real_align(self):
         return 8
 
     def _to_public(self):
-        return metadata.String(self.encoding)
+        return barectf.metadata.String(self.encoding)
 
 
 class _Array(_PseudoObj):
@@ -204,7 +205,7 @@ class _Array(_PseudoObj):
         return self.element_type.real_align
 
     def _to_public(self):
-        return metadata.Array(self.element_type.to_public(), self.length)
+        return barectf.metadata.Array(self.element_type.to_public(), self.length)
 
 
 class _Struct(_PseudoObj):
@@ -229,7 +230,8 @@ class _Struct(_PseudoObj):
         for name, pseudo_field in self.fields.items():
             fields.append((name, pseudo_field.to_public()))
 
-        return metadata.Struct(self.min_align, collections.OrderedDict(fields))
+        return barectf.metadata.Struct(self.min_align,
+                                       collections.OrderedDict(fields))
 
 
 class _Trace(_PseudoObj):
@@ -240,8 +242,8 @@ class _Trace(_PseudoObj):
         self.packet_header_type = None
 
     def _to_public(self):
-        return metadata.Trace(self.byte_order, self.uuid,
-                              _opt_to_public(self.packet_header_type))
+        return barectf.metadata.Trace(self.byte_order, self.uuid,
+                                      _opt_to_public(self.packet_header_type))
 
 
 class _Clock(_PseudoObj):
@@ -258,10 +260,11 @@ class _Clock(_PseudoObj):
         self.return_ctype = 'uint32_t'
 
     def _to_public(self):
-        return metadata.Clock(self.name, self.uuid, self.description, self.freq,
-                              self.error_cycles, self.offset_seconds,
-                              self.offset_cycles, self.absolute,
-                              self.return_ctype)
+        return barectf.metadata.Clock(self.name, self.uuid,
+                                      self.description, self.freq,
+                                      self.error_cycles, self.offset_seconds,
+                                      self.offset_cycles, self.absolute,
+                                      self.return_ctype)
 
 
 class _Event(_PseudoObj):
@@ -274,9 +277,9 @@ class _Event(_PseudoObj):
         self.context_type = None
 
     def _to_public(self):
-        return metadata.Event(self.id, self.name, self.log_level,
-                              _opt_to_public(self.payload_type),
-                              _opt_to_public(self.context_type))
+        return barectf.metadata.Event(self.id, self.name, self.log_level,
+                                      _opt_to_public(self.payload_type),
+                                      _opt_to_public(self.context_type))
 
 
 class _Stream(_PseudoObj):
@@ -312,11 +315,11 @@ class _Stream(_PseudoObj):
         for name, pseudo_ev in self.events.items():
             events.append((name, pseudo_ev.to_public()))
 
-        return metadata.Stream(self.id, self.name,
-                               _opt_to_public(self.packet_context_type),
-                               _opt_to_public(self.event_header_type),
-                               _opt_to_public(self.event_context_type),
-                               collections.OrderedDict(events))
+        return barectf.metadata.Stream(self.id, self.name,
+                                       _opt_to_public(self.packet_context_type),
+                                       _opt_to_public(self.event_header_type),
+                                       _opt_to_public(self.event_context_type),
+                                       collections.OrderedDict(events))
 
 
 class _Metadata(_PseudoObj):
@@ -339,10 +342,10 @@ class _Metadata(_PseudoObj):
         for name, pseudo_stream in self.streams.items():
             streams.append((name, pseudo_stream.to_public()))
 
-        return metadata.Metadata(self.trace.to_public(), self.env,
-                                 collections.OrderedDict(clocks),
-                                 collections.OrderedDict(streams),
-                                 self.default_stream_name)
+        return barectf.metadata.Metadata(self.trace.to_public(), self.env,
+                                         collections.OrderedDict(clocks),
+                                         collections.OrderedDict(streams),
+                                         self.default_stream_name)
 
 
 # This JSON schema reference resolver only serves to detect when it
@@ -472,28 +475,28 @@ class _SchemaValidator:
             raise new_exc
 
 
-# Converts the byte order string `bo_str` to a `metadata.ByteOrder`
-# enumerator.
+# Converts the byte order string `bo_str` to a
+# `barectf.metadata.ByteOrder` enumerator.
 def _byte_order_str_to_bo(bo_str):
     bo_str = bo_str.lower()
 
     if bo_str == 'le':
-        return metadata.ByteOrder.LE
+        return barectf.metadata.ByteOrder.LE
     elif bo_str == 'be':
-        return metadata.ByteOrder.BE
+        return barectf.metadata.ByteOrder.BE
 
 
-# Converts the encoding string `encoding_str` to a `metadata.Encoding`
-# enumerator.
+# Converts the encoding string `encoding_str` to a
+# `barectf.metadata.Encoding` enumerator.
 def _encoding_str_to_encoding(encoding_str):
     encoding_str = encoding_str.lower()
 
     if encoding_str == 'utf-8' or encoding_str == 'utf8':
-        return metadata.Encoding.UTF8
+        return barectf.metadata.Encoding.UTF8
     elif encoding_str == 'ascii':
-        return metadata.Encoding.ASCII
+        return barectf.metadata.Encoding.ASCII
     elif encoding_str == 'none':
-        return metadata.Encoding.NONE
+        return barectf.metadata.Encoding.NONE
 
 
 # Validates the TSDL identifier `iden`, raising a `_ConfigParseError`
@@ -806,8 +809,8 @@ class _MetadataSpecialFieldsValidator:
 # A barectf YAML configuration parser.
 #
 # When you build such a parser, it parses the configuration file and
-# creates a corresponding `config.Config` object which you can get with
-# the `config` property.
+# creates a corresponding `barectf.config.Config` object which you can
+# get with the `config` property.
 #
 # See the comments of _parse() for more implementation details about the
 # parsing stages and general strategy.
@@ -1205,7 +1208,7 @@ class _YamlConfigParser:
 
         if log_level_node is not None:
             assert type(log_level_node) is int
-            event.log_level = metadata.LogLevel(None, log_level_node)
+            event.log_level = barectf.metadata.LogLevel(None, log_level_node)
 
         ct_node = event_node.get('context-type')
 
@@ -1338,7 +1341,7 @@ class _YamlConfigParser:
         return prefix
 
     # Gets the options as found in the configuration node `config_node`
-    # and returns a corresponding `config.ConfigOptions` object.
+    # and returns a corresponding `barectf.config.ConfigOptions` object.
     def _get_options(self, config_node):
         gen_prefix_def = False
         gen_default_stream_def = False
@@ -1350,7 +1353,8 @@ class _YamlConfigParser:
             gen_default_stream_def = options_node.get('gen-default-stream-def',
                                                       gen_default_stream_def)
 
-        return config.ConfigOptions(gen_prefix_def, gen_default_stream_def)
+        return barectf.config.ConfigOptions(gen_prefix_def,
+                                            gen_default_stream_def)
 
     # Returns the last included file name from the parser's inclusion
     # file name stack.
@@ -1968,7 +1972,8 @@ class _YamlConfigParser:
         pseudo_meta = self._create_metadata(config_node)
 
         # create public configuration
-        self._config = config.Config(pseudo_meta.to_public(), prefix, opts)
+        self._config = barectf.config.Config(pseudo_meta.to_public(), prefix,
+                                             opts)
 
     @property
     def config(self):

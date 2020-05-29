@@ -21,11 +21,11 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from pkg_resources import resource_filename
-from termcolor import cprint
 import barectf.tsdl182gen
 import barectf.config
+import pkg_resources
 import barectf.gen
+import termcolor
 import argparse
 import os.path
 import barectf
@@ -34,13 +34,13 @@ import os
 
 
 def _perror(msg):
-    cprint('Error: ', 'red', end='', file=sys.stderr)
-    cprint(msg, 'red', attrs=['bold'], file=sys.stderr)
+    termcolor.cprint('Error: ', 'red', end='', file=sys.stderr)
+    termcolor.cprint(msg, 'red', attrs=['bold'], file=sys.stderr)
     sys.exit(1)
 
 
 def _pconfig_error(exc):
-    cprint('Error:', 'red', file=sys.stderr)
+    termcolor.cprint('Error:', 'red', file=sys.stderr)
 
     for ctx in reversed(exc.ctx):
         if ctx.msg is not None:
@@ -48,13 +48,14 @@ def _pconfig_error(exc):
         else:
             msg = ''
 
-        cprint(f'  {ctx.name}:{msg}', 'red', attrs=['bold'], file=sys.stderr)
+        termcolor.cprint(f'  {ctx.name}:{msg}', 'red', attrs=['bold'],
+                         file=sys.stderr)
 
     sys.exit(1)
 
 
 def _psuccess(msg):
-    cprint(msg, 'green', attrs=['bold'])
+    termcolor.cprint(msg, 'green', attrs=['bold'])
 
 
 def _parse_args():
@@ -96,7 +97,10 @@ def _parse_args():
         _perror(f'`{args.config}` is not an existing, regular file')
 
     # append current working directory and provided include directory
-    args.include_dir += [os.getcwd(), resource_filename(__name__, 'include')]
+    args.include_dir += [
+        os.getcwd(),
+        pkg_resources.resource_filename(__name__, 'include')
+    ]
 
     return args
 
