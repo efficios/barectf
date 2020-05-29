@@ -817,19 +817,19 @@ class _YamlConfigParser:
     def __init__(self, path, include_dirs, ignore_include_not_found,
                  dump_config):
         self._root_path = path
-        self._class_name_to_create_type_func = {
-            'int': self._create_integer,
-            'integer': self._create_integer,
-            'flt': self._create_float,
-            'float': self._create_float,
-            'floating-point': self._create_float,
-            'enum': self._create_enum,
-            'enumeration': self._create_enum,
-            'str': self._create_string,
-            'string': self._create_string,
-            'struct': self._create_struct,
-            'structure': self._create_struct,
-            'array': self._create_array,
+        self._class_name_to_create_field_type_func = {
+            'int': self._create_integer_field_type,
+            'integer': self._create_integer_field_type,
+            'flt': self._create_float_field_type,
+            'float': self._create_float_field_type,
+            'floating-point': self._create_float_field_type,
+            'enum': self._create_enum_field_type,
+            'enumeration': self._create_enum_field_type,
+            'str': self._create_string_field_type,
+            'string': self._create_string_field_type,
+            'struct': self._create_struct_field_type,
+            'structure': self._create_struct_field_type,
+            'array': self._create_array_field_type,
         }
         self._include_dirs = include_dirs
         self._ignore_include_not_found = ignore_include_not_found
@@ -861,7 +861,7 @@ class _YamlConfigParser:
 
     # Creates a pseudo integer field type from the node `node` and
     # returns it.
-    def _create_integer(self, node):
+    def _create_integer_field_type(self, node):
         obj = _Integer()
         obj.size = node['size']
         align_node = node.get('align')
@@ -909,7 +909,7 @@ class _YamlConfigParser:
 
     # Creates a pseudo floating point number field type from the node
     # `node` and returns it.
-    def _create_float(self, node):
+    def _create_float_field_type(self, node):
         obj = _FloatingPoint()
         size_node = node['size']
         obj.exp_size = size_node['exp']
@@ -930,7 +930,7 @@ class _YamlConfigParser:
 
     # Creates a pseudo enumeration field type from the node `node` and
     # returns it.
-    def _create_enum(self, node):
+    def _create_enum_field_type(self, node):
         ctx_obj_name = 'Enumeration field type'
         obj = _Enum()
 
@@ -1004,7 +1004,7 @@ class _YamlConfigParser:
 
     # Creates a pseudo string field type from the node `node` and
     # returns it.
-    def _create_string(self, node):
+    def _create_string_field_type(self, node):
         obj = _String()
         encoding_node = node.get('encoding')
 
@@ -1015,7 +1015,7 @@ class _YamlConfigParser:
 
     # Creates a pseudo structure field type from the node `node` and
     # returns it.
-    def _create_struct(self, node):
+    def _create_struct_field_type(self, node):
         ctx_obj_name = 'Structure field type'
         obj = _Struct()
         min_align_node = node.get('min-align')
@@ -1040,7 +1040,7 @@ class _YamlConfigParser:
 
     # Creates a pseudo array field type from the node `node` and returns
     # it.
-    def _create_array(self, node):
+    def _create_array_field_type(self, node):
         obj = _Array()
         obj.length = node['length']
 
@@ -1055,10 +1055,10 @@ class _YamlConfigParser:
     # Creates a pseudo field type from the node `node` and returns it.
     #
     # This method checks the `class` property of `node` to determine
-    # which function of `self._class_name_to_create_type_func` to call
-    # to create the corresponding pseudo field type.
+    # which function of `self._class_name_to_create_field_type_func` to
+    # call to create the corresponding pseudo field type.
     def _create_type(self, type_node):
-        return self._class_name_to_create_type_func[type_node['class']](type_node)
+        return self._class_name_to_create_field_type_func[type_node['class']](type_node)
 
     # Creates a pseudo clock type from the node `node` and returns it.
     def _create_clock(self, node):
@@ -1122,8 +1122,8 @@ class _YamlConfigParser:
     # within this parser.
     #
     # The pseudo clock types in `self._clocks` are then accessible when
-    # creating a pseudo integer field type (see _create_integer() and
-    # _set_int_clock_prop_mapping()).
+    # creating a pseudo integer field type (see
+    # _create_integer_field_type() and _set_int_clock_prop_mapping()).
     def _register_clocks(self, metadata_node):
         self._clocks = collections.OrderedDict()
         clocks_node = metadata_node.get('clocks')
