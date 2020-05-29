@@ -812,9 +812,11 @@ class _YamlConfigParser:
     # ignores nonexistent inclusion files if `ignore_include_not_found`
     # is `True`, and dumps the effective configuration (as YAML) if
     # `dump_config` is `True`.
+    #
+    # Raises `_ConfigParseError` on parsing error.
     def __init__(self, path, include_dirs, ignore_include_not_found,
                  dump_config):
-        self._root_yaml_path = path
+        self._root_path = path
         self._class_name_to_create_type_func = {
             'int': self._create_integer,
             'integer': self._create_integer,
@@ -1351,7 +1353,7 @@ class _YamlConfigParser:
         if self._include_stack:
             return self._include_stack[-1]
 
-        return self._root_yaml_path
+        return self._root_path
 
     # Loads the inclusion file having the path `yaml_path` and returns
     # its content as a `collections.OrderedDict` object.
@@ -1890,10 +1892,10 @@ class _YamlConfigParser:
 
         # load the configuration object as is from the root YAML file
         try:
-            config_node = self._yaml_ordered_load(self._root_yaml_path)
+            config_node = self._yaml_ordered_load(self._root_path)
         except _ConfigParseError as exc:
             _append_error_ctx(exc, 'Configuration',
-                              'Cannot parse YAML file `{}`'.format(self._root_yaml_path))
+                              'Cannot parse YAML file `{}`'.format(self._root_path))
 
         # Make sure the configuration object is minimally valid, that
         # is, it contains a valid `version` property.
