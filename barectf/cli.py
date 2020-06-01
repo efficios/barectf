@@ -42,9 +42,9 @@ def _perror(msg):
 def _pconfig_error(exc):
     termcolor.cprint('Error:', 'red', file=sys.stderr)
 
-    for ctx in reversed(exc.ctx):
-        if ctx.msg is not None:
-            msg = f' {ctx.msg}'
+    for ctx in reversed(exc.context):
+        if ctx.message is not None:
+            msg = f' {ctx.message}'
         else:
             msg = ''
 

@@ -37,49 +37,49 @@ import os
 # The context of a configuration parsing error.
 #
 # Such a context object has a name and, optionally, a message.
-class _ConfigParseErrorCtx:
-    def __init__(self, name, msg=None):
+class _ConfigParseErrorContext:
+    def __init__(self, name, message=None):
         self._name = name
-        self._msg = msg
+        self._msg = message
 
     @property
     def name(self):
         return self._name
 
     @property
-    def msg(self):
+    def message(self):
         return self._msg
 
 
 # Appends the context having the object name `obj_name` and the
-# (optional) message `msg` to the `_ConfigParseError` exception `exc`
-# and then raises `exc` again.
-def _append_error_ctx(exc, obj_name, msg=None):
-    exc.append_ctx(obj_name, msg)
+# (optional) message `message` to the `_ConfigParseError` exception
+# `exc` and then raises `exc` again.
+def _append_error_ctx(exc, obj_name, message=None):
+    exc._append_ctx(obj_name, message)
     raise
 
 
 # A configuration parsing error.
 #
-# Such an error object contains a list of contexts (`ctx` property).
+# Such an error object contains a list of contexts (`context` property).
 #
 # The first context of this list is the most specific context, while the
 # last is the more general.
 #
-# Use append_ctx() to append a context to an existing configuration
+# Use _append_ctx() to append a context to an existing configuration
 # parsing error when you catch it before raising it again. You can use
 # _append_error_ctx() to do exactly this in a single call.
 class _ConfigParseError(RuntimeError):
-    def __init__(self, init_ctx_name, init_ctx_msg=None):
+    def __init__(self, init_ctx_obj_name, init_ctx_msg=None):
         self._ctx = []
-        self.append_ctx(init_ctx_name, init_ctx_msg)
+        self._append_ctx(init_ctx_obj_name, init_ctx_msg)
 
     @property
-    def ctx(self):
+    def context(self):
         return self._ctx
 
-    def append_ctx(self, name, msg=None):
-        self._ctx.append(_ConfigParseErrorCtx(name, msg))
+    def _append_ctx(self, name, msg=None):
+        self._ctx.append(_ConfigParseErrorContext(name, msg))
 
 
 def _opt_to_public(obj):
@@ -470,7 +470,7 @@ class _SchemaValidator:
                                         f'{exc.message}{schema_ctx} (from schema `{schema_short_id}`)')
 
             for ctx in reversed(contexts):
-                new_exc.append_ctx(ctx)
+                new_exc._append_ctx(ctx)
 
             raise new_exc
 
@@ -861,7 +861,7 @@ class _YamlConfigParser:
         if clock is None:
             exc = _ConfigParseError('`property-mappings` property',
                                     f'Clock type `{clock_name}` does not exist')
-            exc.append_ctx('Integer field type')
+            exc._append_ctx('Integer field type')
             raise exc
 
         prop_mapping = _PropertyMapping()
@@ -985,7 +985,7 @@ class _YamlConfigParser:
 
                         if mn > mx:
                             exc = _ConfigParseError(ctx_obj_name)
-                            exc.append_ctx(f'Member `{label}`',
+                            exc._append_ctx(f'Member `{label}`',
                                            f'Invalid integral range ({mn} > {mx})')
                             raise exc
 
@@ -1847,7 +1847,7 @@ class _YamlConfigParser:
                         if ll_node not in log_levels_node:
                             exc = _ConfigParseError('`log-level` property',
                                                     f'Log level alias `{ll_node}` does not exist')
-                            exc.append_ctx(f'Event type `{event_name}`')
+                            exc._append_ctx(f'Event type `{event_name}`')
                             raise exc
 
                         event[prop_name] = log_levels_node[ll_node]
