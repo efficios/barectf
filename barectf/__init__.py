@@ -21,12 +21,68 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-__major_version__ = 2
-__minor_version__ = 3
-__patch_version__ = 1
-__version__ = '{}.{}.{}'.format(__major_version__, __minor_version__,
-                                __patch_version__)
+import barectf.config_parse_common as barectf_config_parse_common
+import barectf.version as barectf_version
+import barectf.config as barectf_config
+import barectf.gen as barectf_gen
 
 
-def get_version_tuple():
-    return __major_version__, __minor_version__, __patch_version__
+# version API
+__major_version__ = barectf_version.__major_version__
+__minor_version__ = barectf_version.__minor_version__
+__patch_version__ = barectf_version.__patch_version__
+__version__ = barectf_version.__version__
+
+
+# configuration API
+_ArrayFieldType = barectf_config._ArrayFieldType
+_BitArrayFieldType = barectf_config._BitArrayFieldType
+_ConfigurationParseError = barectf_config_parse_common._ConfigurationParseError
+_EnumerationFieldType = barectf_config._EnumerationFieldType
+_FieldType = barectf_config._FieldType
+_IntegerFieldType = barectf_config._IntegerFieldType
+ByteOrder = barectf_config.ByteOrder
+ClockType = barectf_config.ClockType
+ClockTypeCTypes = barectf_config.ClockTypeCTypes
+ClockTypeOffset = barectf_config.ClockTypeOffset
+Configuration = barectf_config.Configuration
+configuration_file_major_version = barectf_config.configuration_file_major_version
+configuration_from_file = barectf_config.configuration_from_file
+ConfigurationCodeGenerationHeaderOptions = barectf_config.ConfigurationCodeGenerationHeaderOptions
+ConfigurationCodeGenerationOptions = barectf_config.ConfigurationCodeGenerationOptions
+ConfigurationOptions = barectf_config.ConfigurationOptions
+DEFAULT_FIELD_TYPE = barectf_config.DEFAULT_FIELD_TYPE
+DisplayBase = barectf_config.DisplayBase
+effective_configuration_file = barectf_config.effective_configuration_file
+EnumerationFieldTypeMapping = barectf_config.EnumerationFieldTypeMapping
+EnumerationFieldTypeMappingRange = barectf_config.EnumerationFieldTypeMappingRange
+EnumerationFieldTypeMappings = barectf_config.EnumerationFieldTypeMappings
+EventType = barectf_config.EventType
+RealFieldType = barectf_config.RealFieldType
+SignedEnumerationFieldType = barectf_config.SignedEnumerationFieldType
+SignedIntegerFieldType = barectf_config.SignedIntegerFieldType
+StaticArrayFieldType = barectf_config.StaticArrayFieldType
+StreamType = barectf_config.StreamType
+StreamTypeEventFeatures = barectf_config.StreamTypeEventFeatures
+StreamTypeFeatures = barectf_config.StreamTypeFeatures
+StreamTypePacketFeatures = barectf_config.StreamTypePacketFeatures
+StringFieldType = barectf_config.StringFieldType
+StructureFieldType = barectf_config.StructureFieldType
+StructureFieldTypeMember = barectf_config.StructureFieldTypeMember
+StructureFieldTypeMembers = barectf_config.StructureFieldTypeMembers
+Trace = barectf_config.Trace
+TraceEnvironment = barectf_config.TraceEnvironment
+TraceType = barectf_config.TraceType
+TraceTypeFeatures = barectf_config.TraceTypeFeatures
+UnsignedEnumerationFieldType = barectf_config.UnsignedEnumerationFieldType
+UnsignedIntegerFieldType = barectf_config.UnsignedIntegerFieldType
+
+
+# code generation API
+CodeGenerator = barectf_gen.CodeGenerator
+
+
+del barectf_config_parse_common
+del barectf_version
+del barectf_config
+del barectf_gen

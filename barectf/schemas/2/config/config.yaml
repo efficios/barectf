@@ -25,52 +25,30 @@ $schema: http://json-schema.org/draft-07/schema#
 $id: https://barectf.org/schemas/2/config/config.json
 title: Effective configuration object
 definitions:
-  opt-bool:
-    oneOf:
-      - type: boolean
-      - type: 'null'
-  opt-string:
-    oneOf:
-      - type: string
-      - type: 'null'
-  opt-int-min-0:
-    if:
-      type: integer
-    then:
-      minimum: 0
-    else:
-      type: 'null'
-  opt-field-type:
+  opt-struct-ft:
     if:
       type: object
     then:
-      $ref: https://barectf.org/schemas/2/config/field-type.json
+      $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/struct-ft
     else:
       type: 'null'
-  opt-struct-field-type:
-    if:
-      type: object
-    then:
-      $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/struct-field-type
-    else:
-      type: 'null'
-  unsigned-int-field-type:
+  uint-ft:
     allOf:
-      - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/int-field-type
+      - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/int-ft
       - properties:
           signed:
             const: false
-  unsigned-int-field-type-ts:
+  uint-ft-ts:
     allOf:
-      - $ref: '#/definitions/unsigned-int-field-type'
+      - $ref: '#/definitions/uint-ft'
       - properties:
           property-mappings:
             type: array
         required:
           - property-mappings
-  packet-header-type-prop:
+  packet-header-ft-prop:
     allOf:
-      - $ref: '#/definitions/opt-struct-field-type'
+      - $ref: '#/definitions/opt-struct-ft'
       - if:
           type: object
           properties:
@@ -82,19 +60,19 @@ definitions:
               properties:
                 magic:
                   allOf:
-                    - $ref: '#/definitions/unsigned-int-field-type'
+                    - $ref: '#/definitions/uint-ft'
                     - properties:
                         size:
                           const: 32
                 uuid:
                   allOf:
-                    - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/array-field-type
+                    - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/static-array-ft
                     - properties:
                         length:
                           const: 16
                         element-type:
                           allOf:
-                            - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/int-field-type
+                            - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/int-ft
                             - properties:
                                 size:
                                   const: 8
@@ -107,32 +85,24 @@ definitions:
                                     - 4
                                     - 8
                 stream_id:
-                  $ref: '#/definitions/unsigned-int-field-type'
+                  $ref: '#/definitions/uint-ft'
                 stream_instance_id:
-                  $ref: '#/definitions/unsigned-int-field-type'
-  trace:
-    title: Trace object
+                  $ref: '#/definitions/uint-ft'
+  trace-type:
+    title: Trace type object
     type: object
     properties:
       byte-order:
-        $ref: https://barectf.org/schemas/2/config/byte-order-prop.json
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/byte-order-prop
       uuid:
-        if:
-          type: string
-        then:
-          oneOf:
-            - $ref: https://barectf.org/schemas/2/config/uuid-prop.json
-            - type: string
-              const: auto
-        else:
-          type: 'null'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-trace-type-uuid-prop
       packet-header-type:
-        $ref: '#/definitions/packet-header-type-prop'
+        $ref: '#/definitions/packet-header-ft-prop'
     required:
       - byte-order
     additionalProperties: false
-  clock:
-    title: Clock object
+  clock-type:
+    title: Clock type object
     type: object
     oneOf:
       - required:
@@ -148,41 +118,21 @@ definitions:
                 - return-ctype
     properties:
       uuid:
-        if:
-          type: object
-        then:
-          $ref: https://barectf.org/schemas/2/config/uuid-prop.json
-        else:
-          type: 'null'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-uuid-prop
       description:
-        $ref: '#/definitions/opt-string'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
       freq:
-        if:
-          type: integer
-        then:
-          minimum: 1
-        else:
-          type: 'null'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-1
       error-cycles:
-        $ref: '#/definitions/opt-int-min-0'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-0
       offset:
-        if:
-          type: object
-        then:
-          properties:
-            cycles:
-              $ref: '#/definitions/opt-int-min-0'
-            seconds:
-              $ref: '#/definitions/opt-int-min-0'
-          additionalProperties: false
-        else:
-          type: 'null'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-clock-type-offset-prop
       absolute:
-        $ref: '#/definitions/opt-bool'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-bool
       return-ctype:
-        $ref: '#/definitions/opt-string'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
       $return-ctype:
-        $ref: '#/definitions/opt-string'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
     additionalProperties: false
   $default-stream:
     if:
@@ -191,24 +141,24 @@ definitions:
       pattern: '^[A-Za-z_][A-Za-z0-9_]*$'
     else:
       type: 'null'
-  packet-context-type-prop:
+  packet-context-ft-prop:
     allOf:
-      - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/struct-field-type
+      - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/struct-ft
       - properties:
           fields:
             properties:
               packet_size:
-                $ref: '#/definitions/unsigned-int-field-type'
+                $ref: '#/definitions/uint-ft'
               content_size:
-                $ref: '#/definitions/unsigned-int-field-type'
+                $ref: '#/definitions/uint-ft'
               events_discarded:
-                $ref: '#/definitions/unsigned-int-field-type'
+                $ref: '#/definitions/uint-ft'
               packet_seq_num:
-                $ref: '#/definitions/unsigned-int-field-type'
+                $ref: '#/definitions/uint-ft'
               timestamp_begin:
-                $ref: '#/definitions/unsigned-int-field-type-ts'
+                $ref: '#/definitions/uint-ft-ts'
               timestamp_end:
-                $ref: '#/definitions/unsigned-int-field-type-ts'
+                $ref: '#/definitions/uint-ft-ts'
             required:
               - packet_size
               - content_size
@@ -219,9 +169,9 @@ definitions:
                 - timestamp_begin
         required:
           - fields
-  event-header-type-prop:
+  event-header-ft-prop:
     allOf:
-      - $ref: '#/definitions/opt-struct-field-type'
+      - $ref: '#/definitions/opt-struct-ft'
       - if:
           type: object
           properties:
@@ -232,43 +182,50 @@ definitions:
             fields:
               properties:
                 id:
-                  $ref: '#/definitions/unsigned-int-field-type'
+                  $ref: '#/definitions/uint-ft'
                 timestamp:
-                  $ref: '#/definitions/unsigned-int-field-type-ts'
-  stream:
-    title: Stream object
+                  $ref: '#/definitions/uint-ft-ts'
+  stream-type:
+    title: Stream type object
     type: object
     properties:
       $default:
-        $ref: '#/definitions/opt-bool'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-bool
       packet-context-type:
-        $ref: '#/definitions/packet-context-type-prop'
+        $ref: '#/definitions/packet-context-ft-prop'
       event-header-type:
-        $ref: '#/definitions/event-header-type-prop'
+        $ref: '#/definitions/event-header-ft-prop'
       event-context-type:
-        $ref: '#/definitions/opt-struct-field-type'
+        $ref: '#/definitions/opt-struct-ft'
       events:
-        title: Events object
+        title: Event types object
         type: object
         patternProperties:
           '^[A-Za-z_][A-Za-z0-9_]*$':
-            $ref: '#/definitions/event'
+            $ref: '#/definitions/event-type'
         additionalProperties: false
         minProperties: 1
     required:
       - packet-context-type
       - events
     additionalProperties: false
-  event:
-    title: Event object
+  event-type:
+    title: Event type object
     type: object
     properties:
       log-level:
-        $ref: '#/definitions/opt-int-min-0'
+        if:
+          type: integer
+        then:
+          minimum: 0
+        else:
+          oneOf:
+            - type: string
+            - type: 'null'
       context-type:
-        $ref: '#/definitions/opt-struct-field-type'
+        $ref: '#/definitions/opt-struct-ft'
       payload-type:
-        $ref: '#/definitions/opt-struct-field-type'
+        $ref: '#/definitions/opt-struct-ft'
     additionalProperties: false
 type: object
 properties:
@@ -279,26 +236,7 @@ properties:
       - '2.1'
       - '2.2'
   prefix:
-    type: string
-    allOf:
-      - pattern: '^[A-Za-z_][A-Za-z0-9_]*$'
-      - not:
-          enum:
-            - align
-            - callsite
-            - clock
-            - enum
-            - env
-            - event
-            - floating_point
-            - integer
-            - stream
-            - string
-            - struct
-            - trace
-            - typealias
-            - typedef
-            - variant
+    $ref: https://barectf.org/schemas/common/config/common.json#/definitions/config-prefix-prop
   options:
     title: Configuration options object
     type: object
@@ -311,37 +249,42 @@ properties:
   metadata:
     title: Metadata object
     type: object
+    oneOf:
+      - required:
+          - $log-levels
+      - required:
+          - log-levels
+      - allOf:
+          - not:
+              required:
+                - $log-levels
+          - not:
+              required:
+                - log-levels
     properties:
+      log-levels:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-log-level-aliases-prop
+      $log-levels:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-log-level-aliases-prop
       trace:
-        $ref: '#/definitions/trace'
+        $ref: '#/definitions/trace-type'
       env:
-        title: Environment variables
-        if:
-          type: object
-        then:
-          patternProperties:
-            '^[A-Za-z_][A-Za-z0-9_]*$':
-              oneOf:
-                - type: string
-                - type: integer
-          additionalProperties: false
-        else:
-          type: 'null'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-env-prop
       clocks:
-        title: Clocks object
+        title: Clock types object
         type: object
         patternProperties:
           '^[A-Za-z_][A-Za-z0-9_]*$':
-            $ref: '#/definitions/clock'
+            $ref: '#/definitions/clock-type'
         additionalProperties: false
       $default-stream:
-        $ref: '#/definitions/opt-string'
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
       streams:
-        title: Streams object
+        title: Stream types object
         type: object
         patternProperties:
           '^[A-Za-z_][A-Za-z0-9_]*$':
-            $ref: '#/definitions/stream'
+            $ref: '#/definitions/stream-type'
         additionalProperties: false
         minProperties: 1
     required:

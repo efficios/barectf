@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bats
 
 # The MIT License (MIT)
 #
@@ -22,28 +22,35 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-test_dirs=(
-  "config/2/fail/clock"
-  "config/2/fail/config"
-  "config/2/fail/event"
-  "config/2/fail/include"
-  "config/2/fail/metadata"
-  "config/2/fail/stream"
-  "config/2/fail/trace"
-  "config/2/fail/type"
-  "config/2/fail/type-enum"
-  "config/2/fail/type-float"
-  "config/2/fail/type-int"
-  "config/2/fail/type-string"
-  "config/2/fail/type-struct"
-  "config/2/fail/yaml"
-  "config/2/pass/everything"
-)
-bats_bin="$(pwd)/bats/bin/bats"
+load ../../../common
 
-if [ -z "${CC+x}" ]; then
-  # default to gcc
-  export CC=gcc
-fi
+@test 'wrong "$include" property type makes barectf fail' {
+  barectf_config_check_fail invalid-type.yaml
+}
 
-"$bats_bin" "${test_dirs[@]}"
+@test 'non-existing file in "$include" property (string) makes barectf fail' {
+  barectf_config_check_fail file-not-found.yaml
+}
+
+@test 'non-existing absolute file in "$include" property (string) makes barectf fail' {
+  barectf_config_check_fail file-not-found-abs.yaml
+}
+
+@test 'non-existing file in "$include" property (array) makes barectf fail' {
+  barectf_config_check_fail file-not-found-in-array.yaml
+}
+
+@test 'non-existing file in "$include" property (recursive) makes barectf fail' {
+  barectf_config_check_fail file-not-found-recursive.yaml
+}
+
+@test 'cycle in include graph makes barectf fail' {
+  barectf_config_check_fail cycle.yaml
+}
+
+@test 'cycle in include graph (with a symbolic link) makes barectf fail' {
+  local symlink="$BATS_TEST_DIRNAME/inc-recursive-sym3.yaml"
+  ln -fs inc-recursive-sym1.yaml "$symlink"
+  barectf_config_check_fail cycle-sym.yaml
+  rm -f "$symlink"
+}

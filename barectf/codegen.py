@@ -21,8 +21,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-class CodeGenerator:
+class _CodeGenerator:
     def __init__(self, indent_string):
         self._indent_string = indent_string
         self.reset()

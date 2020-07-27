@@ -1,0 +1,182 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2020 Philippe Proulx <pproulx@efficios.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+$schema: http://json-schema.org/draft-07/schema#
+$id: https://barectf.org/schemas/3/config/config-pre-field-type-expansion.json
+title: Configuration object before field type expansions
+definitions:
+  partial-ft:
+    title: Partial field type object
+    if:
+      type: object
+    then:
+      oneOf:
+        - properties:
+            class:
+              type: string
+          required:
+            - class
+        - properties:
+            $inherit:
+              type: string
+          required:
+            - $inherit
+      properties:
+        element-field-type:
+          $ref: '#/definitions/partial-ft'
+        members:
+          if:
+            type: array
+          then:
+            items:
+              type: object
+              patternProperties:
+                '^[A-Za-z_][A-Za-z0-9_]*$':
+                  if:
+                    type: object
+                  then:
+                    properties:
+                      field-type:
+                        $ref: '#/definitions/partial-ft'
+                    required:
+                      - field-type
+                  else:
+                    type: string
+              minProperties: 1
+              maxProperties: 1
+          else:
+            type: 'null'
+    else:
+      oneOf:
+        - type: string
+        - type: boolean
+        - type: 'null'
+type: object
+properties:
+  trace:
+    title: Trace object before field type expansions
+    type: object
+    properties:
+      type:
+        title: Trace type object before field type expansions
+        type: object
+        properties:
+          $field-type-aliases:
+            title: Field type aliases object before field type expansions
+            if:
+              type: object
+            then:
+              patternProperties:
+                '.*':
+                  $ref: '#/definitions/partial-ft'
+            else:
+              type: 'null'
+          $features:
+            if:
+              type: object
+            then:
+              properties:
+                magic-field-type:
+                  $ref: '#/definitions/partial-ft'
+                uuid-field-type:
+                  $ref: '#/definitions/partial-ft'
+                stream-type-id-field-type:
+                  $ref: '#/definitions/partial-ft'
+            else:
+              type: 'null'
+          stream-types:
+            title: Stream types object before field type expansions
+            type: object
+            patternProperties:
+              '.*':
+                title: Stream type object before field type expansions
+                type: object
+                properties:
+                  $features:
+                    if:
+                      type: object
+                    then:
+                      properties:
+                        packet:
+                          if:
+                            type: object
+                          then:
+                            properties:
+                              total-size-field-type:
+                                $ref: '#/definitions/partial-ft'
+                              content-size-field-type:
+                                $ref: '#/definitions/partial-ft'
+                              beginning-time-field-type:
+                                $ref: '#/definitions/partial-ft'
+                              end-time-field-type:
+                                $ref: '#/definitions/partial-ft'
+                              discarded-events-counter-field-type:
+                                $ref: '#/definitions/partial-ft'
+                          else:
+                            type: 'null'
+                        event:
+                          if:
+                            type: object
+                          then:
+                            properties:
+                              type-id-field-type:
+                                $ref: '#/definitions/partial-ft'
+                              time-field-type:
+                                $ref: '#/definitions/partial-ft'
+                          else:
+                            type: 'null'
+                    else:
+                      type: 'null'
+                  packet-context-field-type-extra-members:
+                    if:
+                      type: array
+                    then:
+                      items:
+                        type: object
+                        properties:
+                          field-type:
+                            $ref: '#/definitions/partial-ft'
+                    else:
+                      type: 'null'
+                  event-common-context-field-type:
+                    $ref: '#/definitions/partial-ft'
+                  event-types:
+                    title: Event types object before field type expansions
+                    type: object
+                    patternProperties:
+                      '.*':
+                        title: Event type object before field type expansions
+                        type: object
+                        properties:
+                          specific-context-field-type:
+                            $ref: '#/definitions/partial-ft'
+                          payload-field-type:
+                            $ref: '#/definitions/partial-ft'
+                required:
+                  - event-types
+          required:
+            - stream-types
+  required:
+    - type
+required:
+  - trace

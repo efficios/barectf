@@ -1,0 +1,71 @@
+# Include this in a trace type object to have access to basic real field
+# type aliases.
+
+$field-type-aliases:
+  # IEEE 754-2008 binary32 (single-precision)
+  float:
+    class: real
+    size: 32
+    align: 32
+  float-le:
+    $inherit: float
+    byte-order: le
+  float-be:
+    $inherit: float
+    byte-order: be
+
+  # IEEE 754-2008 binary64 (double-precision)
+  double:
+    class: real
+    size: 64
+    align: 64
+  double-le:
+    $inherit: double
+    byte-order: le
+  double-be:
+    $inherit: double
+    byte-order: be
+
+  # byte-packed IEEE 754-2008 binary32 (single-precision)
+  byte-packed-float:
+    $inherit: float
+    align: 8
+  byte-packed-float-le:
+    $inherit: byte-packed-float
+    byte-order: le
+  byte-packed-float-be:
+    $inherit: byte-packed-float
+    byte-order: be
+
+  # byte-packed IEEE 754-2008 binary64 (double-precision)
+  byte-packed-double:
+    $inherit: double
+    align: 8
+  byte-packed-double-le:
+    $inherit: byte-packed-double
+    byte-order: le
+  byte-packed-double-be:
+    $inherit: byte-packed-double
+    byte-order: be
+
+  # bit-packed IEEE 754-2008 binary32 (single-precision)
+  bit-packed-float:
+    $inherit: float
+    align: 1
+  bit-packed-float-le:
+    $inherit: bit-packed-float
+    byte-order: le
+  bit-packed-float-be:
+    $inherit: bit-packed-float
+    byte-order: be
+
+  # bit-packed IEEE 754-2008 binary64 (double-precision)
+  bit-packed-double:
+    $inherit: double
+    align: 1
+  bit-packed-double-le:
+    $inherit: bit-packed-double
+    byte-order: le
+  bit-packed-double-be:
+    $inherit: bit-packed-double
+    byte-order: be

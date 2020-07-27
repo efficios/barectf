@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2016 Philippe Proulx <pproulx@efficios.com>
@@ -22,28 +20,39 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-test_dirs=(
-  "config/2/fail/clock"
-  "config/2/fail/config"
-  "config/2/fail/event"
-  "config/2/fail/include"
-  "config/2/fail/metadata"
-  "config/2/fail/stream"
-  "config/2/fail/trace"
-  "config/2/fail/type"
-  "config/2/fail/type-enum"
-  "config/2/fail/type-float"
-  "config/2/fail/type-int"
-  "config/2/fail/type-string"
-  "config/2/fail/type-struct"
-  "config/2/fail/yaml"
-  "config/2/pass/everything"
-)
-bats_bin="$(pwd)/bats/bin/bats"
-
-if [ -z "${CC+x}" ]; then
-  # default to gcc
-  export CC=gcc
-fi
-
-"$bats_bin" "${test_dirs[@]}"
+$include:
+  - stdint.yaml
+  - stdfloat.yaml
+type-aliases:
+  my-special-int:
+    class: int
+    size: 23
+    align: 2
+  struct32:
+    class: struct
+    min-align: 32
+  def-payload-type:
+    $inherit: struct32
+    fields:
+      haha: float
+      hihi: uint32
+      huhu: uint16
+      hoho: double
+streams:
+  my_other_stream:
+    events:
+      this_event:
+        payload-type:
+          class: struct
+          fields:
+            special: my-special-int
+            more_special:
+              $inherit: my-special-int
+              align: 32
+$log-levels:
+  couch: 23
+  tv: 199
+  thread: 0x28aff
+env:
+  salut: lol
+  meow: mix

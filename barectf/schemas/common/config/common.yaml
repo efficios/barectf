@@ -1,0 +1,173 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2020 Philippe Proulx <pproulx@efficios.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+$schema: http://json-schema.org/draft-07/schema#
+$id: https://barectf.org/schemas/common/config/common.json
+definitions:
+  opt-bool:
+    oneOf:
+      - type: boolean
+      - type: 'null'
+  opt-string:
+    oneOf:
+      - type: string
+      - type: 'null'
+  opt-int-min-0:
+    if:
+      type: integer
+    then:
+      minimum: 0
+    else:
+      type: 'null'
+  opt-int-min-1:
+    if:
+      type: integer
+    then:
+      minimum: 1
+    else:
+      type: 'null'
+  opt-log-level-aliases-prop:
+    title: Optional log level aliases object
+    if:
+      type: object
+    then:
+      patternProperties:
+        '':
+          $ref: '#/definitions/opt-int-min-0'
+    else:
+      type: 'null'
+  byte-order-prop:
+    title: Byte order property value
+    type: string
+    enum:
+      - le
+      - little
+      - little-endian
+      - be
+      - big
+      - big-endian
+  opt-byte-order-prop:
+    title: Optional byte order property value
+    if:
+      type: string
+    then:
+      $ref: '#/definitions/byte-order-prop'
+    else:
+      type: 'null'
+  int-ft-size-prop:
+    title: Integer field type's size property
+    type: integer
+    minimum: 1
+    maximum: 64
+  opt-int-ft-preferred-display-base-prop:
+    if:
+      type: string
+    then:
+      enum:
+        - bin
+        - binary
+        - oct
+        - octal
+        - dec
+        - decimal
+        - hex
+        - hexadecimal
+    else:
+      type: 'null'
+  opt-uuid-prop:
+    title: Optional UUID property value
+    if:
+      type: string
+    then:
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    else:
+      type: 'null'
+  opt-trace-type-uuid-prop:
+    title: Optional trace type UUID property value
+    if:
+      type: string
+    then:
+      oneOf:
+        - $ref: '#/definitions/opt-uuid-prop'
+        - type: string
+          const: auto
+    else:
+      type: 'null'
+  opt-clock-type-offset-prop:
+    if:
+      type: object
+    then:
+      properties:
+        cycles:
+          $ref: '#/definitions/opt-int-min-0'
+        seconds:
+          $ref: '#/definitions/opt-int-min-0'
+      additionalProperties: false
+    else:
+      type: 'null'
+  iden-prop:
+    type: string
+    allOf:
+      - pattern: '^[A-Za-z_][A-Za-z0-9_]*$'
+      - not:
+          enum:
+            - align
+            - callsite
+            - clock
+            - enum
+            - env
+            - event
+            - floating_point
+            - integer
+            - stream
+            - string
+            - struct
+            - trace
+            - typealias
+            - typedef
+            - variant
+  config-prefix-prop:
+    $ref: '#/definitions/iden-prop'
+  opt-env-prop:
+    title: Environment variables
+    if:
+      type: object
+    then:
+      patternProperties:
+        '^[A-Za-z_][A-Za-z0-9_]*$':
+          oneOf:
+            - type: string
+            - type: integer
+      additionalProperties: false
+    else:
+      type: 'null'
+  opt-log-level-or-alias-prop:
+    title: Optional log level (integral or alias) property
+    if:
+      type: integer
+    then:
+      minimum: 0
+    else:
+      oneOf:
+        - type: string
+        - type: 'null'

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bats
 
 # The MIT License (MIT)
 #
@@ -22,28 +22,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-test_dirs=(
-  "config/2/fail/clock"
-  "config/2/fail/config"
-  "config/2/fail/event"
-  "config/2/fail/include"
-  "config/2/fail/metadata"
-  "config/2/fail/stream"
-  "config/2/fail/trace"
-  "config/2/fail/type"
-  "config/2/fail/type-enum"
-  "config/2/fail/type-float"
-  "config/2/fail/type-int"
-  "config/2/fail/type-string"
-  "config/2/fail/type-struct"
-  "config/2/fail/yaml"
-  "config/2/pass/everything"
-)
-bats_bin="$(pwd)/bats/bin/bats"
+load ../../../common
 
-if [ -z "${CC+x}" ]; then
-  # default to gcc
-  export CC=gcc
-fi
+@test 'type inheriting an unknown type alias makes barectf fail' {
+  barectf_config_check_fail inherit-unknown.yaml
+}
 
-"$bats_bin" "${test_dirs[@]}"
+@test 'type inheriting a type alias defined after makes barectf fail' {
+  barectf_config_check_fail inherit-forward.yaml
+}
+
+@test 'wrong type property type makes barectf fail' {
+  barectf_config_check_fail invalid-type.yaml
+}
+
+@test 'no "class" property in type object makes barectf fail' {
+  barectf_config_check_fail no-class.yaml
+}

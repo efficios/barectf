@@ -1,0 +1,126 @@
+# Include this in a metadata object to have access to basic integer
+# field type aliases.
+
+type-aliases:
+  # 8-bit unsigned integer, 8-bit aligned
+  uint8:
+    class: int
+    size: 8
+    align: 8
+  byte: uint8
+
+  # 8-bit signed integer, 8-bit aligned
+  int8:
+    $inherit: uint8
+    signed: true
+
+  # 16-bit unsigned integer, 16-bit aligned
+  uint16:
+    class: int
+    size: 16
+    align: 16
+  word: uint16
+
+  # 16-bit signed integer, 16-bit aligned
+  int16:
+    $inherit: uint16
+    signed: true
+
+  # 32-bit unsigned integer, 32-bit aligned
+  uint32:
+    class: int
+    size: 32
+    align: 32
+  dword: uint32
+
+  # 32-bit signed integer, 32-bit aligned
+  int32:
+    $inherit: uint32
+    signed: true
+
+  # 64-bit unsigned integer, 64-bit aligned
+  uint64:
+    class: int
+    size: 64
+    align: 64
+
+  # 64-bit signed integer, 64-bit aligned
+  int64:
+    $inherit: uint64
+    signed: true
+
+  # byte-packed 8-bit unsigned integer
+  byte-packed-uint8: uint8
+
+  # byte-packed 8-bit signed integer
+  byte-packed-int8: int8
+
+  # byte-packed 16-bit unsigned integer
+  byte-packed-uint16:
+    $inherit: uint16
+    align: 8
+
+  # byte-packed 16-bit signed integer
+  byte-packed-int16:
+    $inherit: int16
+    align: 8
+
+  # byte-packed 32-bit unsigned integer
+  byte-packed-uint32:
+    $inherit: uint32
+    align: 8
+
+  # byte-packed 32-bit signed integer
+  byte-packed-int32:
+    $inherit: int32
+    align: 8
+
+  # byte-packed 64-bit unsigned integer
+  byte-packed-uint64:
+    $inherit: uint64
+    align: 8
+
+  # byte-packed 64-bit signed integer
+  byte-packed-int64:
+    $inherit: int64
+    align: 8
+
+  # byte-packed 8-bit unsigned integer
+  bit-packed-uint8:
+    $inherit: uint8
+    align: 1
+
+  # bit-packed 8-bit signed integer
+  bit-packed-int8:
+    $inherit: int8
+    align: 1
+
+  # bit-packed 16-bit unsigned integer
+  bit-packed-uint16:
+    $inherit: uint16
+    align: 1
+
+  # bit-packed 16-bit signed integer
+  bit-packed-int16:
+    $inherit: int16
+    align: 1
+
+  # bit-packed 32-bit unsigned integer
+  bit-packed-uint32:
+    $inherit: uint32
+    align: 1
+
+  # bit-packed 32-bit signed integer
+  bit-packed-int32:
+    $inherit: int32
+    align: 1
+
+  # bit-packed 64-bit unsigned integer
+  bit-packed-uint64:
+    $inherit: uint64
+    align: 1
+
+  # bit-packed 64-bit signed integer
+  bit-packed-int64:
+    $inherit: int64
+    align: 1

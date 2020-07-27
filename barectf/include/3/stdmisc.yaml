@@ -1,0 +1,8 @@
+# Include this in a trace type object to have access to various,
+# uncategorized field type aliases.
+
+$field-type-aliases:
+  # a simple string
+  string:
+    class: string
+  str: string

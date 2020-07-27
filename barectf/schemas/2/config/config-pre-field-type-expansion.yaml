@@ -25,7 +25,7 @@ $schema: http://json-schema.org/draft-07/schema#
 $id: https://barectf.org/schemas/2/config/config-pre-field-type-expansion.json
 title: Configuration object before field type expansions
 definitions:
-  partial-field-type:
+  partial-ft:
     title: Partial field type object
     if:
       type: object
@@ -48,14 +48,18 @@ definitions:
             - $inherit
       properties:
         value-type:
-          $ref: '#/definitions/partial-field-type'
+          $ref: '#/definitions/partial-ft'
         element-type:
-          $ref: '#/definitions/partial-field-type'
+          $ref: '#/definitions/partial-ft'
         fields:
-          type: object
-          patternProperties:
-            '':
-              $ref: '#/definitions/partial-field-type'
+          if:
+            type: object
+          then:
+            patternProperties:
+              '.*':
+                $ref: '#/definitions/partial-ft'
+          else:
+            type: 'null'
     else:
       oneOf:
         - type: string
@@ -67,41 +71,45 @@ properties:
     type: object
     properties:
       type-aliases:
-        title: Type aliases object before field type expansions
-        type: object
-        patternProperties:
-          '':
-            $ref: '#/definitions/partial-field-type'
+        title: Field type aliases object before field type expansions
+        if:
+          type: object
+        then:
+          patternProperties:
+            '.*':
+              $ref: '#/definitions/partial-ft'
+        else:
+          type: 'null'
       trace:
-        title: Trace object before field type expansions
+        title: Trace type object before field type expansions
         type: object
         properties:
           packet-header-type:
-            $ref: '#/definitions/partial-field-type'
+            $ref: '#/definitions/partial-ft'
       streams:
-        title: Streams object before field type expansions
+        title: Stream types object before field type expansions
         type: object
         patternProperties:
-          '':
-            title: Stream object before field type expansions
+          '.*':
+            title: Stream type object before field type expansions
             type: object
             properties:
               packet-context-type:
-                $ref: '#/definitions/partial-field-type'
+                $ref: '#/definitions/partial-ft'
               event-header-type:
-                $ref: '#/definitions/partial-field-type'
+                $ref: '#/definitions/partial-ft'
               event-context-type:
-                $ref: '#/definitions/partial-field-type'
+                $ref: '#/definitions/partial-ft'
               events:
                 type: object
                 patternProperties:
-                  '':
+                  '.*':
                     type: object
                     properties:
                       context-type:
-                        $ref: '#/definitions/partial-field-type'
+                        $ref: '#/definitions/partial-ft'
                       payload-type:
-                        $ref: '#/definitions/partial-field-type'
+                        $ref: '#/definitions/partial-ft'
             required:
               - events
     required:

@@ -22,23 +22,11 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/2/config/metadata-pre-include.json
-title: Metadata object before inclusions
+$id: https://barectf.org/schemas/3/config/trace-pre-include.json
+title: Trace object before inclusions
 type: object
 properties:
   $include:
-    $ref: https://barectf.org/schemas/2/config/include-prop.json
-  clocks:
-    title: Clock types object before inclusions
-    type: object
-    patternProperties:
-      '.*':
-        $ref: https://barectf.org/schemas/2/config/clock-type-pre-include.json
-  trace:
-    $ref: https://barectf.org/schemas/2/config/trace-type-pre-include.json
-  streams:
-    title: Stream types object before inclusions
-    type: object
-    patternProperties:
-      '.*':
-        $ref: https://barectf.org/schemas/2/config/stream-type-pre-include.json
+    $ref: https://barectf.org/schemas/3/config/include-prop.json
+  type:
+    $ref: https://barectf.org/schemas/3/config/trace-type-pre-include.json

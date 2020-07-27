@@ -21,64 +21,67 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import barectf.tsdl182gen
-import barectf.config
 import pkg_resources
-import barectf.gen
 import termcolor
 import argparse
 import os.path
 import barectf
+import barectf.config_parse_common as barectf_config_parse_common
 import sys
 import os
 
 
-def _perror(msg):
+# Colors and prints the error message `msg` and exits with status code
+# 1.
+def _print_error(msg):
     termcolor.cprint('Error: ', 'red', end='', file=sys.stderr)
     termcolor.cprint(msg, 'red', attrs=['bold'], file=sys.stderr)
     sys.exit(1)
 
 
-def _pconfig_error(exc):
-    termcolor.cprint('Error:', 'red', file=sys.stderr)
-
+# Pretty-prints the barectf configuration error `exc` and exits with
+# status code 1.
+def _print_config_error(exc):
+    # reverse: most precise message comes last
     for ctx in reversed(exc.context):
+        msg = ''
+
         if ctx.message is not None:
             msg = f' {ctx.message}'
-        else:
-            msg = ''
 
-        termcolor.cprint(f'  {ctx.name}:{msg}', 'red', attrs=['bold'],
-                         file=sys.stderr)
+        color = 'red'
+        termcolor.cprint(f'{ctx.name}', color, attrs=['bold'], file=sys.stderr, end='')
+        termcolor.cprint(':', color, file=sys.stderr, end='')
+        termcolor.cprint(msg, color, file=sys.stderr)
 
     sys.exit(1)
 
 
-def _psuccess(msg):
-    termcolor.cprint(msg, 'green', attrs=['bold'])
+# Pretty-prints the unknown exception `exc`.
+def _print_unknown_exc(exc):
+    import traceback
+
+    traceback.print_exc()
+    _print_error(f'Unknown exception: {exc}')
 
 
 def _parse_args():
     ap = argparse.ArgumentParser()
 
-    ap.add_argument('-c', '--code-dir', metavar='DIR', action='store',
-                    default=os.getcwd(),
+    ap.add_argument('-c', '--code-dir', metavar='DIR', action='store', default=os.getcwd(),
                     help='output directory of C source file')
     ap.add_argument('--dump-config', action='store_true',
                     help='also dump the effective YAML configuration file used for generation')
-    ap.add_argument('-H', '--headers-dir', metavar='DIR', action='store',
-                    default=os.getcwd(),
+    ap.add_argument('-H', '--headers-dir', metavar='DIR', action='store', default=os.getcwd(),
                     help='output directory of C header files')
-    ap.add_argument('-I', '--include-dir', metavar='DIR', action='append',
-                    default=[],
+    ap.add_argument('-I', '--include-dir', metavar='DIR', action='append', default=[],
                     help='add directory DIR to the list of directories to be searched for include files')
     ap.add_argument('--ignore-include-not-found', action='store_true',
                     help='continue to process the configuration file when included files are not found')
-    ap.add_argument('-m', '--metadata-dir', metavar='DIR', action='store',
-                    default=os.getcwd(),
+    ap.add_argument('-m', '--metadata-dir', metavar='DIR', action='store', default=os.getcwd(),
                     help='output directory of CTF metadata')
     ap.add_argument('-p', '--prefix', metavar='PREFIX', action='store',
-                    help='override configuration\'s prefix')
+                    help='override configuration\'s prefixes')
     ap.add_argument('-V', '--version', action='version',
                     version='%(prog)s {}'.format(barectf.__version__))
     ap.add_argument('config', metavar='CONFIG', action='store',
@@ -88,26 +91,31 @@ def _parse_args():
     args = ap.parse_args()
 
     # validate output directories
-    for d in [args.code_dir, args.headers_dir, args.metadata_dir] + args.include_dir:
-        if not os.path.isdir(d):
-            _perror(f'`{d}` is not an existing directory')
+    for dir in [args.code_dir, args.headers_dir, args.metadata_dir] + args.include_dir:
+        if not os.path.isdir(dir):
+            _print_error(f'`{dir}` is not an existing directory')
 
     # validate that configuration file exists
     if not os.path.isfile(args.config):
-        _perror(f'`{args.config}` is not an existing, regular file')
+        _print_error(f'`{args.config}` is not an existing, regular file')
 
-    # append current working directory and provided include directory
+    # Load configuration file to get its major version in order to
+    # append the correct implicit inclusion directory.
+    try:
+        with open(args.config) as f:
+            config_major_version = barectf.configuration_file_major_version(f)
+    except barectf._ConfigurationParseError as exc:
+        _print_config_error(exc)
+    except Exception as exc:
+        _print_unknown_exc(exc)
+
+    # append current working directory and implicit inclusion directory
     args.include_dir += [
         os.getcwd(),
-        pkg_resources.resource_filename(__name__, 'include')
+        pkg_resources.resource_filename(__name__, f'include/{config_major_version}')
     ]
 
     return args
-
-
-def _write_file(d, name, content):
-    with open(os.path.join(d, name), 'w') as f:
-        f.write(content)
 
 
 def run():
@@ -116,49 +124,59 @@ def run():
 
     # create configuration
     try:
-        config = barectf.config.from_file(args.config, args.include_dir,
-                                          args.ignore_include_not_found,
-                                          args.dump_config)
-    except barectf.config._ConfigParseError as exc:
-        _pconfig_error(exc)
+        with open(args.config) as f:
+            if args.dump_config:
+                # print effective configuration file
+                print(barectf.effective_configuration_file(f, args.include_dir,
+                                                           args.ignore_include_not_found))
+
+                # barectf.configuration_from_file() reads the file again
+                # below: rewind.
+                f.seek(0)
+
+            config = barectf.configuration_from_file(f, args.include_dir,
+                                                     args.ignore_include_not_found)
+    except barectf._ConfigurationParseError as exc:
+        _print_config_error(exc)
     except Exception as exc:
-        import traceback
+        _print_unknown_exc(exc)
 
-        traceback.print_exc()
-        _perror(f'Unknown exception: {exc}')
-
-    # replace prefix if needed
     if args.prefix:
-        config = barectf.config.Config(config.metadata, args.prefix,
-                                       config.options)
+        # Override prefixes.
+        #
+        # For historical reasons, the `--prefix` option applies the
+        # barectf 2 configuration prefix rules. Therefore, get the
+        # equivalent barectf 3 prefixes first.
+        v3_prefixes = barectf_config_parse_common._v3_prefixes_from_v2_prefix(args.prefix)
+        cg_opts = config.options.code_generation_options
+        cg_opts = barectf.ConfigurationCodeGenerationOptions(v3_prefixes.identifier,
+                                                             v3_prefixes.file_name,
+                                                             cg_opts.default_stream_type,
+                                                             cg_opts.header_options,
+                                                             cg_opts.clock_type_c_types)
+        config = barectf.Configuration(config.trace, barectf.ConfigurationOptions(cg_opts))
 
-    # generate metadata
-    metadata = barectf.tsdl182gen.from_metadata(config.metadata)
+    # create a barectf code generator
+    code_gen = barectf.CodeGenerator(config)
 
-    try:
-        _write_file(args.metadata_dir, 'metadata', metadata)
-    except Exception as exc:
-        _perror(f'Cannot write metadata file: {exc}')
+    def write_file(dir, file):
+        with open(os.path.join(dir, file.name), 'w') as f:
+            f.write(file.contents)
 
-    # create generator
-    generator = barectf.gen.CCodeGenerator(config)
-
-    # generate C headers
-    header = generator.generate_header()
-    bitfield_header = generator.generate_bitfield_header()
-
-    try:
-        _write_file(args.headers_dir, generator.get_header_filename(), header)
-        _write_file(args.headers_dir, generator.get_bitfield_header_filename(),
-                    bitfield_header)
-    except Exception as exc:
-        _perror(f'Cannot write header files: {exc}')
-
-    # generate C source
-    c_src = generator.generate_c_src()
+    def write_files(dir, files):
+        for file in files:
+            write_file(dir, file)
 
     try:
-        _write_file(args.code_dir, '{}.c'.format(config.prefix.rstrip('_')),
-                    c_src)
+        # generate and write metadata stream file
+        write_file(args.metadata_dir, code_gen.generate_metadata_stream())
+
+        # generate and write C header files
+        write_files(args.headers_dir, code_gen.generate_c_headers())
+
+        # generate and write C source files
+        write_files(args.code_dir, code_gen.generate_c_sources())
     except Exception as exc:
-        _perror(f'Cannot write C source file: {exc}')
+        # We know `config` is valid, therefore the code generator cannot
+        # fail for a reason known to barectf.
+        _print_unknown_exc(exc)

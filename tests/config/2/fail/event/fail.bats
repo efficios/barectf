@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bats
 
 # The MIT License (MIT)
 #
@@ -22,28 +22,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-test_dirs=(
-  "config/2/fail/clock"
-  "config/2/fail/config"
-  "config/2/fail/event"
-  "config/2/fail/include"
-  "config/2/fail/metadata"
-  "config/2/fail/stream"
-  "config/2/fail/trace"
-  "config/2/fail/type"
-  "config/2/fail/type-enum"
-  "config/2/fail/type-float"
-  "config/2/fail/type-int"
-  "config/2/fail/type-string"
-  "config/2/fail/type-struct"
-  "config/2/fail/yaml"
-  "config/2/pass/everything"
-)
-bats_bin="$(pwd)/bats/bin/bats"
+load ../../../common
 
-if [ -z "${CC+x}" ]; then
-  # default to gcc
-  export CC=gcc
-fi
+@test 'unknown property in event object makes barectf fail' {
+  barectf_config_check_fail unknown-prop.yaml
+}
 
-"$bats_bin" "${test_dirs[@]}"
+@test 'wrong "log-level" property type in event object makes barectf fail' {
+  barectf_config_check_fail ll-invalid-type.yaml
+}
+
+@test 'non existing log level name as "log-level" property value in event object makes barectf fail' {
+  barectf_config_check_fail ll-non-existing.yaml
+}
+
+@test 'wrong "context-type" property type in event object makes barectf fail' {
+  barectf_config_check_fail ct-invalid-type.yaml
+}
+
+@test 'invalid "context-type" property field type (not a structure) in event object makes barectf fail' {
+  barectf_config_check_fail ct-not-struct.yaml
+}
+
+@test 'wrong "payload-type" property type in event object makes barectf fail' {
+  barectf_config_check_fail pt-invalid-type.yaml
+}
+
+@test 'invalid "payload-type" property field type (not a structure) in event object makes barectf fail' {
+  barectf_config_check_fail pt-not-struct.yaml
+}
+
+@test 'empty event object makes barectf fail' {
+  barectf_config_check_fail no-fields-at-all.yaml
+}

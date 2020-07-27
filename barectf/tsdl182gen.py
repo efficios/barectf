@@ -21,160 +21,178 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from barectf import metadata
-from barectf import codegen
-import datetime
-import barectf
-
-
-_bo_to_string_map = {
-    metadata.ByteOrder.LE: 'le',
-    metadata.ByteOrder.BE: 'be',
-}
-
-
-_encoding_to_string_map = {
-    metadata.Encoding.NONE: 'none',
-    metadata.Encoding.ASCII: 'ASCII',
-    metadata.Encoding.UTF8: 'UTF8',
-}
-
-
-def _bo_to_string(bo):
-    return _bo_to_string_map[bo]
-
-
-def _encoding_to_string(encoding):
-    return _encoding_to_string_map[encoding]
+import barectf.codegen as barectf_codegen
+import barectf.version as barectf_version
+import barectf.config as barectf_config
 
 
 def _bool_to_string(b):
     return 'true' if b else 'false'
 
 
-def _gen_integer(t, cg):
+_byte_order_to_string_map = {
+    barectf_config.ByteOrder.LITTLE_ENDIAN: 'le',
+    barectf_config.ByteOrder.BIG_ENDIAN: 'be',
+}
+
+
+def _byte_order_to_string(byte_order):
+    return _byte_order_to_string_map[byte_order]
+
+
+_display_base_to_int_map = {
+    barectf_config.DisplayBase.BINARY: 2,
+    barectf_config.DisplayBase.OCTAL: 8,
+    barectf_config.DisplayBase.DECIMAL: 10,
+    barectf_config.DisplayBase.HEXADECIMAL: 16,
+}
+
+
+def _display_base_to_int(disp_base):
+    return _display_base_to_int_map[disp_base]
+
+
+def _gen_int_ft(ft, cg):
     cg.add_line('integer {')
     cg.indent()
-    cg.add_line('size = {};'.format(t.size))
-    cg.add_line('align = {};'.format(t.align))
-    cg.add_line('signed = {};'.format(_bool_to_string(t.signed)))
-    cg.add_line('byte_order = {};'.format(_bo_to_string(t.byte_order)))
-    cg.add_line('base = {};'.format(t.base))
-    cg.add_line('encoding = {};'.format(_encoding_to_string(t.encoding)))
+    cg.add_line(f'size = {ft.size};')
+    cg.add_line(f'align = {ft.alignment};')
+    is_signed = isinstance(ft, barectf_config.SignedIntegerFieldType)
+    cg.add_line(f'signed = {_bool_to_string(is_signed)};')
+    cg.add_line(f'byte_order = {_byte_order_to_string(ft.byte_order)};')
+    cg.add_line(f'base = {_display_base_to_int(ft.preferred_display_base)};')
 
-    if t.property_mappings:
-        clock_name = t.property_mappings[0].object.name
-        cg.add_line('map = clock.{}.value;'.format(clock_name))
+    if isinstance(ft, barectf_config.UnsignedIntegerFieldType) and ft._mapped_clk_type_name is not None:
+        cg.add_line(f'map = clock.{ft._mapped_clk_type_name}.value;')
 
     cg.unindent()
     cg.add_line('}')
 
 
-def _gen_float(t, cg):
-    cg.add_line('floating_point {')
-    cg.indent()
-    cg.add_line('exp_dig = {};'.format(t.exp_size))
-    cg.add_line('mant_dig = {};'.format(t.mant_size))
-    cg.add_line('align = {};'.format(t.align))
-    cg.add_line('byte_order = {};'.format(_bo_to_string(t.byte_order)))
-    cg.unindent()
-    cg.add_line('}')
-
-
-def _gen_enum(t, cg):
+def _gen_enum_ft(ft, cg):
     cg.add_line('enum : ')
     cg.add_glue()
-    _gen_type(t.value_type, cg)
+    _gen_int_ft(ft, cg)
     cg.append_to_last_line(' {')
     cg.indent()
 
-    for label, (mn, mx) in t.members.items():
-        if mn == mx:
-            rg = str(mn)
-        else:
-            rg = '{} ... {}'.format(mn, mx)
+    for label, mapping in ft.mappings.items():
+        for rg in mapping.ranges:
+            if rg.lower == rg.upper:
+                rg_str = str(rg.lower)
+            else:
+                rg_str = f'{rg.lower} ... {rg.upper}'
 
-        line = '"{}" = {},'.format(label, rg)
+        line = f'"{label}" = {rg_str},'
         cg.add_line(line)
 
     cg.unindent()
     cg.add_line('}')
 
 
-def _gen_string(t, cg):
-    cg.add_line('string {')
+def _gen_real_ft(ft, cg):
+    cg.add_line('floating_point {')
     cg.indent()
-    cg.add_line('encoding = {};'.format(_encoding_to_string(t.encoding)))
+
+    if ft.size == 32:
+        exp_dig = 8
+        mant_dig = 24
+    else:
+        assert ft.size == 64
+        exp_dig = 11
+        mant_dig = 53
+
+    cg.add_line(f'exp_dig = {exp_dig};')
+    cg.add_line(f'mant_dig = {mant_dig};')
+    cg.add_line(f'align = {ft.alignment};')
+    cg.add_line(f'byte_order = {_byte_order_to_string(ft.byte_order)};')
     cg.unindent()
     cg.add_line('}')
 
 
-def _find_deepest_array_element_type(t):
-    if type(t) is metadata.Array:
-        return _find_deepest_array_element_type(t.element_type)
-
-    return t
-
-
-def _fill_array_lengths(t, lengths):
-    if type(t) is metadata.Array:
-        lengths.append(t.length)
-        _fill_array_lengths(t.element_type, lengths)
+def _gen_string_ft(ft, cg):
+    cg.add_line('string {')
+    cg.indent()
+    cg.add_line('encoding = UTF8;')
+    cg.unindent()
+    cg.add_line('}')
 
 
-def _gen_struct_entry(name, t, cg):
-    real_t = _find_deepest_array_element_type(t)
-    _gen_type(real_t, cg)
-    cg.append_to_last_line(' {}'.format(name))
+def _find_deepest_array_ft_element_ft(ft):
+    if isinstance(ft, barectf_config._ArrayFieldType):
+        return _find_deepest_array_ft_element_ft(ft.element_field_type)
+
+    return ft
+
+
+def _static_array_ft_lengths(ft, lengths):
+    if type(ft) is barectf_config.StaticArrayFieldType:
+        lengths.append(ft.length)
+        _static_array_ft_lengths(ft.element_field_type, lengths)
+
+
+def _gen_struct_ft_entry(name, ft, cg):
+    elem_ft = _find_deepest_array_ft_element_ft(ft)
+    _gen_ft(elem_ft, cg)
+    cg.append_to_last_line(f' {name}')
 
     # array
     lengths = []
-    _fill_array_lengths(t, lengths)
+    _static_array_ft_lengths(ft, lengths)
 
     if lengths:
         for length in reversed(lengths):
-            cg.append_to_last_line('[{}]'.format(length))
+            cg.append_to_last_line(f'[{length}]')
 
     cg.append_to_last_line(';')
 
 
-def _gen_struct(t, cg):
+def _gen_struct_ft(ft, cg):
     cg.add_line('struct {')
     cg.indent()
 
-    for field_name, field_type in t.fields.items():
-        _gen_struct_entry(field_name, field_type, cg)
+    for name, member in ft.members.items():
+        _gen_struct_ft_entry(name, member.field_type, cg)
 
     cg.unindent()
 
-    if not t.fields:
+    if len(ft.members) == 0:
         cg.add_glue()
 
-    cg.add_line('}} align({})'.format(t.min_align))
+    cg.add_line(f'}} align({ft.minimum_alignment})')
 
 
-_type_to_gen_type_func = {
-    metadata.Integer: _gen_integer,
-    metadata.FloatingPoint: _gen_float,
-    metadata.Enum: _gen_enum,
-    metadata.String: _gen_string,
-    metadata.Struct: _gen_struct,
+_ft_to_gen_ft_func = {
+    barectf_config.UnsignedIntegerFieldType: _gen_int_ft,
+    barectf_config.SignedIntegerFieldType: _gen_int_ft,
+    barectf_config.UnsignedEnumerationFieldType: _gen_enum_ft,
+    barectf_config.SignedEnumerationFieldType: _gen_enum_ft,
+    barectf_config.RealFieldType: _gen_real_ft,
+    barectf_config.StringFieldType: _gen_string_ft,
+    barectf_config.StructureFieldType: _gen_struct_ft,
 }
 
 
-def _gen_type(t, cg):
-    _type_to_gen_type_func[type(t)](t, cg)
+def _gen_ft(ft, cg):
+    _ft_to_gen_ft_func[type(ft)](ft, cg)
 
 
-def _gen_entity(name, t, cg):
+def _gen_root_ft(name, ft, cg):
     cg.add_line('{} := '.format(name))
     cg.add_glue()
-    _gen_type(t, cg)
+    _gen_ft(ft, cg)
     cg.append_to_last_line(';')
 
 
+def _try_gen_root_ft(name, ft, cg):
+    if ft is None:
+        return
+
+    _gen_root_ft(name, ft, cg)
+
+
 def _gen_start_block(name, cg):
-    cg.add_line('{} {{'.format(name))
+    cg.add_line(f'{name} {{')
     cg.indent()
 
 
@@ -184,22 +202,22 @@ def _gen_end_block(cg):
     cg.add_empty_line()
 
 
-def _gen_trace_block(meta, cg):
-    trace = meta.trace
-
+def _gen_trace_type_block(config, cg):
+    trace_type = config.trace.type
     _gen_start_block('trace', cg)
     cg.add_line('major = 1;')
     cg.add_line('minor = 8;')
-    line = 'byte_order = {};'.format(_bo_to_string(trace.byte_order))
-    cg.add_line(line)
+    default_byte_order = trace_type.default_byte_order
 
-    if trace.uuid is not None:
-        line = 'uuid = "{}";'.format(trace.uuid)
-        cg.add_line(line)
+    if default_byte_order is None:
+        default_byte_order = barectf_config.ByteOrder.LITTLE_ENDIAN
 
-    if trace.packet_header_type is not None:
-        _gen_entity('packet.header', trace.packet_header_type, cg)
+    cg.add_line(f'byte_order = {_byte_order_to_string(default_byte_order)};')
 
+    if trace_type.uuid is not None:
+        cg.add_line(f'uuid = "{trace_type.uuid}";')
+
+    _try_gen_root_ft('packet.header', trace_type._pkt_header_ft, cg)
     _gen_end_block(cg)
 
 
@@ -209,118 +227,96 @@ def _escape_literal_string(s):
     esc = esc.replace('\r', '\\r')
     esc = esc.replace('\t', '\\t')
     esc = esc.replace('"', '\\"')
-
     return esc
 
 
-def _gen_env_block(meta, cg):
-    env = meta.env
-
-    if not env:
-        return
-
+def _gen_trace_env_block(config, cg):
+    env = config.trace.environment
+    assert env is not None
     _gen_start_block('env', cg)
 
     for name, value in env.items():
         if type(value) is int:
             value_string = str(value)
         else:
-            value_string = '"{}"'.format(_escape_literal_string(value))
+            value_string = f'"{_escape_literal_string(value)}"'
 
-        cg.add_line('{} = {};'.format(name, value_string))
+        cg.add_line(f'{name} = {value_string};')
 
     _gen_end_block(cg)
 
 
-def _gen_clock_block(clock, cg):
+def _gen_clk_type_block(clk_type, cg):
     _gen_start_block('clock', cg)
-    cg.add_line('name = {};'.format(clock.name))
+    cg.add_line(f'name = {clk_type.name};')
 
-    if clock.description is not None:
-        desc = _escape_literal_string(clock.description)
-        cg.add_line('description = "{}";'.format(desc))
+    if clk_type.description is not None:
+        cg.add_line(f'description = "{_escape_literal_string(clk_type.description)}";')
 
-    if clock.uuid is not None:
-        cg.add_line('uuid = "{}";'.format(clock.uuid))
+    if clk_type.uuid is not None:
+        cg.add_line(f'uuid = "{clk_type.uuid}";')
 
-    cg.add_line('freq = {};'.format(clock.freq))
-    cg.add_line('offset_s = {};'.format(clock.offset_seconds))
-    cg.add_line('offset = {};'.format(clock.offset_cycles))
-    cg.add_line('precision = {};'.format(clock.error_cycles))
-    cg.add_line('absolute = {};'.format(_bool_to_string(clock.absolute)))
+    cg.add_line(f'freq = {clk_type.frequency};')
+    cg.add_line(f'offset_s = {clk_type.offset.seconds};')
+    cg.add_line(f'offset = {clk_type.offset.cycles};')
+    cg.add_line(f'precision = {clk_type.precision};')
+    cg.add_line(f'absolute = {_bool_to_string(clk_type.origin_is_unix_epoch)};')
     _gen_end_block(cg)
 
 
-def _gen_clock_blocks(meta, cg):
-    clocks = meta.clocks
+def _gen_clk_type_blocks(config, cg):
+    for stream_type in sorted(config.trace.type.stream_types):
+        if stream_type.default_clock_type is not None:
+            _gen_clk_type_block(stream_type.default_clock_type, cg)
 
-    for clock in clocks.values():
-        _gen_clock_block(clock, cg)
 
-
-def _gen_stream_block(meta, stream, cg):
-    cg.add_cc_line(stream.name.replace('/', ''))
+def _gen_stream_type_block(config, stream_type, cg):
+    cg.add_cc_line(stream_type.name.replace('/', ''))
     _gen_start_block('stream', cg)
 
-    if meta.trace.packet_header_type is not None:
-        if 'stream_id' in meta.trace.packet_header_type.fields:
-            cg.add_line('id = {};'.format(stream.id))
+    if config.trace.type.features.stream_type_id_field_type is not None:
+        cg.add_line(f'id = {stream_type.id};')
 
-    if stream.packet_context_type is not None:
-        _gen_entity('packet.context', stream.packet_context_type, cg)
-
-    if stream.event_header_type is not None:
-        _gen_entity('event.header', stream.event_header_type, cg)
-
-    if stream.event_context_type is not None:
-        _gen_entity('event.context', stream.event_context_type, cg)
-
+    _try_gen_root_ft('packet.context', stream_type._pkt_ctx_ft, cg)
+    _try_gen_root_ft('event.header', stream_type._ev_header_ft, cg)
+    _try_gen_root_ft('event.context', stream_type.event_common_context_field_type, cg)
     _gen_end_block(cg)
 
 
-def _gen_event_block(meta, stream, ev, cg):
+def _gen_ev_type_block(config, stream_type, ev_type, cg):
     _gen_start_block('event', cg)
-    cg.add_line('name = "{}";'.format(ev.name))
-    cg.add_line('id = {};'.format(ev.id))
+    cg.add_line(f'name = "{ev_type.name}";')
 
-    if meta.trace.packet_header_type is not None:
-        if 'stream_id' in meta.trace.packet_header_type.fields:
-            cg.add_line('stream_id = {};'.format(stream.id))
+    if stream_type.features.event_features.type_id_field_type is not None:
+        cg.add_line(f'id = {ev_type.id};')
 
-    cg.append_cc_to_last_line(stream.name.replace('/', ''))
+    if config.trace.type.features.stream_type_id_field_type is not None:
+        cg.add_line(f'stream_id = {stream_type.id};')
+        cg.append_cc_to_last_line(f'Stream type `{stream_type.name.replace("/", "")}`')
 
-    if ev.log_level is not None:
-        add_fmt = ''
+    if ev_type.log_level is not None:
+        cg.add_line(f'loglevel = {ev_type.log_level};')
 
-        if ev.log_level.name is not None:
-            name = ev.log_level.name.replace('*/', '')
-            add_fmt = ' /* {} */'.format(name)
+    _try_gen_root_ft('context', ev_type.specific_context_field_type, cg)
+    payload_ft = ev_type.payload_field_type
 
-        fmt = 'loglevel = {};' + add_fmt
-        cg.add_line(fmt.format(ev.log_level.value))
+    if payload_ft is None:
+        payload_ft = barectf_config.StructureFieldType(8)
 
-    if ev.context_type is not None:
-        _gen_entity('context', ev.context_type, cg)
-
-    if ev.payload_type is not None:
-        _gen_entity('fields', ev.payload_type, cg)
-    else:
-        fake_payload = metadata.Struct(8)
-        _gen_entity('fields', fake_payload, cg)
-
+    _try_gen_root_ft('fields', ev_type.payload_field_type, cg)
     _gen_end_block(cg)
 
 
-def _gen_streams_events_blocks(meta, cg):
-    for stream in meta.streams.values():
-        _gen_stream_block(meta, stream, cg)
+def _gen_stream_type_ev_type_blocks(config, cg):
+    for stream_type in sorted(config.trace.type.stream_types):
+        _gen_stream_type_block(config, stream_type, cg)
 
-        for ev in stream.events.values():
-            _gen_event_block(meta, stream, ev, cg)
+        for ev_type in sorted(stream_type.event_types):
+            _gen_ev_type_block(config, stream_type, ev_type, cg)
 
 
-def from_metadata(meta):
-    cg = codegen.CodeGenerator('\t')
+def _from_config(config):
+    cg = barectf_codegen._CodeGenerator('\t')
 
     # version/magic
     cg.add_line('/* CTF 1.8 */')
@@ -350,27 +346,23 @@ def from_metadata(meta):
  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  *''')
-    v = barectf.__version__
-    line = ' * The following TSDL code was generated by barectf v{}'.format(v)
-    cg.add_line(line)
-    now = datetime.datetime.now()
-    line = ' * on {}.'.format(now)
-    cg.add_line(line)
+    cg.add_line(f' * The following TSDL code was generated by barectf v{barectf_version.__version__}')
+    cg.add_line(f' * on {config.trace.environment["barectf_gen_date"]}.')
     cg.add_line(' *')
-    cg.add_line(' * For more details, see <http://barectf.org>.')
+    cg.add_line(' * For more details, see <https://barectf.org/>.')
     cg.add_line(' */')
     cg.add_empty_line()
 
-    # trace block
-    _gen_trace_block(meta, cg)
+    # trace type block
+    _gen_trace_type_block(config, cg)
 
-    # environment
-    _gen_env_block(meta, cg)
+    # trace environment block
+    _gen_trace_env_block(config, cg)
 
-    # clocks
-    _gen_clock_blocks(meta, cg)
+    # clock type blocks
+    _gen_clk_type_blocks(config, cg)
 
-    # streams and contained events
-    _gen_streams_events_blocks(meta, cg)
+    # stream and type blocks
+    _gen_stream_type_ev_type_blocks(config, cg)
 
     return cg.code

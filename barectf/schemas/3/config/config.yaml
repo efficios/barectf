@@ -1,0 +1,304 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2020 Philippe Proulx <pproulx@efficios.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+$schema: http://json-schema.org/draft-07/schema#
+$id: https://barectf.org/schemas/3/config/config.json
+title: Effective configuration object
+definitions:
+  feature-uint-ft:
+    type: object
+    allOf:
+      - properties:
+          class:
+            enum:
+              - uint
+              - unsigned-int
+              - unsigned-integer
+              - uenum
+              - unsigned-enum
+              - unsigned-enumeration
+      - if:
+          properties:
+            class:
+              $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/uint-ft-class-prop
+        then:
+          $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/uint-ft
+      - if:
+          properties:
+            class:
+              $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/uenum-ft-class-prop
+        then:
+          $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/uenum-ft
+  opt-or-def-feature-uint-ft:
+    if:
+      type: object
+    then:
+      $ref: '#/definitions/feature-uint-ft'
+    else:
+      oneOf:
+        - type: boolean
+        - type: 'null'
+  opt-feature-uint-ft:
+    if:
+      type: object
+    then:
+      $ref: '#/definitions/feature-uint-ft'
+    else:
+      if:
+        type: boolean
+      then:
+        const: True
+      else:
+        type: 'null'
+  opt-struct-ft:
+    if:
+      type: object
+    then:
+      $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/struct-ft
+    else:
+      type: 'null'
+  trace:
+    title: Trace object
+    type: object
+    properties:
+      type:
+        $ref: '#/definitions/trace-type'
+      environment:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-env-prop
+    required:
+      - type
+  trace-type:
+    title: Trace type object
+    type: object
+    properties:
+      uuid:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-trace-type-uuid-prop
+      $default-byte-order:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-byte-order-prop
+      $features:
+        if:
+          type: object
+        then:
+          properties:
+            magic-field-type:
+              allOf:
+                - $ref: '#/definitions/opt-or-def-feature-uint-ft'
+                - if:
+                    type: object
+                  then:
+                    properties:
+                      size:
+                        const: 32
+            uuid-field-type:
+              if:
+                type: object
+              then:
+                allOf:
+                  - $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/static-array-ft
+                  - properties:
+                      length:
+                        const: 16
+                      element-field-type:
+                        allOf:
+                          - $ref: '#/definitions/feature-uint-ft'
+                          - properties:
+                              size:
+                                const: 8
+                              alignment:
+                                if:
+                                  type: integer
+                                then:
+                                  const: 8
+              else:
+                if:
+                  type: boolean
+                then:
+                  const: false
+                else:
+                  type: 'null'
+            stream-type-id-field-type:
+              $ref: '#/definitions/opt-or-def-feature-uint-ft'
+          additionalProperties: false
+        else:
+          type: 'null'
+      clock-types:
+        title: Clock types object
+        type: object
+        patternProperties:
+          '^[A-Za-z_][A-Za-z0-9_]*$':
+            $ref: '#/definitions/clock-type'
+        additionalProperties: false
+      stream-types:
+        title: Stream types object
+        type: object
+        patternProperties:
+          '^[A-Za-z_][A-Za-z0-9_]*$':
+            $ref: '#/definitions/stream-type'
+        additionalProperties: false
+        minProperties: 1
+    required:
+      - stream-types
+    additionalProperties: false
+  clock-type:
+    title: Clock type object
+    type: object
+    properties:
+      uuid:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-uuid-prop
+      description:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
+      frequency:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-1
+      precision:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-0
+      offset:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-clock-type-offset-prop
+      origin-is-unix-epoch:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-bool
+      $c-type:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
+    additionalProperties: false
+  stream-type:
+    title: Stream type object
+    type: object
+    properties:
+      $is-default:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-bool
+      $default-clock-type-name:
+        if:
+          type: string
+        then:
+          $ref: https://barectf.org/schemas/common/config/common.json#/definitions/iden-prop
+        else:
+          type: 'null'
+      $features:
+        if:
+          type: object
+        then:
+          properties:
+            packet:
+              if:
+                type: object
+              then:
+                properties:
+                  total-size-field-type:
+                    $ref: '#/definitions/opt-feature-uint-ft'
+                  content-size-field-type:
+                    $ref: '#/definitions/opt-feature-uint-ft'
+                  beginning-time-field-type:
+                    $ref: '#/definitions/opt-or-def-feature-uint-ft'
+                  end-time-field-type:
+                    $ref: '#/definitions/opt-or-def-feature-uint-ft'
+                  discarded-events-counter-field-type:
+                    $ref: '#/definitions/opt-or-def-feature-uint-ft'
+                additionalProperties: false
+              else:
+                type: 'null'
+            event:
+              if:
+                type: object
+              then:
+                properties:
+                  type-id-field-type:
+                    $ref: '#/definitions/opt-or-def-feature-uint-ft'
+                  time-field-type:
+                    $ref: '#/definitions/opt-or-def-feature-uint-ft'
+                additionalProperties: false
+              else:
+                type: 'null'
+          additionalProperties: false
+        else:
+          type: 'null'
+      packet-context-field-type-extra-members:
+        if:
+          type: array
+        then:
+          $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/struct-ft-members
+        else:
+          type: 'null'
+      event-common-context-field-type:
+        $ref: '#/definitions/opt-struct-ft'
+      event-types:
+        title: Event types object
+        type: object
+        patternProperties:
+          '^[A-Za-z_][A-Za-z0-9_]*$':
+            $ref: '#/definitions/event-type'
+        additionalProperties: false
+        minProperties: 1
+    required:
+      - event-types
+    additionalProperties: false
+  event-type:
+    title: Event type object
+    type: object
+    properties:
+      log-level:
+        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-0
+      specific-context-field-type:
+        $ref: '#/definitions/opt-struct-ft'
+      payload-field-type:
+        $ref: '#/definitions/opt-struct-ft'
+    additionalProperties: false
+type: object
+properties:
+  options:
+    title: Configuration options object
+    type: object
+    properties:
+      code-generation:
+        title: Code generation configuration options object
+        type: object
+        properties:
+          prefix:
+            if:
+              type: string
+            then:
+              $ref: https://barectf.org/schemas/common/config/common.json#/definitions/config-prefix-prop
+            else:
+              type: object
+              properties:
+                identifier:
+                  $ref: https://barectf.org/schemas/common/config/common.json#/definitions/iden-prop
+                file-name:
+                  type: string
+              required:
+                - identifier
+                - file-name
+              additionalProperties: false
+          header:
+            title: Header code generation configuration options object
+            type: object
+            properties:
+              identifier-prefix-definition:
+                type: boolean
+              default-stream-type-name-definition:
+                type: boolean
+            additionalProperties: false
+        additionalProperties: false
+    additionalProperties: false
+  trace:
+    $ref: '#/definitions/trace'
+required:
+  - trace
+additionalProperties: false

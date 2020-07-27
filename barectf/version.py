@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 Philippe Proulx <pproulx@efficios.com>
+# Copyright (c) 2014-2020 Philippe Proulx <pproulx@efficios.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -21,24 +21,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-$schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/2/config/metadata-pre-include.json
-title: Metadata object before inclusions
-type: object
-properties:
-  $include:
-    $ref: https://barectf.org/schemas/2/config/include-prop.json
-  clocks:
-    title: Clock types object before inclusions
-    type: object
-    patternProperties:
-      '.*':
-        $ref: https://barectf.org/schemas/2/config/clock-type-pre-include.json
-  trace:
-    $ref: https://barectf.org/schemas/2/config/trace-type-pre-include.json
-  streams:
-    title: Stream types object before inclusions
-    type: object
-    patternProperties:
-      '.*':
-        $ref: https://barectf.org/schemas/2/config/stream-type-pre-include.json
+__major_version__ = 2
+__minor_version__ = 3
+__patch_version__ = 1
+__version__ = '{}.{}.{}'.format(__major_version__, __minor_version__, __patch_version__)
