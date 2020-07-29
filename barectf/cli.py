@@ -105,7 +105,7 @@ def _parse_args():
     return args
 
 
-def run():
+def _run():
     # parse arguments
     args = _parse_args()
 

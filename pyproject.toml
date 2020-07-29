@@ -61,7 +61,7 @@ jsonschema = '^3.2'
 setuptools = '*'
 
 [tool.poetry.scripts]
-barectf = 'barectf.cli:run'
+barectf = 'barectf.cli:_run'
 
 [tool.poetry.urls]
 'Bug tracker' = 'https://github.com/efficios/barectf/issues/'
