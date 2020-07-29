@@ -41,8 +41,9 @@ import uuid
 class _Parser(barectf_config_parse_common._Parser):
     # Builds a barectf 3 YAML configuration parser and parses the root
     # configuration node `node` (already loaded from `path`).
-    def __init__(self, path, node, inclusion_dirs, ignore_include_not_found):
-        super().__init__(path, node, inclusion_dirs, ignore_include_not_found, 3)
+    def __init__(self, path, node, with_pkg_include_dir, inclusion_dirs, ignore_include_not_found):
+        super().__init__(path, node, with_pkg_include_dir, inclusion_dirs,
+                         ignore_include_not_found, 3)
         self._ft_cls_name_to_create_method = {
             'unsigned-integer': self._create_int_ft,
             'signed-integer': self._create_int_ft,
@@ -1124,11 +1125,7 @@ class _Parser(barectf_config_parse_common._Parser):
                 except _ConfigurationParseError as exc:
                     _append_error_ctx(exc, f'Structure field type member `{member_name}`')
 
-        default_byte_order_prop_name = '$default-byte-order'
-        default_byte_order_node = self._trace_type_node.get(default_byte_order_prop_name)
-
-        if default_byte_order_prop_name in self._trace_type_node:
-            del self._trace_type_node[default_byte_order_prop_name]
+        default_byte_order_node = self._trace_type_node.get('$default-byte-order')
 
         self._default_byte_order = None
 

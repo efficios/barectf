@@ -32,19 +32,20 @@ import collections
 # parse the file-like object `file`.
 #
 # `file` can be a barectf 2 or 3 configuration file.
-def _create_v3_parser(file, include_dirs, ignore_include_not_found):
+def _create_v3_parser(file, with_pkg_include_dir, include_dirs, ignore_include_not_found):
     try:
         root_node = barectf_config_parse_common._yaml_load(file)
 
         if type(root_node) is barectf_config_parse_common._ConfigNodeV3:
             # barectf 3 configuration file
-            return barectf_config_parse_v3._Parser(file, root_node, include_dirs,
-                                                   ignore_include_not_found)
+            return barectf_config_parse_v3._Parser(file, root_node, with_pkg_include_dir,
+                                                   include_dirs, ignore_include_not_found)
         elif type(root_node) is collections.OrderedDict:
             # barectf 2 configuration file
-            v2_parser = barectf_config_parse_v2._Parser(file, root_node, include_dirs,
-                                                        ignore_include_not_found)
-            return barectf_config_parse_v3._Parser(file, v2_parser.config_node, include_dirs,
+            v2_parser = barectf_config_parse_v2._Parser(file, root_node, with_pkg_include_dir,
+                                                        include_dirs, ignore_include_not_found)
+            return barectf_config_parse_v3._Parser(file, v2_parser.config_node,
+                                                   with_pkg_include_dir, include_dirs,
                                                    ignore_include_not_found)
         else:
             raise _ConfigurationParseError('Configuration',
@@ -54,12 +55,14 @@ def _create_v3_parser(file, include_dirs, ignore_include_not_found):
                                                       'Cannot create configuration from YAML file')
 
 
-def _from_file(file, include_dirs, ignore_include_not_found):
-    return _create_v3_parser(file, include_dirs, ignore_include_not_found).config
+def _from_file(file, with_pkg_include_dir, include_dirs, ignore_include_not_found):
+    return _create_v3_parser(file, with_pkg_include_dir, include_dirs, ignore_include_not_found).config
 
 
-def _effective_config_file(file, include_dirs, ignore_include_not_found, indent_space_count=2):
-    config_node = _create_v3_parser(file, include_dirs, ignore_include_not_found).config_node
+def _effective_config_file(file, with_pkg_include_dir, include_dirs, ignore_include_not_found,
+                           indent_space_count):
+    config_node = _create_v3_parser(file, with_pkg_include_dir, include_dirs,
+                                    ignore_include_not_found).config_node
     return barectf_config_parse_common._yaml_dump(config_node, indent=indent_space_count,
                                                   default_flow_style=False, explicit_start=True,
                                                   explicit_end=True)

@@ -99,21 +99,8 @@ def _parse_args():
     if not os.path.isfile(args.config):
         _print_error(f'`{args.config}` is not an existing, regular file')
 
-    # Load configuration file to get its major version in order to
-    # append the correct implicit inclusion directory.
-    try:
-        with open(args.config) as f:
-            config_major_version = barectf.configuration_file_major_version(f)
-    except barectf._ConfigurationParseError as exc:
-        _print_config_error(exc)
-    except Exception as exc:
-        _print_unknown_exc(exc)
-
-    # append current working directory and implicit inclusion directory
-    args.include_dir += [
-        os.getcwd(),
-        pkg_resources.resource_filename(__name__, f'include/{config_major_version}')
-    ]
+    # append current working directory
+    args.include_dir.append(os.getcwd())
 
     return args
 
@@ -127,14 +114,14 @@ def run():
         with open(args.config) as f:
             if args.dump_config:
                 # print effective configuration file
-                print(barectf.effective_configuration_file(f, args.include_dir,
+                print(barectf.effective_configuration_file(f, True, args.include_dir,
                                                            args.ignore_include_not_found))
 
                 # barectf.configuration_from_file() reads the file again
                 # below: rewind.
                 f.seek(0)
 
-            config = barectf.configuration_from_file(f, args.include_dir,
+            config = barectf.configuration_from_file(f, True, args.include_dir,
                                                      args.ignore_include_not_found)
     except barectf._ConfigurationParseError as exc:
         _print_config_error(exc)

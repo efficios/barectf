@@ -60,8 +60,8 @@ def _copy_prop_if_exists(dst_node, src_node, src_prop_name, dst_prop_name=None):
 class _Parser(config_parse_common._Parser):
     # Builds a barectf 2 YAML configuration parser and parses the root
     # configuration node `node` (already loaded from `path`).
-    def __init__(self, path, node, include_dirs, ignore_include_not_found):
-        super().__init__(path, node, include_dirs, ignore_include_not_found, 2)
+    def __init__(self, path, node, with_pkg_include_dir, include_dirs, ignore_include_not_found):
+        super().__init__(path, node, with_pkg_include_dir, include_dirs, ignore_include_not_found, 2)
         self._ft_cls_name_to_conv_method = {
             'int': self._conv_int_ft_node,
             'integer': self._conv_int_ft_node,

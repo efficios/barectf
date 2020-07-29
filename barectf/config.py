@@ -846,15 +846,25 @@ class Configuration:
         return self._options
 
 
-def effective_configuration_file(file, inclusion_dirs, ignore_inclusion_not_found,
+def effective_configuration_file(file, with_package_inclusion_directory=True,
+                                 inclusion_directories=None, ignore_inclusion_not_found=False,
                                  indent_space_count=2):
-    return barectf_config_parse._effective_config_file(file, inclusion_dirs,
+    if inclusion_directories is None:
+        inclusion_directories = []
+
+    return barectf_config_parse._effective_config_file(file, with_package_inclusion_directory,
+                                                       inclusion_directories,
                                                        ignore_inclusion_not_found,
                                                        indent_space_count)
 
 
-def configuration_from_file(file, inclusion_dirs, ignore_inclusion_not_found):
-    return barectf_config_parse._from_file(file, inclusion_dirs, ignore_inclusion_not_found)
+def configuration_from_file(file, with_package_inclusion_directory=True, inclusion_directories=None,
+                            ignore_inclusion_not_found=False):
+    if inclusion_directories is None:
+        inclusion_directories = []
+
+    return barectf_config_parse._from_file(file, with_package_inclusion_directory,
+                                           inclusion_directories, ignore_inclusion_not_found)
 
 
 def configuration_file_major_version(file):

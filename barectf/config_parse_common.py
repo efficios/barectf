@@ -315,9 +315,11 @@ class _Parser:
     # path `path`).
     #
     # For its _process_node_include() method, the parser considers the
-    # inclusion directories `include_dirs` and ignores nonexistent
-    # inclusion files if `ignore_include_not_found` is `True`.
-    def __init__(self, path, node, include_dirs, ignore_include_not_found, major_version):
+    # package inclusion directory as well as `include_dirs`, and ignores
+    # nonexistent inclusion files if `ignore_include_not_found` is
+    # `True`.
+    def __init__(self, path, node, with_pkg_include_dir, include_dirs, ignore_include_not_found,
+                 major_version):
         self._root_path = path
         self._root_node = node
         self._ft_prop_names = [
@@ -332,7 +334,12 @@ class _Parser:
             # barectf 3
             'element-field-type',
         ]
-        self._include_dirs = include_dirs
+
+        self._include_dirs = copy.copy(include_dirs)
+
+        if with_pkg_include_dir:
+            self._include_dirs.append(pkg_resources.resource_filename(__name__, f'include/{major_version}'))
+
         self._ignore_include_not_found = ignore_include_not_found
         self._include_stack = []
         self._resolved_ft_aliases = set()
