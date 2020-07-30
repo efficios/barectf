@@ -1,4 +1,5 @@
 barectf*.*
 metadata
+!2/fail/metadata
 *.c
 *.h
