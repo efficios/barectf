@@ -24,6 +24,7 @@
 import barectf.config_parse_common as barectf_config_parse_common
 import barectf.version as barectf_version
 import barectf.config as barectf_config
+import barectf.config_file as barectf_config_file
 import barectf.gen as barectf_gen
 
 
@@ -46,14 +47,11 @@ ClockType = barectf_config.ClockType
 ClockTypeCTypes = barectf_config.ClockTypeCTypes
 ClockTypeOffset = barectf_config.ClockTypeOffset
 Configuration = barectf_config.Configuration
-configuration_file_major_version = barectf_config.configuration_file_major_version
-configuration_from_file = barectf_config.configuration_from_file
 ConfigurationCodeGenerationHeaderOptions = barectf_config.ConfigurationCodeGenerationHeaderOptions
 ConfigurationCodeGenerationOptions = barectf_config.ConfigurationCodeGenerationOptions
 ConfigurationOptions = barectf_config.ConfigurationOptions
 DEFAULT_FIELD_TYPE = barectf_config.DEFAULT_FIELD_TYPE
 DisplayBase = barectf_config.DisplayBase
-effective_configuration_file = barectf_config.effective_configuration_file
 EnumerationFieldTypeMapping = barectf_config.EnumerationFieldTypeMapping
 EnumerationFieldTypeMappingRange = barectf_config.EnumerationFieldTypeMappingRange
 EnumerationFieldTypeMappings = barectf_config.EnumerationFieldTypeMappings
@@ -76,6 +74,12 @@ TraceType = barectf_config.TraceType
 TraceTypeFeatures = barectf_config.TraceTypeFeatures
 UnsignedEnumerationFieldType = barectf_config.UnsignedEnumerationFieldType
 UnsignedIntegerFieldType = barectf_config.UnsignedIntegerFieldType
+
+
+# configuration file API
+configuration_file_major_version = barectf_config_file.configuration_file_major_version
+configuration_from_file = barectf_config_file.configuration_from_file
+effective_configuration_file = barectf_config_file.effective_configuration_file
 
 
 # code generation API

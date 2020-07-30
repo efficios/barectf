@@ -21,7 +21,6 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import barectf.config_parse as barectf_config_parse
 import barectf.version as barectf_version
 import collections.abc
 import collections
@@ -844,28 +843,3 @@ class Configuration:
     @property
     def options(self):
         return self._options
-
-
-def effective_configuration_file(file, with_package_inclusion_directory=True,
-                                 inclusion_directories=None, ignore_inclusion_not_found=False,
-                                 indent_space_count=2):
-    if inclusion_directories is None:
-        inclusion_directories = []
-
-    return barectf_config_parse._effective_config_file(file, with_package_inclusion_directory,
-                                                       inclusion_directories,
-                                                       ignore_inclusion_not_found,
-                                                       indent_space_count)
-
-
-def configuration_from_file(file, with_package_inclusion_directory=True, inclusion_directories=None,
-                            ignore_inclusion_not_found=False):
-    if inclusion_directories is None:
-        inclusion_directories = []
-
-    return barectf_config_parse._from_file(file, with_package_inclusion_directory,
-                                           inclusion_directories, ignore_inclusion_not_found)
-
-
-def configuration_file_major_version(file):
-    return barectf_config_parse._config_file_major_version(file)
