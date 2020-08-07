@@ -109,10 +109,7 @@ class _CliError(Exception):
     pass
 
 
-# Returns a `_CfgCmdCfg` object from the command-line parsing results
-# `parse_res`.
-def _cfg_cmd_cfg_from_parse_res(parse_res):
-    # check configuration file path
+def _cfg_file_path_from_parse_res(parse_res):
     cfg_file_path = None
 
     for item in parse_res.items:
@@ -127,6 +124,15 @@ def _cfg_cmd_cfg_from_parse_res(parse_res):
 
     if not os.path.isfile(cfg_file_path):
         raise _CliError(f'`{cfg_file_path}` is not an existing, regular file')
+
+    return cfg_file_path
+
+
+# Returns a `_CfgCmdCfg` object from the command-line parsing results
+# `parse_res`.
+def _cfg_cmd_cfg_from_parse_res(parse_res):
+    # check configuration file path
+    cfg_file_path = _cfg_file_path_from_parse_res(parse_res)
 
     # inclusion directories
     inclusion_dirs = [item.arg_text for item in _find_opt_items(parse_res.items, 'include-dir')]
@@ -205,7 +211,7 @@ def _gen_cmd_cfg_from_args(orig_args):
                               cfg_cmd_cfg.ignore_inclusion_file_not_found, dump_config, v2_prefix))
 
 
-def _print_show_effective_cfg_cmd_usage():
+def _show_effective_cfg_cmd_usage():
     print('''Usage: barectf show-effective-configuration [--include-dir=DIR]...
                                             [--ignore-include-not-found]
                                             [--indent-spaces=COUNT] CONFIG-FILE-PATH
@@ -234,7 +240,7 @@ def _show_effective_cfg_cfg_from_args(orig_args):
 
     # command help?
     if len(_find_opt_items(res.items, 'help')) > 0:
-        _print_show_effective_cfg_cmd_usage()
+        _show_effective_cfg_cmd_usage()
         sys.exit()
 
     # get common configuration command CLI configuration
@@ -257,6 +263,31 @@ def _show_effective_cfg_cfg_from_args(orig_args):
                                                         indent_space_count))
 
 
+def _show_cfg_version_cmd_usage():
+    print('Usage: barectf show-configuration-version CONFIG-FILE-PATH')
+
+
+# Returns a configuration version showing command object from the
+# specific command-line arguments `orig_args`.
+def _show_cfg_version_cfg_from_args(orig_args):
+    # parse original arguments
+    opt_descrs = [
+        barectf_argpar.OptDescr('h', 'help'),
+    ]
+    res = barectf_argpar.parse(orig_args, opt_descrs)
+    assert len(res.ingested_orig_args) == len(orig_args)
+
+    # command help?
+    if len(_find_opt_items(res.items, 'help')) > 0:
+        _show_cfg_version_cmd_usage()
+        sys.exit()
+
+    # check configuration file path
+    cfg_file_path = _cfg_file_path_from_parse_res(res)
+
+    return _ShowCfgVersionCmd(_ShowCfgVersionCmdCfg(cfg_file_path))
+
+
 def _print_general_usage():
     print('''Usage: barectf COMMAND COMMAND-ARGS
        barectf --help
@@ -267,11 +298,21 @@ General options:
   -V, --version    Show version and quit
 
 Available commands:
-  gen, generate                   Generate the C source and CTF metadata files
-                                  of a tracer from a configuration file
-  show-effective-configuration,   Print the effective configuration file for a
-  show-effective-config           given configuration file and inclusion
-                                  directories
+  gen:
+  generate:
+    Generate the C source and CTF metadata files of a tracer from a
+    configuration file.
+
+  show-effective-configuration:
+  show-effective-config:
+  show-effective-cfg:
+    Print the effective configuration file for a given configuration
+    file and inclusion directories.
+
+  show-configuration-version:
+  show-config-version:
+  show-cfg-version
+    Print the major version of a given configuration file.
 
 Run `barectf COMMAND --help` to show the help of COMMAND.''')
 
@@ -302,6 +343,9 @@ def _cmd_from_args(orig_args):
         'show-effective-configuration': _show_effective_cfg_cfg_from_args,
         'show-effective-config': _show_effective_cfg_cfg_from_args,
         'show-effective-cfg': _show_effective_cfg_cfg_from_args,
+        'show-configuration-version': _show_cfg_version_cfg_from_args,
+        'show-config-version': _show_cfg_version_cfg_from_args,
+        'show-cfg-version': _show_cfg_version_cfg_from_args,
     }
     general_opt_items = []
     cmd_first_orig_arg_index = None
@@ -489,6 +533,26 @@ class _ShowEffectiveCfgCmd(_Cmd):
                 print(barectf.effective_configuration_file(f, True, self.cfg.inclusion_dirs,
                                                            self.cfg.ignore_inclusion_file_not_found,
                                                            self.cfg.indent_space_count))
+        except barectf._ConfigurationParseError as exc:
+            _print_config_error(exc)
+        except Exception as exc:
+            _print_unknown_exc(exc)
+
+
+class _ShowCfgVersionCmdCfg(_CmdCfg):
+    def __init__(self, cfg_file_path):
+        self._cfg_file_path = cfg_file_path
+
+    @property
+    def cfg_file_path(self):
+        return self._cfg_file_path
+
+
+class _ShowCfgVersionCmd(_Cmd):
+    def exec(self):
+        try:
+            with open(self.cfg.cfg_file_path) as f:
+                print(barectf.configuration_file_major_version(f))
         except barectf._ConfigurationParseError as exc:
             _print_config_error(exc)
         except Exception as exc:
