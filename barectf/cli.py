@@ -27,6 +27,7 @@ import argparse
 import os.path
 import barectf
 import barectf.config_parse_common as barectf_config_parse_common
+import barectf.argpar as barectf_argpar
 import sys
 import os
 
@@ -65,76 +66,281 @@ def _print_unknown_exc(exc):
     _print_error(f'Unknown exception: {exc}')
 
 
-def _parse_args():
-    ap = argparse.ArgumentParser()
+# Finds and returns all the option items in `items` having the long name
+# `long_name`.
+def _find_opt_items(items, long_name):
+    ret_items = []
 
-    ap.add_argument('-c', '--code-dir', metavar='DIR', action='store', default=os.getcwd(),
-                    help='output directory of C source file')
-    ap.add_argument('--dump-config', action='store_true',
-                    help='also dump the effective YAML configuration file used for generation')
-    ap.add_argument('-H', '--headers-dir', metavar='DIR', action='store', default=os.getcwd(),
-                    help='output directory of C header files')
-    ap.add_argument('-I', '--include-dir', metavar='DIR', action='append', default=[],
-                    help='add directory DIR to the list of directories to be searched for include files')
-    ap.add_argument('--ignore-include-not-found', action='store_true',
-                    help='continue to process the configuration file when included files are not found')
-    ap.add_argument('-m', '--metadata-dir', metavar='DIR', action='store', default=os.getcwd(),
-                    help='output directory of CTF metadata')
-    ap.add_argument('-p', '--prefix', metavar='PREFIX', action='store',
-                    help='override configuration\'s prefixes')
-    ap.add_argument('-V', '--version', action='version',
-                    version='%(prog)s {}'.format(barectf.__version__))
-    ap.add_argument('config', metavar='CONFIG', action='store',
-                    help='barectf YAML configuration file')
+    for item in items:
+        if type(item) is barectf_argpar._OptItem and item.descr.long_name == long_name:
+            ret_items.append(item)
 
-    # parse args
-    args = ap.parse_args()
+    return ret_items
 
-    # validate output directories
-    for dir in [args.code_dir, args.headers_dir, args.metadata_dir] + args.include_dir:
+
+# Returns:
+#
+# For an option item without an argument:
+#     `True`.
+#
+# For an option item with an argument:
+#     Its argument.
+#
+# Uses the last option item having the long name `long_name` found in
+# `items`.
+#
+# Returns `default` if there's no such option item.
+def _opt_item_val(items, long_name, default=None):
+    opt_items = _find_opt_items(items, long_name)
+
+    if len(opt_items) == 0:
+        return default
+
+    opt_item = opt_items[-1]
+
+    if opt_item.descr.has_arg:
+        return opt_item.arg_text
+
+    return True
+
+
+class _CliCfg:
+    pass
+
+
+class _CliGenCmdCfg(_CliCfg):
+    def __init__(self, config_file_path, c_source_dir, c_header_dir, metadata_stream_dir,
+                 inclusion_dirs, ignore_inclusion_not_found, dump_config, v2_prefix):
+        self._config_file_path = config_file_path
+        self._c_source_dir = c_source_dir
+        self._c_header_dir = c_header_dir
+        self._metadata_stream_dir = metadata_stream_dir
+        self._inclusion_dirs = inclusion_dirs
+        self._ignore_inclusion_not_found = ignore_inclusion_not_found
+        self._dump_config = dump_config
+        self._v2_prefix = v2_prefix
+
+    @property
+    def config_file_path(self):
+        return self._config_file_path
+
+    @property
+    def c_source_dir(self):
+        return self._c_source_dir
+
+    @property
+    def c_header_dir(self):
+        return self._c_header_dir
+
+    @property
+    def metadata_stream_dir(self):
+        return self._metadata_stream_dir
+
+    @property
+    def inclusion_dirs(self):
+        return self._inclusion_dirs
+
+    @property
+    def ignore_inclusion_not_found(self):
+        return self._ignore_inclusion_not_found
+
+    @property
+    def dump_config(self):
+        return self._dump_config
+
+    @property
+    def v2_prefix(self):
+        return self._v2_prefix
+
+
+def _print_gen_cmd_usage():
+    print('''Usage: barectf generate [--code-dir=DIR] [--headers-dir=DIR]
+                        [--metadata-dir=DIR] [--prefix=PREFIX]
+                        [--include-dir=DIR]... [--ignore-include-not-found]
+                        [--dump-config] CONFIG-FILE-PATH
+
+Options:
+  -c DIR, --code-dir=DIR        Write C source files to DIR
+  --dump-config                 Print the effective configuration file
+  -H DIR, --headers-dir=DIR     Write C header files to DIR
+  --ignore-include-not-found    Continue to process the configuration file when
+                                included files are not found
+  -I DIR, --include-dir=DIR     Add DIR to the list of directories to be
+                                searched for inclusion files
+  -m DIR, --metadata-dir=DIR    Write the metadata stream file to DIR
+  -p PREFIX, --prefix=PREFIX    Set the configuration prefix to PREFIX''')
+
+
+class _CliError(Exception):
+    pass
+
+
+def _cli_gen_cfg_from_args(orig_args):
+    # parse original arguments
+    opt_descrs = [
+        barectf_argpar.OptDescr('h', 'help'),
+        barectf_argpar.OptDescr('c', 'code-dir', True),
+        barectf_argpar.OptDescr('H', 'headers-dir', True),
+        barectf_argpar.OptDescr('I', 'include-dir', True),
+        barectf_argpar.OptDescr('m', 'metadata-dir', True),
+        barectf_argpar.OptDescr('p', 'prefix', True),
+        barectf_argpar.OptDescr(long_name='dump-config'),
+        barectf_argpar.OptDescr(long_name='ignore-include-not-found'),
+    ]
+    res = barectf_argpar.parse(orig_args, opt_descrs)
+    assert len(res.ingested_orig_args) == len(orig_args)
+
+    # command help?
+    if len(_find_opt_items(res.items, 'help')) > 0:
+        _print_gen_cmd_usage()
+        sys.exit()
+
+    # check configuration file path
+    config_file_path = None
+
+    for item in res.items:
+        if type(item) is barectf_argpar._NonOptItem:
+            if config_file_path is not None:
+                raise _CliError('Multiple configuration file paths provided')
+
+            config_file_path = item.text
+
+    if config_file_path is None:
+        raise _CliError('Missing configuration file path')
+
+    if not os.path.isfile(config_file_path):
+        raise _CliError(f'`{config_file_path}` is not an existing, regular file')
+
+    # directories
+    c_source_dir = _opt_item_val(res.items, 'code-dir', os.getcwd())
+    c_header_dir = _opt_item_val(res.items, 'headers-dir', os.getcwd())
+    metadata_stream_dir = _opt_item_val(res.items, 'metadata-dir', os.getcwd())
+    inclusion_dirs = [item.arg_text for item in _find_opt_items(res.items, 'include-dir')]
+
+    for dir in [c_source_dir, c_header_dir, metadata_stream_dir] + inclusion_dirs:
         if not os.path.isdir(dir):
-            _print_error(f'`{dir}` is not an existing directory')
+            raise _CliError(f'`{dir}` is not an existing directory')
 
-    # validate that configuration file exists
-    if not os.path.isfile(args.config):
-        _print_error(f'`{args.config}` is not an existing, regular file')
+    inclusion_dirs.append(os.getcwd())
 
-    # append current working directory
-    args.include_dir.append(os.getcwd())
+    # other options
+    ignore_inclusion_not_found = _opt_item_val(res.items, 'ignore-include-not-found', False)
+    dump_config = _opt_item_val(res.items, 'dump-config', False)
+    v2_prefix = _opt_item_val(res.items, 'prefix')
 
-    return args
+    return _CliGenCmdCfg(config_file_path, c_source_dir, c_header_dir, metadata_stream_dir,
+                         inclusion_dirs, ignore_inclusion_not_found, dump_config, v2_prefix)
+
+
+def _print_general_usage():
+    print('''Usage: barectf COMMAND COMMAND-ARGS
+       barectf --help
+       barectf --version
+
+General options:
+  -h, --help       Show this help and quit
+  -V, --version    Show version and quit
+
+Available commands:
+  gen, generate    Generate the C source and CTF metadata files of a tracer
+                   from a configuration file
+
+Run `barectf COMMAND --help` to show the help of COMMAND.''')
+
+
+def _cli_cfg_from_args():
+    # We use our `argpar` module here instead of Python's `argparse`
+    # because we need to support the two following use cases:
+    #
+    #     $ barectf config.yaml
+    #     $ barectf generate config.yaml
+    #
+    # In other words, the default command is `generate` (for backward
+    # compatibility reasons). The argument parser must not consider
+    # `config.yaml` as being a command name.
+    general_opt_descrs = [
+        barectf_argpar.OptDescr('V', 'version'),
+        barectf_argpar.OptDescr('h', 'help'),
+    ]
+    orig_args = sys.argv[1:]
+    res = barectf_argpar.parse(orig_args, general_opt_descrs, False)
+
+    # find command name, collecting preceding (common) option items
+    general_opt_items = []
+    cmd_first_orig_arg_index = None
+    cmd_name = None
+
+    for item in res.items:
+        if type(item) is barectf_argpar._NonOptItem:
+            if item.text in ['gen', 'generate']:
+                cmd_name = 'generate'
+                cmd_first_orig_arg_index = item.orig_arg_index + 1
+            else:
+                cmd_first_orig_arg_index = item.orig_arg_index
+
+            break
+        else:
+            assert type(item) is barectf_argpar._OptItem
+            general_opt_items.append(item)
+
+    # general help?
+    if len(_find_opt_items(general_opt_items, 'help')) > 0:
+        _print_general_usage()
+        sys.exit()
+
+    # version?
+    if len(_find_opt_items(general_opt_items, 'version')) > 0:
+        print(f'barectf {barectf.__version__}')
+        sys.exit()
+
+    # execute command
+    cmd_orig_args = orig_args[cmd_first_orig_arg_index:]
+
+    if cmd_name is None:
+        # default `generate` command
+        return _cli_gen_cfg_from_args(cmd_orig_args)
+    else:
+        assert cmd_name == 'generate'
+        return _cli_gen_cfg_from_args(cmd_orig_args)
 
 
 def _run():
     # parse arguments
-    args = _parse_args()
+    try:
+        cli_cfg = _cli_cfg_from_args()
+    except barectf_argpar._Error as exc:
+        _print_error(f'Command-line: For argument `{exc.orig_arg}`: {exc.msg}')
+    except _CliError as exc:
+        _print_error(f'Command-line: {exc}')
+
+    assert type(cli_cfg) is _CliGenCmdCfg
 
     # create configuration
     try:
-        with open(args.config) as f:
-            if args.dump_config:
+        with open(cli_cfg.config_file_path) as f:
+            if cli_cfg.dump_config:
                 # print effective configuration file
-                print(barectf.effective_configuration_file(f, True, args.include_dir,
-                                                           args.ignore_include_not_found))
+                print(barectf.effective_configuration_file(f, True, cli_cfg.inclusion_dirs,
+                                                           cli_cfg.ignore_inclusion_not_found))
 
                 # barectf.configuration_from_file() reads the file again
                 # below: rewind.
                 f.seek(0)
 
-            config = barectf.configuration_from_file(f, True, args.include_dir,
-                                                     args.ignore_include_not_found)
+            config = barectf.configuration_from_file(f, True, cli_cfg.inclusion_dirs,
+                                                     cli_cfg.ignore_inclusion_not_found)
     except barectf._ConfigurationParseError as exc:
         _print_config_error(exc)
     except Exception as exc:
         _print_unknown_exc(exc)
 
-    if args.prefix:
+    if cli_cfg.v2_prefix is not None:
         # Override prefixes.
         #
         # For historical reasons, the `--prefix` option applies the
         # barectf 2 configuration prefix rules. Therefore, get the
         # equivalent barectf 3 prefixes first.
-        v3_prefixes = barectf_config_parse_common._v3_prefixes_from_v2_prefix(args.prefix)
+        v3_prefixes = barectf_config_parse_common._v3_prefixes_from_v2_prefix(cli_cfg.v2_prefix)
         cg_opts = config.options.code_generation_options
         cg_opts = barectf.ConfigurationCodeGenerationOptions(v3_prefixes.identifier,
                                                              v3_prefixes.file_name,
@@ -156,13 +362,13 @@ def _run():
 
     try:
         # generate and write metadata stream file
-        write_file(args.metadata_dir, code_gen.generate_metadata_stream())
+        write_file(cli_cfg.metadata_stream_dir, code_gen.generate_metadata_stream())
 
         # generate and write C header files
-        write_files(args.headers_dir, code_gen.generate_c_headers())
+        write_files(cli_cfg.c_header_dir, code_gen.generate_c_headers())
 
         # generate and write C source files
-        write_files(args.code_dir, code_gen.generate_c_sources())
+        write_files(cli_cfg.c_source_dir, code_gen.generate_c_sources())
     except Exception as exc:
         # We know `config` is valid, therefore the code generator cannot
         # fail for a reason known to barectf.
