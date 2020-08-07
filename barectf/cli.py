@@ -155,10 +155,12 @@ def _print_gen_cmd_usage():
                         [--metadata-dir=DIR] [--prefix=PREFIX]
                         [--include-dir=DIR]... [--ignore-include-not-found]
                         CONFIG-FILE-PATH
+       barectf generate --help
 
 Options:
   -c DIR, --code-dir=DIR        Write C source files to DIR instead of the CWD
   -H DIR, --headers-dir=DIR     Write C header files to DIR instead of the CWD
+  -h, --help                    Show this help and quit
   --ignore-include-not-found    Continue to process the configuration file when
                                 included files are not found
   -I DIR, --include-dir=DIR     Add DIR to the list of directories to be
@@ -215,8 +217,10 @@ def _show_effective_cfg_cmd_usage():
     print('''Usage: barectf show-effective-configuration [--include-dir=DIR]...
                                             [--ignore-include-not-found]
                                             [--indent-spaces=COUNT] CONFIG-FILE-PATH
+       barectf show-effective-configuration --help
 
 Options:
+  -h, --help                    Show this help and quit
   --ignore-include-not-found    Continue to process the configuration file when
                                 included files are not found
   -I DIR, --include-dir=DIR     Add DIR to the list of directories to be
@@ -264,7 +268,11 @@ def _show_effective_cfg_cfg_from_args(orig_args):
 
 
 def _show_cfg_version_cmd_usage():
-    print('Usage: barectf show-configuration-version CONFIG-FILE-PATH')
+    print('''Usage: barectf show-configuration-version CONFIG-FILE-PATH
+       barectf show-configuration-version --help
+
+Options:
+  -h, --help    Show this help and quit''')
 
 
 # Returns a configuration version showing command object from the
