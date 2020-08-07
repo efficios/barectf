@@ -157,6 +157,9 @@ def _print_gen_cmd_usage():
                         CONFIG-FILE-PATH
        barectf generate --help
 
+Generate the C source and CTF metadata stream files of a tracer from the
+configuration file CONFIG-FILE-PATH.
+
 Options:
   -c DIR, --code-dir=DIR        Write C source files to DIR instead of the CWD
   -H DIR, --headers-dir=DIR     Write C header files to DIR instead of the CWD
@@ -219,6 +222,9 @@ def _show_effective_cfg_cmd_usage():
                                             [--indent-spaces=COUNT] CONFIG-FILE-PATH
        barectf show-effective-configuration --help
 
+Print the effective configuration file for a the configuration file
+CONFIG-FILE-PATH.
+
 Options:
   -h, --help                    Show this help and quit
   --ignore-include-not-found    Continue to process the configuration file when
@@ -271,6 +277,8 @@ def _show_cfg_version_cmd_usage():
     print('''Usage: barectf show-configuration-version CONFIG-FILE-PATH
        barectf show-configuration-version --help
 
+Print the major version (2 or 3) of the configuration file CONFIG-FILE-PATH.
+
 Options:
   -h, --help    Show this help and quit''')
 
@@ -308,14 +316,14 @@ General options:
 Available commands:
   gen:
   generate:
-    Generate the C source and CTF metadata files of a tracer from a
+    Generate the C source and CTF metadata stream files of a tracer from a
     configuration file.
 
   show-effective-configuration:
   show-effective-config:
   show-effective-cfg:
-    Print the effective configuration file for a given configuration
-    file and inclusion directories.
+    Print the effective configuration file for a given configuration file and
+    inclusion directories.
 
   show-configuration-version:
   show-config-version:
