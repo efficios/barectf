@@ -391,7 +391,7 @@ def _cmd_from_args(orig_args):
         print(f'barectf {barectf.__version__}')
         sys.exit()
 
-    # execute command
+    # create command object
     cmd_orig_args = orig_args[cmd_first_orig_arg_index:]
 
     if cmd_from_args_func is None:
