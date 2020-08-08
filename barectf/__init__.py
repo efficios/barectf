@@ -86,7 +86,9 @@ effective_configuration_file = barectf_config_file.effective_configuration_file
 CodeGenerator = barectf_gen.CodeGenerator
 
 
+# remove local names
 del barectf_config_parse_common
 del barectf_version
 del barectf_config
+del barectf_config_file
 del barectf_gen
