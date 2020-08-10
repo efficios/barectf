@@ -158,6 +158,7 @@ definitions:
         minProperties: 1
     required:
       - stream-types
+      - $default-byte-order
     additionalProperties: false
   clock-type:
     title: Clock type object
