@@ -29,13 +29,16 @@ import os.path
 import barectf
 import barectf.config_parse_common as barectf_config_parse_common
 import barectf.argpar as barectf_argpar
+from typing import Any, List, Iterable, NoReturn
+import typing
+from barectf.typing import Index, Count
 import sys
 import os
 
 
 # Colors and prints the error message `msg` and exits with status code
 # 1.
-def _print_error(msg):
+def _print_error(msg: str) -> NoReturn:
     termcolor.cprint('Error: ', 'red', end='', file=sys.stderr)
     termcolor.cprint(msg, 'red', attrs=['bold'], file=sys.stderr)
     sys.exit(1)
@@ -43,7 +46,7 @@ def _print_error(msg):
 
 # Pretty-prints the barectf configuration error `exc` and exits with
 # status code 1.
-def _print_config_error(exc):
+def _print_config_error(exc: barectf._ConfigurationParseError) -> NoReturn:
     # reverse: most precise message comes last
     for ctx in reversed(exc.context):
         msg = ''
@@ -60,7 +63,7 @@ def _print_config_error(exc):
 
 
 # Pretty-prints the unknown exception `exc`.
-def _print_unknown_exc(exc):
+def _print_unknown_exc(exc: Exception) -> NoReturn:
     import traceback
 
     traceback.print_exc()
@@ -69,12 +72,16 @@ def _print_unknown_exc(exc):
 
 # Finds and returns all the option items in `items` having the long name
 # `long_name`.
-def _find_opt_items(items, long_name):
-    ret_items = []
+def _find_opt_items(items: Iterable[barectf_argpar._Item],
+                    long_name: str) -> List[barectf_argpar._OptItem]:
+    ret_items: List[barectf_argpar._OptItem] = []
 
     for item in items:
-        if type(item) is barectf_argpar._OptItem and item.descr.long_name == long_name:
-            ret_items.append(item)
+        if type(item) is barectf_argpar._OptItem:
+            item = typing.cast(barectf_argpar._OptItem, item)
+
+            if item.descr.long_name == long_name:
+                ret_items.append(item)
 
     return ret_items
 
@@ -91,7 +98,8 @@ def _find_opt_items(items, long_name):
 # `items`.
 #
 # Returns `default` if there's no such option item.
-def _opt_item_val(items, long_name, default=None):
+def _opt_item_val(items: Iterable[barectf_argpar._Item], long_name: str,
+                  default: Any = None) -> Any:
     opt_items = _find_opt_items(items, long_name)
 
     if len(opt_items) == 0:
@@ -109,7 +117,7 @@ class _CliError(Exception):
     pass
 
 
-def _cfg_file_path_from_parse_res(parse_res):
+def _cfg_file_path_from_parse_res(parse_res: barectf_argpar._ParseRes) -> str:
     cfg_file_path = None
 
     for item in parse_res.items:
@@ -117,7 +125,7 @@ def _cfg_file_path_from_parse_res(parse_res):
             if cfg_file_path is not None:
                 raise _CliError('Multiple configuration file paths provided')
 
-            cfg_file_path = item.text
+            cfg_file_path = typing.cast(barectf_argpar._NonOptItem, item).text
 
     if cfg_file_path is None:
         raise _CliError('Missing configuration file path')
@@ -130,12 +138,13 @@ def _cfg_file_path_from_parse_res(parse_res):
 
 # Returns a `_CfgCmdCfg` object from the command-line parsing results
 # `parse_res`.
-def _cfg_cmd_cfg_from_parse_res(parse_res):
+def _cfg_cmd_cfg_from_parse_res(parse_res: barectf_argpar._ParseRes) -> '_CfgCmdCfg':
     # check configuration file path
     cfg_file_path = _cfg_file_path_from_parse_res(parse_res)
 
-    # inclusion directories
-    inclusion_dirs = [item.arg_text for item in _find_opt_items(parse_res.items, 'include-dir')]
+    # inclusion directories (`--include-dir` option needs an argument)
+    inclusion_dirs = typing.cast(List[str],
+                                 [item.arg_text for item in _find_opt_items(parse_res.items, 'include-dir')])
 
     for dir in inclusion_dirs:
         if not os.path.isdir(dir):
@@ -175,7 +184,7 @@ Options:
 
 # Returns a source and metadata stream file generating command object
 # from the specific command-line arguments `orig_args`.
-def _gen_cmd_cfg_from_args(orig_args):
+def _gen_cmd_cfg_from_args(orig_args: barectf_argpar.OrigArgs) -> '_GenCmd':
     # parse original arguments
     opt_descrs = [
         barectf_argpar.OptDescr('h', 'help'),
@@ -237,7 +246,7 @@ Options:
 
 # Returns an effective configuration showing command object from the
 # specific command-line arguments `orig_args`.
-def _show_effective_cfg_cfg_from_args(orig_args):
+def _show_effective_cfg_cfg_from_args(orig_args: barectf_argpar.OrigArgs) -> '_ShowEffectiveCfgCmd':
     # parse original arguments
     opt_descrs = [
         barectf_argpar.OptDescr('h', 'help'),
@@ -270,7 +279,7 @@ def _show_effective_cfg_cfg_from_args(orig_args):
     return _ShowEffectiveCfgCmd(_ShowEffectiveCfgCmdCfg(cfg_cmd_cfg.cfg_file_path,
                                                         cfg_cmd_cfg.inclusion_dirs,
                                                         cfg_cmd_cfg.ignore_inclusion_file_not_found,
-                                                        indent_space_count))
+                                                        Count(indent_space_count)))
 
 
 def _show_cfg_version_cmd_usage():
@@ -285,7 +294,7 @@ Options:
 
 # Returns a configuration version showing command object from the
 # specific command-line arguments `orig_args`.
-def _show_cfg_version_cfg_from_args(orig_args):
+def _show_cfg_version_cfg_from_args(orig_args: barectf_argpar.OrigArgs) -> '_ShowCfgVersionCmd':
     # parse original arguments
     opt_descrs = [
         barectf_argpar.OptDescr('h', 'help'),
@@ -336,7 +345,7 @@ Run `barectf COMMAND --help` to show the help of COMMAND.''')
 # Returns a command object from the command-line arguments `orig_args`.
 #
 # All the `orig_args` elements are considered.
-def _cmd_from_args(orig_args):
+def _cmd_from_args(orig_args: barectf_argpar.OrigArgs) -> '_Cmd':
     # We use our `argpar` module here instead of Python's `argparse`
     # because we need to support the two following use cases:
     #
@@ -363,23 +372,24 @@ def _cmd_from_args(orig_args):
         'show-config-version': _show_cfg_version_cfg_from_args,
         'show-cfg-version': _show_cfg_version_cfg_from_args,
     }
-    general_opt_items = []
+    general_opt_items: List[barectf_argpar._OptItem] = []
     cmd_first_orig_arg_index = None
     cmd_from_args_func = None
 
     for item in res.items:
         if type(item) is barectf_argpar._NonOptItem:
+            item = typing.cast(barectf_argpar._NonOptItem, item)
             cmd_from_args_func = cmd_from_args_funcs.get(item.text)
 
             if cmd_from_args_func is None:
                 cmd_first_orig_arg_index = item.orig_arg_index
             else:
-                cmd_first_orig_arg_index = item.orig_arg_index + 1
+                cmd_first_orig_arg_index = Index(item.orig_arg_index + 1)
 
             break
         else:
             assert type(item) is barectf_argpar._OptItem
-            general_opt_items.append(item)
+            general_opt_items.append(typing.cast(barectf_argpar._OptItem, item))
 
     # general help?
     if len(_find_opt_items(general_opt_items, 'help')) > 0:
@@ -406,30 +416,31 @@ class _CmdCfg:
 
 
 class _CfgCmdCfg(_CmdCfg):
-    def __init__(self, cfg_file_path, inclusion_dirs, ignore_inclusion_file_not_found):
+    def __init__(self, cfg_file_path: str, inclusion_dirs: List[str],
+                 ignore_inclusion_file_not_found: bool):
         self._cfg_file_path = cfg_file_path
         self._inclusion_dirs = inclusion_dirs
         self._ignore_inclusion_file_not_found = ignore_inclusion_file_not_found
 
     @property
-    def cfg_file_path(self):
+    def cfg_file_path(self) -> str:
         return self._cfg_file_path
 
     @property
-    def inclusion_dirs(self):
+    def inclusion_dirs(self) -> List[str]:
         return self._inclusion_dirs
 
     @property
-    def ignore_inclusion_file_not_found(self):
+    def ignore_inclusion_file_not_found(self) -> bool:
         return self._ignore_inclusion_file_not_found
 
 
 class _Cmd:
-    def __init__(self, cfg):
+    def __init__(self, cfg: _CmdCfg):
         self._cfg = cfg
 
     @property
-    def cfg(self):
+    def cfg(self) -> _CmdCfg:
         return self._cfg
 
     def exec(self):
@@ -437,8 +448,9 @@ class _Cmd:
 
 
 class _GenCmdCfg(_CfgCmdCfg):
-    def __init__(self, cfg_file_path, c_source_dir, c_header_dir, metadata_stream_dir,
-                 inclusion_dirs, ignore_inclusion_file_not_found, dump_config, v2_prefix):
+    def __init__(self, cfg_file_path: str, c_source_dir: str, c_header_dir: str,
+                 metadata_stream_dir: str, inclusion_dirs: List[str],
+                 ignore_inclusion_file_not_found: bool, dump_config: bool, v2_prefix: str):
         super().__init__(cfg_file_path, inclusion_dirs, ignore_inclusion_file_not_found)
         self._c_source_dir = c_source_dir
         self._c_header_dir = c_header_dir
@@ -447,23 +459,23 @@ class _GenCmdCfg(_CfgCmdCfg):
         self._v2_prefix = v2_prefix
 
     @property
-    def c_source_dir(self):
+    def c_source_dir(self) -> str:
         return self._c_source_dir
 
     @property
-    def c_header_dir(self):
+    def c_header_dir(self) -> str:
         return self._c_header_dir
 
     @property
-    def metadata_stream_dir(self):
+    def metadata_stream_dir(self) -> str:
         return self._metadata_stream_dir
 
     @property
-    def dump_config(self):
+    def dump_config(self) -> bool:
         return self._dump_config
 
     @property
-    def v2_prefix(self):
+    def v2_prefix(self) -> str:
         return self._v2_prefix
 
 
@@ -531,13 +543,13 @@ class _GenCmd(_Cmd):
 
 
 class _ShowEffectiveCfgCmdCfg(_CfgCmdCfg):
-    def __init__(self, cfg_file_path, inclusion_dirs, ignore_inclusion_file_not_found,
-                 indent_space_count):
+    def __init__(self, cfg_file_path: str, inclusion_dirs: List[str],
+                 ignore_inclusion_file_not_found: bool, indent_space_count: Count):
         super().__init__(cfg_file_path, inclusion_dirs, ignore_inclusion_file_not_found)
         self._indent_space_count = indent_space_count
 
     @property
-    def indent_space_count(self):
+    def indent_space_count(self) -> Count:
         return self._indent_space_count
 
 
@@ -556,11 +568,11 @@ class _ShowEffectiveCfgCmd(_Cmd):
 
 
 class _ShowCfgVersionCmdCfg(_CmdCfg):
-    def __init__(self, cfg_file_path):
+    def __init__(self, cfg_file_path: str):
         self._cfg_file_path = cfg_file_path
 
     @property
-    def cfg_file_path(self):
+    def cfg_file_path(self) -> str:
         return self._cfg_file_path
 
 

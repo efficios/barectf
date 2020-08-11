@@ -23,36 +23,31 @@
 
 import pkg_resources
 import collections
-import jsonschema
+import jsonschema # type: ignore
 import os.path
 import yaml
 import copy
 import os
+from barectf.typing import VersionNumber, _OptStr
+from typing import Optional, List, Dict, Any, TextIO, MutableMapping, Union, Set, Iterable, Callable, Tuple
+import typing
 
 
 # The context of a configuration parsing error.
 #
 # Such a context object has a name and, optionally, a message.
 class _ConfigurationParseErrorContext:
-    def __init__(self, name, message=None):
+    def __init__(self, name: str, message: _OptStr = None):
         self._name = name
         self._msg = message
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def message(self):
+    def message(self) -> _OptStr:
         return self._msg
-
-
-# Appends the context having the object name `obj_name` and the
-# (optional) message `message` to the `_ConfigurationParseError`
-# exception `exc` and then raises `exc` again.
-def _append_error_ctx(exc, obj_name, message=None):
-    exc._append_ctx(obj_name, message)
-    raise exc
 
 
 # A configuration parsing error.
@@ -68,14 +63,14 @@ def _append_error_ctx(exc, obj_name, message=None):
 class _ConfigurationParseError(Exception):
     def __init__(self, init_ctx_obj_name, init_ctx_msg=None):
         super().__init__()
-        self._ctx = []
+        self._ctx: List[_ConfigurationParseErrorContext] = []
         self._append_ctx(init_ctx_obj_name, init_ctx_msg)
 
     @property
-    def context(self):
+    def context(self) -> List[_ConfigurationParseErrorContext]:
         return self._ctx
 
-    def _append_ctx(self, name, msg=None):
+    def _append_ctx(self, name: str, msg: _OptStr = None):
         self._ctx.append(_ConfigurationParseErrorContext(name, msg))
 
     def __str__(self):
@@ -92,11 +87,19 @@ class _ConfigurationParseError(Exception):
         return '\n'.join(lines)
 
 
+# Appends the context having the object name `obj_name` and the
+# (optional) message `message` to the `_ConfigurationParseError`
+# exception `exc` and then raises `exc` again.
+def _append_error_ctx(exc: _ConfigurationParseError, obj_name: str, message: _OptStr = None):
+    exc._append_ctx(obj_name, message)
+    raise exc
+
+
 _V3Prefixes = collections.namedtuple('_V3Prefixes', ['identifier', 'file_name'])
 
 
 # Convers a v2 prefix to v3 prefixes.
-def _v3_prefixes_from_v2_prefix(v2_prefix):
+def _v3_prefixes_from_v2_prefix(v2_prefix: str) -> _V3Prefixes:
     return _V3Prefixes(v2_prefix, v2_prefix.rstrip('_'))
 
 
@@ -106,8 +109,13 @@ def _v3_prefixes_from_v2_prefix(v2_prefix):
 # This must never happen in barectf because all our schemas are local;
 # it would mean a programming or schema error.
 class _RefResolver(jsonschema.RefResolver):
-    def resolve_remote(self, uri):
+    def resolve_remote(self, uri: str):
         raise RuntimeError(f'Missing local schema with URI `{uri}`')
+
+
+# Not all static type checkers support type recursion, so let's just use
+# `Any` as a map node's value's type.
+_MapNode = MutableMapping[str, Any]
 
 
 # Schema validator which considers all the schemas found in the
@@ -117,9 +125,9 @@ class _RefResolver(jsonschema.RefResolver):
 # The only public method is validate() which accepts an instance to
 # validate as well as a schema short ID.
 class _SchemaValidator:
-    def __init__(self, subdirs):
+    def __init__(self, subdirs: Iterable[str]):
         schemas_dir = pkg_resources.resource_filename(__name__, 'schemas')
-        self._store = {}
+        self._store: Dict[str, str] = {}
 
         for subdir in subdirs:
             dir = os.path.join(schemas_dir, subdir)
@@ -155,7 +163,7 @@ class _SchemaValidator:
 
         return dct
 
-    def _validate(self, instance, schema_short_id):
+    def _validate(self, instance: _MapNode, schema_short_id: str):
         # retrieve full schema ID from short ID
         schema_id = f'https://barectf.org/schemas/{schema_short_id}.json'
         assert schema_id in self._store
@@ -187,7 +195,7 @@ class _SchemaValidator:
     #
     # Raises a `_ConfigurationParseError` object, hiding any
     # `jsonschema` exception, on validation failure.
-    def validate(self, instance, schema_short_id):
+    def validate(self, instance: _MapNode, schema_short_id: str):
         try:
             self._validate(instance, schema_short_id)
         except jsonschema.ValidationError as exc:
@@ -234,11 +242,11 @@ class _SchemaValidator:
 
 # barectf 3 YAML configuration node.
 class _ConfigNodeV3:
-    def __init__(self, config_node):
+    def __init__(self, config_node: _MapNode):
         self._config_node = config_node
 
     @property
-    def config_node(self):
+    def config_node(self) -> _MapNode:
         return self._config_node
 
 
@@ -253,11 +261,11 @@ _CONFIG_V3_YAML_TAG = 'tag:barectf.org,2020/3/config'
 # `collections.OrderedDict` object.
 #
 # All YAML maps are loaded as `collections.OrderedDict` objects.
-def _yaml_load(file):
+def _yaml_load(file: TextIO) -> Union[_ConfigNodeV3, _MapNode]:
     class Loader(yaml.Loader):
         pass
 
-    def config_ctor(loader, node):
+    def config_ctor(loader, node) -> _ConfigNodeV3:
         if not isinstance(node, yaml.MappingNode):
             problem = f'Expecting a map for the tag `{node.tag}`'
             raise yaml.constructor.ConstructorError(problem=problem)
@@ -265,7 +273,7 @@ def _yaml_load(file):
         loader.flatten_mapping(node)
         return _ConfigNodeV3(collections.OrderedDict(loader.construct_pairs(node)))
 
-    def mapping_ctor(loader, node):
+    def mapping_ctor(loader, node) -> _MapNode:
         loader.flatten_mapping(node)
         return collections.OrderedDict(loader.construct_pairs(node))
 
@@ -279,7 +287,7 @@ def _yaml_load(file):
         raise _ConfigurationParseError('YAML loader', f'Cannot load file: {exc}')
 
 
-def _yaml_load_path(path):
+def _yaml_load_path(path: str) -> Union[_ConfigNodeV3, _MapNode]:
     with open(path) as f:
         return _yaml_load(f)
 
@@ -287,7 +295,7 @@ def _yaml_load_path(path):
 # Dumps the content of the Python object `obj`
 # (`collections.OrderedDict` or `_ConfigNodeV3`) as a YAML string and
 # returns it.
-def _yaml_dump(node, **kwds):
+def _yaml_dump(node: _MapNode, **kwds) -> str:
     class Dumper(yaml.Dumper):
         pass
 
@@ -311,16 +319,17 @@ def _yaml_dump(node, **kwds):
 # mostly contains helpers.
 class _Parser:
     # Builds a base barectf YAML configuration parser to process the
-    # configuration node `node` (already loaded from the file having the
-    # path `path`).
+    # configuration node `node` (already loaded from the file-like
+    # object `file`).
     #
     # For its _process_node_include() method, the parser considers the
     # package inclusion directory as well as `include_dirs`, and ignores
     # nonexistent inclusion files if `ignore_include_not_found` is
     # `True`.
-    def __init__(self, path, node, with_pkg_include_dir, include_dirs, ignore_include_not_found,
-                 major_version):
-        self._root_path = path
+    def __init__(self, root_file: TextIO, node: Union[_MapNode, _ConfigNodeV3],
+                 with_pkg_include_dir: bool, include_dirs: Optional[List[str]],
+                 ignore_include_not_found: bool, major_version: VersionNumber):
+        self._root_file = root_file
         self._root_node = node
         self._ft_prop_names = [
             # barectf 2.1+
@@ -335,35 +344,42 @@ class _Parser:
             'element-field-type',
         ]
 
+        if include_dirs is None:
+            include_dirs = []
+
         self._include_dirs = copy.copy(include_dirs)
 
         if with_pkg_include_dir:
             self._include_dirs.append(pkg_resources.resource_filename(__name__, f'include/{major_version}'))
 
         self._ignore_include_not_found = ignore_include_not_found
-        self._include_stack = []
-        self._resolved_ft_aliases = set()
+        self._include_stack: List[str] = []
+        self._resolved_ft_aliases: Set[str] = set()
         self._schema_validator = _SchemaValidator({'common/config', f'{major_version}/config'})
         self._major_version = major_version
 
     @property
-    def _struct_ft_node_members_prop_name(self):
+    def _struct_ft_node_members_prop_name(self) -> str:
         if self._major_version == 2:
             return 'fields'
         else:
             return 'members'
 
     # Returns the last included file name from the parser's inclusion
-    # file name stack.
-    def _get_last_include_file(self):
+    # file name stack, or `N/A` if the root file does not have an
+    # associated path under the `name` property.
+    def _get_last_include_file(self) -> str:
         if self._include_stack:
             return self._include_stack[-1]
 
-        return self._root_path
+        if hasattr(self._root_file, 'name'):
+            return typing.cast(str, self._root_file.name)
+
+        return 'N/A'
 
     # Loads the inclusion file having the path `yaml_path` and returns
     # its content as a `collections.OrderedDict` object.
-    def _load_include(self, yaml_path):
+    def _load_include(self, yaml_path) -> Optional[_MapNode]:
         for inc_dir in self._include_dirs:
             # Current inclusion dir + file name path.
             #
@@ -389,38 +405,37 @@ class _Parser:
             self._include_stack.append(norm_path)
 
             # load raw content
-            return _yaml_load_path(norm_path)
+            return typing.cast(_MapNode, _yaml_load_path(norm_path))
 
         if not self._ignore_include_not_found:
             base_path = self._get_last_include_file()
             raise _ConfigurationParseError(f'File `{base_path}`',
                                            f'Cannot include file `{yaml_path}`: file not found in inclusion directories')
 
+        return None
+
     # Returns a list of all the inclusion file paths as found in the
     # inclusion node `include_node`.
-    def _get_include_paths(self, include_node):
+    def _get_include_paths(self, include_node: _MapNode) -> List[str]:
         if include_node is None:
             # none
             return []
 
         if type(include_node) is str:
             # wrap as array
-            return [include_node]
+            return [typing.cast(str, include_node)]
 
         # already an array
         assert type(include_node) is list
-        return include_node
+        return typing.cast(List[str], include_node)
 
     # Updates the node `base_node` with an overlay node `overlay_node`.
     #
     # Both the inclusion and field type node inheritance features use
     # this update mechanism.
-    def _update_node(self, base_node, overlay_node):
+    def _update_node(self, base_node: _MapNode, overlay_node: _MapNode):
         # see the comment about the `members` property below
-        def update_members_node(base_value, olay_value):
-            assert type(olay_value) is list
-            assert type(base_value) is list
-
+        def update_members_node(base_value: List[Any], olay_value: List[Any]):
             for olay_item in olay_value:
                 # assume we append `olay_item` to `base_value` initially
                 append_olay_item = True
@@ -567,9 +582,9 @@ class _Parser:
     # `last_overlay_node` and then patches the current base node with
     # its other properties before returning the result (always a deep
     # copy).
-    def _process_node_include(self, last_overlay_node,
-                              process_base_include_cb,
-                              process_children_include_cb=None):
+    def _process_node_include(self, last_overlay_node: _MapNode,
+                              process_base_include_cb: Callable[[_MapNode], _MapNode],
+                              process_children_include_cb: Optional[Callable[[_MapNode], None]] = None) -> _MapNode:
         # process children inclusions first
         if process_children_include_cb is not None:
             process_children_include_cb(last_overlay_node)
@@ -629,13 +644,16 @@ class _Parser:
     # Generates pairs of member node and field type node property name
     # (in the member node) for the structure field type node's members
     # node `node`.
-    def _struct_ft_member_fts_iter(self, node):
+    def _struct_ft_member_fts_iter(self,
+                                   node: Union[List[_MapNode], _MapNode]) -> Iterable[Tuple[_MapNode, str]]:
         if type(node) is list:
             # barectf 3
             assert self._major_version == 3
+            node = typing.cast(List[_MapNode], node)
 
             for member_node in node:
                 assert type(member_node) is collections.OrderedDict
+                member_node = typing.cast(_MapNode, member_node)
                 name, val = list(member_node.items())[0]
 
                 if type(val) is collections.OrderedDict:
@@ -647,6 +665,7 @@ class _Parser:
             # barectf 2
             assert self._major_version == 2
             assert type(node) is collections.OrderedDict
+            node = typing.cast(_MapNode, node)
 
             for name in node:
                 yield node, name
@@ -661,7 +680,8 @@ class _Parser:
     #
     # `ctx_obj_name` is the context's object name when this method
     # raises a `_ConfigurationParseError` exception.
-    def _resolve_ft_alias(self, ft_aliases_node, parent_node, key, ctx_obj_name, alias_set=None):
+    def _resolve_ft_alias(self, ft_aliases_node: _MapNode, parent_node: _MapNode, key: str,
+                          ctx_obj_name: str, alias_set: Optional[Set[str]] = None):
         if key not in parent_node:
             return
 
@@ -722,7 +742,7 @@ class _Parser:
 
     # Like _resolve_ft_alias(), but builds a context object name for any
     # `ctx_obj_name` exception.
-    def _resolve_ft_alias_from(self, ft_aliases_node, parent_node, key):
+    def _resolve_ft_alias_from(self, ft_aliases_node: _MapNode, parent_node: _MapNode, key: str):
         self._resolve_ft_alias(ft_aliases_node, parent_node, key, f'`{key}` property')
 
     # Applies field type node inheritance to the property `key` of
@@ -735,7 +755,7 @@ class _Parser:
     #
     # When this method returns, no field type node has an `$inherit` or
     # `inherit` property.
-    def _apply_ft_inheritance(self, parent_node, key):
+    def _apply_ft_inheritance(self, parent_node: _MapNode, key: str):
         if key not in parent_node:
             return
 

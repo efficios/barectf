@@ -22,11 +22,15 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import barectf.config_parse as barectf_config_parse
+import barectf.config as barectf_config
+from barectf.typing import Count, VersionNumber
+from typing import Optional, List, TextIO
 
 
-def effective_configuration_file(file, with_package_inclusion_directory=True,
-                                 inclusion_directories=None, ignore_inclusion_not_found=False,
-                                 indent_space_count=2):
+def effective_configuration_file(file: TextIO, with_package_inclusion_directory: bool = True,
+                                 inclusion_directories: Optional[List[str]] = None,
+                                 ignore_inclusion_not_found: bool = False,
+                                 indent_space_count: Count = Count(2)) -> str:
     if inclusion_directories is None:
         inclusion_directories = []
 
@@ -36,8 +40,9 @@ def effective_configuration_file(file, with_package_inclusion_directory=True,
                                                        indent_space_count)
 
 
-def configuration_from_file(file, with_package_inclusion_directory=True, inclusion_directories=None,
-                            ignore_inclusion_not_found=False):
+def configuration_from_file(file: TextIO, with_package_inclusion_directory: bool = True,
+                            inclusion_directories: Optional[List[str]] = None,
+                            ignore_inclusion_not_found: bool = False) -> barectf_config.Configuration:
     if inclusion_directories is None:
         inclusion_directories = []
 
@@ -45,5 +50,5 @@ def configuration_from_file(file, with_package_inclusion_directory=True, inclusi
                                            inclusion_directories, ignore_inclusion_not_found)
 
 
-def configuration_file_major_version(file):
+def configuration_file_major_version(file: TextIO) -> VersionNumber:
     return barectf_config_parse._config_file_major_version(file)

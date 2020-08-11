@@ -26,6 +26,7 @@ import barectf.version as barectf_version
 import barectf.config as barectf_config
 import barectf.config_file as barectf_config_file
 import barectf.gen as barectf_gen
+import barectf.typing as barectf_typing
 
 
 # version API
@@ -33,6 +34,14 @@ __major_version__ = barectf_version.__major_version__
 __minor_version__ = barectf_version.__minor_version__
 __patch_version__ = barectf_version.__patch_version__
 __version__ = barectf_version.__version__
+
+
+# common typing API
+Index = barectf_typing.Index
+Count = barectf_typing.Count
+Id = barectf_typing.Id
+Alignment = barectf_typing.Alignment
+VersionNumber = barectf_typing.VersionNumber
 
 
 # configuration API
@@ -56,6 +65,7 @@ EnumerationFieldTypeMapping = barectf_config.EnumerationFieldTypeMapping
 EnumerationFieldTypeMappingRange = barectf_config.EnumerationFieldTypeMappingRange
 EnumerationFieldTypeMappings = barectf_config.EnumerationFieldTypeMappings
 EventType = barectf_config.EventType
+LogLevel = barectf_config.LogLevel
 RealFieldType = barectf_config.RealFieldType
 SignedEnumerationFieldType = barectf_config.SignedEnumerationFieldType
 SignedIntegerFieldType = barectf_config.SignedIntegerFieldType
@@ -92,3 +102,4 @@ del barectf_version
 del barectf_config
 del barectf_config_file
 del barectf_gen
+del barectf_typing

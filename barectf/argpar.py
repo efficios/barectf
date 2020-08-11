@@ -22,10 +22,16 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import re
-import collections
+import typing
+from typing import Optional, List, Iterable
+from barectf.typing import Index, _OptStr
 
 
-__all__ = ['OptDescr', '_OptItem', '_NonOptItem', '_Error', 'parse']
+__all__ = ['OptDescr', '_OptItem', '_NonOptItem', '_Error', 'parse', 'OrigArgs']
+
+
+# types
+OrigArgs = List[str]
 
 
 # Option descriptor.
@@ -36,22 +42,23 @@ class OptDescr:
     #
     # If `has_arg` is `True`, then it is expected that such an option
     # has an argument.
-    def __init__(self, short_name=None, long_name=None, has_arg=False):
+    def __init__(self, short_name: _OptStr = None, long_name: _OptStr = None,
+                 has_arg: bool = False):
         assert short_name is not None or long_name is not None
         self._short_name = short_name
         self._long_name = long_name
         self._has_arg = has_arg
 
     @property
-    def short_name(self):
+    def short_name(self) -> _OptStr:
         return self._short_name
 
     @property
-    def long_name(self):
+    def long_name(self) -> _OptStr:
         return self._long_name
 
     @property
-    def has_arg(self):
+    def has_arg(self) -> Optional[bool]:
         return self._has_arg
 
 
@@ -61,82 +68,85 @@ class _Item:
 
 # Parsed option argument item.
 class _OptItem(_Item):
-    def __init__(self, descr, arg_text=None):
+    def __init__(self, descr: OptDescr, arg_text: _OptStr = None):
         self._descr = descr
         self._arg_text = arg_text
 
     @property
-    def descr(self):
+    def descr(self) -> OptDescr:
         return self._descr
 
     @property
-    def arg_text(self):
+    def arg_text(self) -> _OptStr:
         return self._arg_text
 
 
 # Parsed non-option argument item.
 class _NonOptItem(_Item):
-    def __init__(self, text, orig_arg_index, non_opt_index):
+    def __init__(self, text: str, orig_arg_index: Index, non_opt_index: Index):
         self._text = text
         self._orig_arg_index = orig_arg_index
         self._non_opt_index = non_opt_index
 
     @property
-    def text(self):
+    def text(self) -> str:
         return self._text
 
     @property
-    def orig_arg_index(self):
+    def orig_arg_index(self) -> Index:
         return self._orig_arg_index
 
     @property
-    def non_opt_index(self):
+    def non_opt_index(self) -> Index:
         return self._non_opt_index
 
 
 # Results of parse().
 class _ParseRes:
-    def __init__(self, items, ingested_orig_args, remaining_orig_args):
+    def __init__(self, items: List[_Item], ingested_orig_args: OrigArgs,
+                 remaining_orig_args: OrigArgs):
         self._items = items
         self._ingested_orig_args = ingested_orig_args
         self._remaining_orig_args = remaining_orig_args
 
     @property
-    def items(self):
+    def items(self) -> List[_Item]:
         return self._items
 
     @property
-    def ingested_orig_args(self):
+    def ingested_orig_args(self) -> OrigArgs:
         return self._ingested_orig_args
 
     @property
-    def remaining_orig_args(self):
+    def remaining_orig_args(self) -> OrigArgs:
         return self._remaining_orig_args
 
 
 # Parsing error.
 class _Error(Exception):
-    def __init__(self, orig_arg_index, orig_arg, msg):
+    def __init__(self, orig_arg_index: Index, orig_arg: str, msg: str):
         super().__init__(msg)
         self._orig_arg_index = orig_arg_index
         self._orig_arg = orig_arg
         self._msg = msg
 
     @property
-    def orig_arg_index(self):
+    def orig_arg_index(self) -> Index:
         return self._orig_arg_index
 
     @property
-    def orig_arg(self):
+    def orig_arg(self) -> str:
         return self._orig_arg
 
     @property
-    def msg(self):
+    def msg(self) -> str:
         return self._msg
 
 
 # Results of parse_short_opts() and parse_long_opt(); internal.
-_OptParseRes = collections.namedtuple('_OptParseRes', ['items', 'orig_arg_index_incr'])
+class _OptParseRes(typing.NamedTuple):
+    items: List[_Item]
+    orig_arg_index_incr: int
 
 
 # Parses the original arguments `orig_args` (list of strings),
@@ -227,17 +237,21 @@ _OptParseRes = collections.namedtuple('_OptParseRes', ['items', 'orig_arg_index_
 # resulting option items.
 #
 # On failure, this function raises an `_Error` object.
-def parse(orig_args, opt_descrs, fail_on_unknown_opt=True):
+def parse(orig_args: OrigArgs, opt_descrs: Iterable[OptDescr],
+          fail_on_unknown_opt: bool = True) -> _ParseRes:
     # Finds and returns an option description amongst `opt_descrs`
     # having the short option name `short_name` OR the long option name
     # `long_name` (not both).
-    def find_opt_descr(short_name=None, long_name=None):
+    def find_opt_descr(short_name: _OptStr = None,
+                       long_name: _OptStr = None) -> Optional[OptDescr]:
         for opt_descr in opt_descrs:
             if short_name is not None and short_name == opt_descr.short_name:
                 return opt_descr
 
             if long_name is not None and long_name == opt_descr.long_name:
                 return opt_descr
+
+        return None
 
     # Parses a short option original argument, returning an
     # `_OptParseRes` object.
@@ -261,9 +275,9 @@ def parse(orig_args, opt_descrs, fail_on_unknown_opt=True):
     # If any of the short options of `orig_arg` is unknown, then this
     # function raises an error if `fail_on_unknown_opt` is `True`, or
     # returns `None` otherwise.
-    def parse_short_opts():
+    def parse_short_opts() -> Optional[_OptParseRes]:
         short_opts = orig_arg[1:]
-        items = []
+        items: List[_Item] = []
         done = False
         index = 0
         orig_arg_index_incr = 1
@@ -278,7 +292,7 @@ def parse(orig_args, opt_descrs, fail_on_unknown_opt=True):
                     raise _Error(orig_arg_index, orig_arg, f'Unknown short option `-{short_opt}`')
 
                 # discard collected arguments
-                return
+                return None
 
             opt_arg = None
 
@@ -324,7 +338,7 @@ def parse(orig_args, opt_descrs, fail_on_unknown_opt=True):
     #
     # If the long option is unknown, then this function raises an error
     # if `fail_on_unknown_opt` is `True`, or returns `None` otherwise.
-    def parse_long_opt():
+    def parse_long_opt() -> Optional[_OptParseRes]:
         long_opt = orig_arg[2:]
         m = re.match(r'--([^=]+)=(.*)', orig_arg)
 
@@ -340,7 +354,7 @@ def parse(orig_args, opt_descrs, fail_on_unknown_opt=True):
                 raise _Error(orig_arg_index, orig_arg, f'Unknown long option `--{long_opt}`')
 
             # discard
-            return
+            return None
 
         orig_arg_index_incr = 1
 
@@ -361,9 +375,9 @@ def parse(orig_args, opt_descrs, fail_on_unknown_opt=True):
         return _OptParseRes([item], orig_arg_index_incr)
 
     # parse original arguments
-    items = []
-    orig_arg_index = 0
-    non_opt_index = 0
+    items: List[_Item] = []
+    orig_arg_index = Index(0)
+    non_opt_index = Index(0)
 
     while orig_arg_index < len(orig_args):
         orig_arg = orig_args[orig_arg_index]
@@ -378,7 +392,7 @@ def parse(orig_args, opt_descrs, fail_on_unknown_opt=True):
             # option
             if orig_arg[1] == '-':
                 if orig_arg == '--':
-                    raise _Error(orig_arg_index, 'Invalid `--` argument')
+                    raise _Error(orig_arg_index, orig_arg, 'Invalid `--` argument')
 
                 # long option
                 res = parse_long_opt()
@@ -392,11 +406,11 @@ def parse(orig_args, opt_descrs, fail_on_unknown_opt=True):
                 return _ParseRes(items, orig_args[:orig_arg_index], orig_args[orig_arg_index:])
 
             items += res.items
-            orig_arg_index += res.orig_arg_index_incr
+            orig_arg_index = Index(orig_arg_index + res.orig_arg_index_incr)
         else:
             # non-option
             items.append(_NonOptItem(orig_arg, orig_arg_index, non_opt_index))
-            non_opt_index += 1
-            orig_arg_index += 1
+            non_opt_index = Index(non_opt_index + 1)
+            orig_arg_index = Index(orig_arg_index + 1)
 
     return _ParseRes(items, orig_args, [])
