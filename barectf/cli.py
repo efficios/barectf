@@ -21,10 +21,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import pkg_resources
-import collections
 import termcolor
-import argparse
 import os.path
 import barectf
 import barectf.config_parse_common as barectf_config_parse_common
