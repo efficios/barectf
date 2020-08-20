@@ -1,0 +1,10 @@
+integer {
+	signed = {{ 'true' if is_signed else 'false' }};
+	size = {{ ft.size }};
+	align = {{ ft.alignment }};
+	byte_order = {{ ft.byte_order | bo_str }};
+	base = {{ ft.preferred_display_base | disp_base_int }};
+	{% if ft._mapped_clk_type_name %}
+	map = clock.{{ ft._mapped_clk_type_name }}.value;
+	{% endif %}
+}

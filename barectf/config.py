@@ -740,6 +740,16 @@ class TraceType:
     def features(self) -> TraceTypeFeatures:
         return self._features
 
+    @property
+    def clock_types(self) -> Set[ClockType]:
+        clk_types = set()
+
+        for stream_type in self._stream_types:
+            if stream_type.default_clock_type is not None:
+                clk_types.add(stream_type.default_clock_type)
+
+        return clk_types
+
 
 _EnvEntry = Union[str, int]
 _EnvEntries = Mapping[str, _EnvEntry]

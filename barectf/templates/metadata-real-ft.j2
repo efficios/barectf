@@ -1,0 +1,6 @@
+floating_point {
+	mant_dig = {{ 24 if ft.size == 32 else 53 }};
+	exp_dig = {{ 8 if ft.size == 32 else 11 }};
+	align = {{ ft.alignment }};
+	byte_order = {{ ft.byte_order | bo_str }};
+}

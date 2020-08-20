@@ -1,0 +1,11 @@
+struct {
+{% for name, member in ft.members.items() %}
+{#
+`chain` is a list of static array field types terminated with a
+non-array field type (the most nested).
+#}
+{% set chain = ft_chain(member.field_type) %}
+	{{ chain[-1] | ft_str | indent_tab }} {{ name }}
+	{%- for array_ft in chain[:-1] %}[{{ array_ft.length }}]{% endfor %};
+{% endfor %}
+} align({{ ft.minimum_alignment }})
