@@ -55,33 +55,34 @@ _Test = Callable[[Any], bool]
 _Tests = Mapping[str, _Test]
 
 
-def _create_template(name: str, cfg: Optional[barectf_config.Configuration] = None,
-                     filters: Optional[_Filters] = None,
-                     tests: Optional[_Test] = None) -> jinja2.Template:
-    env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True,
-                             loader=jinja2.PackageLoader('barectf', 'templates'))
-    env.globals.update({
-        'cfg': cfg,
-        'barectf_config': barectf_config,
-        'barectf_version': barectf_version,
-    })
+class _Template:
+    def __init__(self, name: str, is_file_template: bool = False,
+                 cfg: Optional[barectf_config.Configuration] = None,
+                 filters: Optional[_Filters] = None, tests: Optional[_Tests] = None):
+        env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True,
+                                 loader=jinja2.PackageLoader('barectf', 'templates'))
+        env.globals.update({
+            'cfg': cfg,
+            'barectf_config': barectf_config,
+            'barectf_version': barectf_version,
+        })
 
-    env.filters['indent_tab'] = _filt_indent_tab
-    env.filters['escape_dq'] = _filt_escape_dq
+        env.filters['indent_tab'] = _filt_indent_tab
+        env.filters['escape_dq'] = _filt_escape_dq
 
-    if filters is not None:
-        env.filters.update(filters)
+        if filters is not None:
+            env.filters.update(filters)
 
-    if tests is not None:
-        env.tests.update(tests)
+        if tests is not None:
+            env.tests.update(tests)
 
-    return env.get_template(name)
+        self._templ = env.get_template(name)
+        self._is_file_template = is_file_template
 
+    def render(self, **kwargs) -> str:
+        text = self._templ.render(**kwargs)
 
-def _render_template(templ: jinja2.Template, is_file_template: bool = False, **kwargs) -> str:
-    text = templ.render(**kwargs)
+        if self._is_file_template:
+            text = text.strip() + '\n'
 
-    if is_file_template:
-        text = text.strip() + '\n'
-
-    return text
+        return text

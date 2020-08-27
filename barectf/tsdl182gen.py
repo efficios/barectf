@@ -45,20 +45,20 @@ def _filt_disp_base_int(disp_base: barectf_config.DisplayBase) -> int:
 
 
 def _filt_int_ft_str(ft: barectf_config._FieldType) -> str:
-    return barectf_template._render_template(_INT_FT_TEMPL, ft=ft,
-                                             is_signed=isinstance(ft, barectf_config.SignedIntegerFieldType))
+    return _INT_FT_TEMPL.render(ft=ft,
+                                is_signed=isinstance(ft, barectf_config.SignedIntegerFieldType))
 
 
 def _gen_enum_ft(ft: barectf_config._FieldType) -> str:
-    return barectf_template._render_template(_ENUM_FT_TEMPL, ft=ft)
+    return _ENUM_FT_TEMPL.render(ft=ft)
 
 
 def _gen_real_ft(ft: barectf_config._FieldType) -> str:
-    return barectf_template._render_template(_REAL_FT_TEMPL, ft=ft)
+    return _REAL_FT_TEMPL.render(ft=ft)
 
 
 def _gen_str_ft(ft: barectf_config._FieldType) -> str:
-    return barectf_template._render_template(_STR_FT_TEMPL, ft=ft)
+    return _STR_FT_TEMPL.render(ft=ft)
 
 
 def _ft_chain(ft: barectf_config._FieldType) -> List[barectf_config._FieldType]:
@@ -73,7 +73,7 @@ def _ft_chain(ft: barectf_config._FieldType) -> List[barectf_config._FieldType]:
 
 
 def _gen_struct_ft(ft: barectf_config._FieldType) -> str:
-    return barectf_template._render_template(_STRUCT_FT_TEMPL, ft=ft, ft_chain=_ft_chain)
+    return _STRUCT_FT_TEMPL.render(ft=ft, ft_chain=_ft_chain)
 
 
 _FT_CLS_TO_GEN_FT_FUNC = {
@@ -99,10 +99,10 @@ _TEMPL_FILTERS = {
 }
 
 
-def _create_template(name: str,
-                     cfg: Optional[barectf_config.Configuration] = None) -> jinja2.Template:
-    return barectf_template._create_template(name, cfg,
-                                             typing.cast(barectf_template._Filters, _TEMPL_FILTERS))
+def _create_template(name: str, is_file_template: bool = False,
+                     cfg: Optional[barectf_config.Configuration] = None) -> barectf_template._Template:
+    return barectf_template._Template(name, is_file_template, cfg,
+                                      typing.cast(barectf_template._Filters, _TEMPL_FILTERS))
 
 
 _ENUM_FT_TEMPL = _create_template('metadata-enum-ft.j2')
@@ -113,5 +113,4 @@ _STRUCT_FT_TEMPL = _create_template('metadata-struct-ft.j2')
 
 
 def _from_config(cfg: barectf_config.Configuration) -> str:
-    return barectf_template._render_template(_create_template('metadata.j2', cfg),
-                                             is_file_template=True)
+    return _create_template('metadata.j2', True, cfg).render()
