@@ -1,5 +1,6 @@
-{% set prefix = cfg.options.code_generation_options.identifier_prefix %}
-{% set ucprefix = prefix | upper %}
+{% import 'common.j2' as common %}
+{% set prefix = common.prefix %}
+{% set ucprefix = common.ucprefix %}
 #ifndef _{{ ucprefix }}BITFIELD_H
 #define _{{ ucprefix }}BITFIELD_H
 
