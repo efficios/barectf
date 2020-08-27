@@ -23,6 +23,7 @@
 
 import barectf.tsdl182gen as barectf_tsdl182gen
 import barectf.templates as barectf_templates
+import barectf.template as barectf_template
 import barectf.codegen as barectf_codegen
 import barectf.config as barectf_config
 import barectf.version as barectf_version
@@ -226,6 +227,12 @@ class _CCodeGenerator:
         self._iden_prefix = code_gen_opts.identifier_prefix
         self._cg = barectf_codegen._CodeGenerator('\t')
         self._saved_serialization_actions = {}
+
+    def _create_template(self, name: str) -> barectf_template._Template:
+        return barectf_template._Template(name, cfg=self._cfg)
+
+    def _create_file_template(self, name: str) -> barectf_template._Template:
+        return barectf_template._Template(name, True, self._cfg)
 
     @property
     def _trace_type(self):
