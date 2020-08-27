@@ -74,7 +74,6 @@ class CodeGenerator:
 
     def generate_c_sources(self):
         if self._c_sources is None:
-            bitfield_header_name = f'{self._file_name_prefix}-bitfield.h'
             self._c_sources = [
                 _GeneratedFile(f'{self._file_name_prefix}.c',
                                self._ccode_gen.generate_c_src(self._barectf_header_name,
@@ -207,19 +206,22 @@ class _SerializationActions:
         self._actions.append(_SerializeSerializationAction(offset_in_byte, ft, self._names))
 
 
-_PREFIX_TPH = 'tph_'
-_PREFIX_SPC = 'spc_'
-_PREFIX_SEH = 'seh_'
-_PREFIX_SEC = 'sec_'
-_PREFIX_EC = 'ec_'
-_PREFIX_EP = 'ep_'
-_PREFIX_TO_NAME = {
-    _PREFIX_TPH: 'trace packet header',
-    _PREFIX_SPC: 'stream packet context',
-    _PREFIX_SEH: 'stream event header',
-    _PREFIX_SEC: 'stream event context',
-    _PREFIX_EC: 'event context',
-    _PREFIX_EP: 'event payload',
+class _RootFtPrefixes:
+    TPH = 'tph_'
+    SPC = 'spc_'
+    SEH = 'seh_'
+    SEC = 'sec_'
+    EC = 'ec_'
+    EP = 'ep_'
+
+
+_ROOT_FT_PREFIX_TO_NAME = {
+    _RootFtPrefixes.TPH: 'trace packet header',
+    _RootFtPrefixes.SPC: 'stream packet context',
+    _RootFtPrefixes.SEH: 'stream event header',
+    _RootFtPrefixes.SEC: 'stream event context',
+    _RootFtPrefixes.EC: 'event context',
+    _RootFtPrefixes.EP: 'event payload',
 }
 
 
@@ -231,11 +233,17 @@ class _CCodeGenerator:
         self._cg = barectf_codegen._CodeGenerator('\t')
         self._saved_serialization_actions = {}
 
+    @property
+    def _template_filters(self):
+        return {
+            'ft_c_type': self._get_ft_c_type,
+        }
+
     def _create_template(self, name: str) -> barectf_template._Template:
-        return barectf_template._Template(name, cfg=self._cfg)
+        return barectf_template._Template(name, False, self._cfg, self._template_filters)
 
     def _create_file_template(self, name: str) -> barectf_template._Template:
-        return barectf_template._Template(name, True, self._cfg)
+        return barectf_template._Template(name, True, self._cfg, self._template_filters)
 
     @property
     def _trace_type(self):
@@ -243,58 +251,6 @@ class _CCodeGenerator:
 
     def _clk_type_c_type(self, clk_type):
         return self._cfg.options.code_generation_options.clock_type_c_types[clk_type]
-
-    def _generate_ctx_parent(self):
-        tmpl = barectf_templates._CTX_PARENT
-        self._cg.add_lines(tmpl.format(prefix=self._iden_prefix))
-
-    def _generate_ctx(self, stream_type):
-        tmpl = barectf_templates._CTX_BEGIN
-        self._cg.add_lines(tmpl.format(prefix=self._iden_prefix, sname=stream_type.name))
-        self._cg.indent()
-        pkt_header_ft = self._trace_type._pkt_header_ft
-
-        if pkt_header_ft is not None:
-            for member_name in pkt_header_ft.members:
-                self._cg.add_lines(f'uint32_t off_tph_{member_name};')
-
-        for member_name in stream_type._pkt_ctx_ft.members:
-            self._cg.add_lines(f'uint32_t off_spc_{member_name};')
-
-        if stream_type.default_clock_type is not None:
-            self._cg.add_line(f'{self._clk_type_c_type(stream_type.default_clock_type)} cur_last_event_ts;')
-
-        self._cg.unindent()
-        tmpl = barectf_templates._CTX_END
-        self._cg.add_lines(tmpl)
-
-    def _generate_ctxs(self):
-        for stream_type in self._trace_type.stream_types:
-            self._generate_ctx(stream_type)
-
-    def _generate_clock_cb(self, clk_type):
-        tmpl = barectf_templates._CLOCK_CB
-        self._cg.add_lines(tmpl.format(return_ctype=self._clk_type_c_type(clk_type),
-                                       cname=clk_type.name))
-
-    def _generate_clock_cbs(self):
-        clk_names = set()
-
-        for stream_type in self._trace_type.stream_types:
-            def_clk_type = stream_type.default_clock_type
-
-            if def_clk_type is not None and def_clk_type not in clk_names:
-                self._generate_clock_cb(def_clk_type)
-                clk_names.add(def_clk_type)
-
-    def _generate_platform_callbacks(self):
-        tmpl = barectf_templates._PLATFORM_CALLBACKS_BEGIN
-        self._cg.add_lines(tmpl.format(prefix=self._iden_prefix))
-        self._cg.indent()
-        self._generate_clock_cbs()
-        self._cg.unindent()
-        tmpl = barectf_templates._PLATFORM_CALLBACKS_END
-        self._cg.add_lines(tmpl)
 
     def generate_bitfield_header(self):
         return self._create_file_template('bitfield.h.j2').render()
@@ -359,7 +315,7 @@ class _CCodeGenerator:
         self._cg.add_lines(tmpl.format(prefix=self._iden_prefix, sname=stream_type.name))
 
         if self._trace_type._pkt_header_ft is not None:
-            self._generate_proto_params(self._trace_type._pkt_header_ft, _PREFIX_TPH,
+            self._generate_proto_params(self._trace_type._pkt_header_ft, _RootFtPrefixes.TPH,
                                         {'magic', 'stream_id', 'uuid'})
 
         exclude_set = {
@@ -369,7 +325,7 @@ class _CCodeGenerator:
             'content_size',
             'events_discarded',
         }
-        self._generate_proto_params(stream_type._pkt_ctx_ft, _PREFIX_SPC, exclude_set)
+        self._generate_proto_params(stream_type._pkt_ctx_ft, _RootFtPrefixes.SPC, exclude_set)
         tmpl = barectf_templates._FUNC_OPEN_PROTO_END
         self._cg.add_lines(tmpl)
 
@@ -379,16 +335,18 @@ class _CCodeGenerator:
 
     def _generate_func_trace_proto_params(self, stream_type, ev_type):
         if stream_type._ev_header_ft is not None:
-            self._generate_proto_params(stream_type._ev_header_ft, _PREFIX_SEH, {'id', 'timestamp'})
+            self._generate_proto_params(stream_type._ev_header_ft,
+                                        _RootFtPrefixes.SEH, {'id', 'timestamp'})
 
         if stream_type.event_common_context_field_type is not None:
-            self._generate_proto_params(stream_type.event_common_context_field_type, _PREFIX_SEC)
+            self._generate_proto_params(stream_type.event_common_context_field_type,
+                                        _RootFtPrefixes.SEC)
 
         if ev_type.specific_context_field_type is not None:
-            self._generate_proto_params(ev_type.specific_context_field_type, _PREFIX_EC)
+            self._generate_proto_params(ev_type.specific_context_field_type, _RootFtPrefixes.EC)
 
         if ev_type.payload_field_type is not None:
-            self._generate_proto_params(ev_type.payload_field_type, _PREFIX_EP)
+            self._generate_proto_params(ev_type.payload_field_type, _RootFtPrefixes.EP)
 
     def _generate_func_trace_proto(self, stream_type, ev_type):
         tmpl = barectf_templates._FUNC_TRACE_PROTO_BEGIN
@@ -398,80 +356,8 @@ class _CCodeGenerator:
         tmpl = barectf_templates._FUNC_TRACE_PROTO_END
         self._cg.add_lines(tmpl)
 
-    def _punctuate_proto(self):
-        self._cg.append_to_last_line(';')
-
     def generate_header(self):
-        self._cg.reset()
-        dt = datetime.datetime.now().isoformat()
-        prefix_def = ''
-        def_stream_type_name_def = ''
-        cg_opts = self._cfg.options.code_generation_options
-        header_opts = cg_opts.header_options
-
-        if header_opts.identifier_prefix_definition:
-            prefix_def = f'#define _BARECTF_PREFIX {self._iden_prefix}'
-
-        def_stream_type = cg_opts.default_stream_type
-
-        if header_opts.default_stream_type_name_definition and def_stream_type is not None:
-            def_stream_type_name_def = f'#define _BARECTF_DEFAULT_STREAM {def_stream_type.name}'
-
-        def_stream_type_trace_defs = ''
-
-        if def_stream_type is not None:
-            lines = []
-
-            for ev_type in def_stream_type.event_types:
-                tmpl = barectf_templates._DEFINE_DEFAULT_STREAM_TRACE
-                define = tmpl.format(prefix=self._iden_prefix, sname=def_stream_type.name,
-                                     evname=ev_type.name)
-                lines.append(define)
-
-            def_stream_type_trace_defs = '\n'.join(lines)
-
-        tmpl = barectf_templates._HEADER_BEGIN
-        self._cg.add_lines(tmpl.format(prefix=self._iden_prefix,
-                                       ucprefix=self._iden_prefix.upper(),
-                                       version=barectf_version.__version__, date=dt,
-                                       prefix_def=prefix_def,
-                                       default_stream_def=def_stream_type_name_def,
-                                       default_stream_trace_defs=def_stream_type_trace_defs))
-        self._cg.add_empty_line()
-
-        # platform callbacks structure
-        self._generate_platform_callbacks()
-        self._cg.add_empty_line()
-
-        # context parent
-        self._generate_ctx_parent()
-        self._cg.add_empty_line()
-
-        # stream contexts
-        self._generate_ctxs()
-        self._cg.add_empty_line()
-
-        # initialization function prototype
-        self._generate_func_init_proto()
-        self._punctuate_proto()
-        self._cg.add_empty_line()
-
-        for stream_type in self._trace_type.stream_types:
-            self._generate_func_open_proto(stream_type)
-            self._punctuate_proto()
-            self._cg.add_empty_line()
-            self._generate_func_close_proto(stream_type)
-            self._punctuate_proto()
-            self._cg.add_empty_line()
-
-            for ev_type in stream_type.event_types:
-                self._generate_func_trace_proto(stream_type, ev_type)
-                self._punctuate_proto()
-                self._cg.add_empty_line()
-
-        tmpl = barectf_templates._HEADER_END
-        self._cg.add_lines(tmpl.format(ucprefix=self._iden_prefix.upper()))
-        return self._cg.code
+        return self._create_file_template('barectf.h.j2').render(root_ft_prefixes=_RootFtPrefixes)
 
     def _get_call_event_param_list_from_struct_ft(self, ft, prefix, exclude_set=None):
         if exclude_set is None:
@@ -492,19 +378,19 @@ class _CCodeGenerator:
 
         if stream_type._ev_header_ft is not None:
             lst += self._get_call_event_param_list_from_struct_ft(stream_type._ev_header_ft,
-                                                                  _PREFIX_SEH, {'id', 'timestamp'})
+                                                                  _RootFtPrefixes.SEH, {'id', 'timestamp'})
 
         if stream_type.event_common_context_field_type is not None:
             lst += self._get_call_event_param_list_from_struct_ft(stream_type.event_common_context_field_type,
-                                                                  _PREFIX_SEC)
+                                                                  _RootFtPrefixes.SEC)
 
         if ev_type.specific_context_field_type is not None:
             lst += self._get_call_event_param_list_from_struct_ft(ev_type.specific_context_field_type,
-                                                                  _PREFIX_EC)
+                                                                  _RootFtPrefixes.EC)
 
         if ev_type.payload_field_type is not None:
             lst += self._get_call_event_param_list_from_struct_ft(ev_type.payload_field_type,
-                                                                  _PREFIX_EP)
+                                                                  _RootFtPrefixes.EP)
 
         return lst
 
@@ -533,18 +419,19 @@ class _CCodeGenerator:
         self._cg.add_empty_line()
         self._cg.indent()
         ser_actions = _SerializationActions()
-        ser_actions.append_root_scope_ft(stream_type._ev_header_ft, _PREFIX_SEH)
-        ser_actions.append_root_scope_ft(stream_type.event_common_context_field_type, _PREFIX_SEC)
-        ser_actions.append_root_scope_ft(ev_type.specific_context_field_type, _PREFIX_EC)
-        ser_actions.append_root_scope_ft(ev_type.payload_field_type, _PREFIX_EP)
+        ser_actions.append_root_scope_ft(stream_type._ev_header_ft, _RootFtPrefixes.SEH)
+        ser_actions.append_root_scope_ft(stream_type.event_common_context_field_type,
+                                         _RootFtPrefixes.SEC)
+        ser_actions.append_root_scope_ft(ev_type.specific_context_field_type, _RootFtPrefixes.EC)
+        ser_actions.append_root_scope_ft(ev_type.payload_field_type, _RootFtPrefixes.EP)
 
         for action in ser_actions.actions:
             if type(action) is _AlignSerializationAction:
                 if action.names:
                     if len(action.names) == 1:
-                        line = f'align {_PREFIX_TO_NAME[action.names[0]]} structure'
+                        line = f'align {_ROOT_FT_PREFIX_TO_NAME[action.names[0]]} structure'
                     else:
-                        line = f'align field `{action.names[-1]}` ({_PREFIX_TO_NAME[action.names[0]]})'
+                        line = f'align field `{action.names[-1]}` ({_ROOT_FT_PREFIX_TO_NAME[action.names[0]]})'
 
                     self._cg.add_cc_line(line)
 
@@ -553,7 +440,7 @@ class _CCodeGenerator:
             else:
                 assert type(action) is _SerializeSerializationAction
                 assert(len(action.names) >= 2)
-                line = f'add size of field `{action.names[-1]}` ({_PREFIX_TO_NAME[action.names[0]]})'
+                line = f'add size of field `{action.names[-1]}` ({_ROOT_FT_PREFIX_TO_NAME[action.names[0]]})'
                 self._cg.add_cc_line(line)
 
                 if type(action.ft) is barectf_config.StringFieldType:
@@ -642,9 +529,9 @@ class _CCodeGenerator:
             if type(action) is _AlignSerializationAction:
                 if action.names:
                     if len(action.names) == 1:
-                        line = f'align {_PREFIX_TO_NAME[action.names[0]]} structure'
+                        line = f'align {_ROOT_FT_PREFIX_TO_NAME[action.names[0]]} structure'
                     else:
-                        line = f'align field `{action.names[-1]}` ({_PREFIX_TO_NAME[action.names[0]]})'
+                        line = f'align field `{action.names[-1]}` ({_ROOT_FT_PREFIX_TO_NAME[action.names[0]]})'
 
                     self._cg.add_cc_line(line)
 
@@ -654,7 +541,7 @@ class _CCodeGenerator:
                 assert type(action) is _SerializeSerializationAction
                 assert(len(action.names) >= 2)
                 member_name = action.names[-1]
-                line = f'serialize field `{member_name}` ({_PREFIX_TO_NAME[action.names[0]]})'
+                line = f'serialize field `{member_name}` ({_ROOT_FT_PREFIX_TO_NAME[action.names[0]]})'
                 self._cg.add_cc_line(line)
                 src = prefix + member_name
 
@@ -674,7 +561,7 @@ class _CCodeGenerator:
 
         if stream_type._ev_header_ft is not None:
             params = self._get_call_event_param_list_from_struct_ft(stream_type._ev_header_ft,
-                                                                    _PREFIX_SEH,
+                                                                    _RootFtPrefixes.SEH,
                                                                     {'timestamp', 'id'})
             self._cg.add_cc_line('stream event header')
             line = f'_serialize_stream_event_header_{stream_type.name}(ctx, {ev_type.id}{params});'
@@ -683,7 +570,7 @@ class _CCodeGenerator:
 
         if stream_type.event_common_context_field_type is not None:
             params = self._get_call_event_param_list_from_struct_ft(stream_type.event_common_context_field_type,
-                                                                    _PREFIX_SEC)
+                                                                    _RootFtPrefixes.SEC)
             self._cg.add_cc_line('stream event context')
             line = f'_serialize_stream_event_context_{stream_type.name}(ctx{params});'
             self._cg.add_line(line)
@@ -694,15 +581,15 @@ class _CCodeGenerator:
 
         if ev_type.specific_context_field_type is not None:
             ser_action_index = len(ser_actions.actions)
-            ser_actions.append_root_scope_ft(ev_type.specific_context_field_type, _PREFIX_EC)
+            ser_actions.append_root_scope_ft(ev_type.specific_context_field_type, _RootFtPrefixes.EC)
             ser_action_iter = itertools.islice(ser_actions.actions, ser_action_index, None)
-            self._generate_serialize_statements_from_actions(_PREFIX_EC, ser_action_iter)
+            self._generate_serialize_statements_from_actions(_RootFtPrefixes.EC, ser_action_iter)
 
         if ev_type.payload_field_type is not None:
             ser_action_index = len(ser_actions.actions)
-            ser_actions.append_root_scope_ft(ev_type.payload_field_type, _PREFIX_EP)
+            ser_actions.append_root_scope_ft(ev_type.payload_field_type, _RootFtPrefixes.EP)
             ser_action_iter = itertools.islice(ser_actions.actions, ser_action_index, None)
-            self._generate_serialize_statements_from_actions(_PREFIX_EP, ser_action_iter)
+            self._generate_serialize_statements_from_actions(_RootFtPrefixes.EP, ser_action_iter)
 
         self._cg.unindent()
         tmpl = barectf_templates._FUNC_SERIALIZE_EVENT_BODY_END
@@ -713,7 +600,7 @@ class _CCodeGenerator:
         self._cg.add_lines(tmpl.format(prefix=self._iden_prefix, sname=stream_type.name))
 
         if stream_type._ev_header_ft is not None:
-            self._generate_proto_params(stream_type._ev_header_ft, _PREFIX_SEH,
+            self._generate_proto_params(stream_type._ev_header_ft, _RootFtPrefixes.SEH,
                                         {'id', 'timestamp'})
 
         tmpl = barectf_templates._FUNC_SERIALIZE_STREAM_EVENT_HEADER_PROTO_END
@@ -724,7 +611,7 @@ class _CCodeGenerator:
         self._cg.add_lines(tmpl.format(prefix=self._iden_prefix, sname=stream_type.name))
 
         if stream_type.event_common_context_field_type is not None:
-            self._generate_proto_params(stream_type.event_common_context_field_type, _PREFIX_SEC)
+            self._generate_proto_params(stream_type.event_common_context_field_type, _RootFtPrefixes.SEC)
 
         tmpl = barectf_templates._FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_PROTO_END
         self._cg.add_lines(tmpl)
@@ -758,7 +645,7 @@ class _CCodeGenerator:
             if member is not None:
                 spec_src[member_name] = f'({self._get_ft_c_type(member.field_type)}) ts'
 
-            self._generate_serialize_statements_from_actions(_PREFIX_SEH, ser_action_iter,
+            self._generate_serialize_statements_from_actions(_RootFtPrefixes.SEH, ser_action_iter,
                                                              spec_src)
 
         self._cg.unindent()
@@ -773,7 +660,7 @@ class _CCodeGenerator:
         self._cg.indent()
 
         if stream_type.event_common_context_field_type is not None:
-            self._generate_serialize_statements_from_actions(_PREFIX_SEC, ser_action_iter)
+            self._generate_serialize_statements_from_actions(_RootFtPrefixes.SEC, ser_action_iter)
 
         self._cg.unindent()
         tmpl = barectf_templates._FUNC_SERIALIZE_STREAM_EVENT_CONTEXT_BODY_END
@@ -842,7 +729,7 @@ class _CCodeGenerator:
             self._cg.add_cc_line('trace packet header')
             self._cg.add_line('{')
             self._cg.indent()
-            ser_actions.append_root_scope_ft(pkt_header_ft, _PREFIX_TPH)
+            ser_actions.append_root_scope_ft(pkt_header_ft, _RootFtPrefixes.TPH)
 
             for action in ser_actions.actions:
                 if type(action) is _AlignSerializationAction:
@@ -862,7 +749,7 @@ class _CCodeGenerator:
                     member_name = action.names[-1]
                     line = f'serialize field `{member_name}`'
                     self._cg.add_cc_line(line)
-                    src = _PREFIX_TPH + member_name
+                    src = _RootFtPrefixes.TPH + member_name
 
                     if member_name == 'magic':
                         src = '0xc1fc1fc1UL'
@@ -900,7 +787,7 @@ class _CCodeGenerator:
         self._cg.add_cc_line('stream packet context')
         self._cg.add_line('{')
         self._cg.indent()
-        ser_actions.append_root_scope_ft(pkt_ctx_ft, _PREFIX_SPC)
+        ser_actions.append_root_scope_ft(pkt_ctx_ft, _RootFtPrefixes.SPC)
 
         for action in itertools.islice(ser_actions.actions, spc_action_index, None):
             if type(action) is _AlignSerializationAction:
@@ -920,7 +807,7 @@ class _CCodeGenerator:
                 member_name = action.names[-1]
                 line = f'serialize field `{member_name}`'
                 self._cg.add_cc_line(line)
-                src = _PREFIX_SPC + member_name
+                src = _RootFtPrefixes.SPC + member_name
                 skip_int = False
 
                 if member_name == 'timestamp_begin':
@@ -1025,14 +912,14 @@ class _CCodeGenerator:
             ser_actions = _SerializationActions()
 
             if stream_type._ev_header_ft is not None:
-                ser_actions.append_root_scope_ft(stream_type._ev_header_ft, _PREFIX_SEH)
+                ser_actions.append_root_scope_ft(stream_type._ev_header_ft, _RootFtPrefixes.SEH)
                 self._generate_func_serialize_event_header(stream_type, iter(ser_actions.actions))
                 self._cg.add_empty_line()
 
             if stream_type.event_common_context_field_type is not None:
                 ser_action_index = len(ser_actions.actions)
                 ser_actions.append_root_scope_ft(stream_type.event_common_context_field_type,
-                                                 _PREFIX_SEC)
+                                                 _RootFtPrefixes.SEC)
                 ser_action_iter = itertools.islice(ser_actions.actions, ser_action_index, None)
                 self._generate_func_serialize_event_common_context(stream_type, ser_action_iter)
                 self._cg.add_empty_line()

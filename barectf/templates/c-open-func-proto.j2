@@ -1,0 +1,16 @@
+{% set pkt_header_exclude_list = ['magic', 'stream_id', 'uuid'] %}
+{% set pkt_ctx_exclude_list = [
+	'timestamp_begin',
+	'timestamp_end',
+	'packet_size',
+	'content_size',
+	'events_discarded'
+] %}
+/* open packet for stream type `{{ stream_type.name }}` */
+void {{ prefix }}{{ stream_type.name }}_open_packet(
+	struct {{ prefix }}{{ stream_type.name }}_ctx *ctx
+	{%- if trace_type._pkt_header_ft -%}
+		{{ c_common.func_params(trace_type._pkt_header_ft,
+			root_ft_prefixes.TPH, pkt_header_exclude_list) }}
+	{%- endif -%}
+    {{ c_common.func_params(stream_type._pkt_ctx_ft, root_ft_prefixes.SPC, pkt_ctx_exclude_list) }})

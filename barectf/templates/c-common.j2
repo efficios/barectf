@@ -1,0 +1,42 @@
+{#
+ # Common variables and macros (for C templates).
+ #}
+
+{% import 'common.j2' as common %}
+
+{#
+ # Generates the name of a tracing function for the stream type
+ # `stream_type` and the event type `ev_type`.
+ #}
+{% macro trace_func_name(stream_type, ev_type) -%}
+{{ common.prefix }}{{ stream_type.name }}_trace_{{ ev_type.name }}
+{%- endmacro %}
+
+{#
+ # Generates the name of a single function parameter named `name` for
+ # the field type `ft`.
+ #}
+{% macro func_param(name, ft) -%}
+{{ ft | ft_c_type }} {{ name }}
+{%- endmacro %}
+
+{#
+ # Generates a list of parameters for the members of a given structure
+ # field type `struct_ft`.
+ #
+ # Each parameter has the prefix `name_prefix` and starts with an
+ # immediate comma followed with a newline and a tab. For example:
+ #
+ #     ,
+ #             const char * msg,
+ #             uint32_t msg_id
+ #
+ # This macro does not generate a parameter line for a member name which
+ # is part of `exclude_list`.
+ #}
+{% macro func_params(struct_ft, name_prefix, exclude_list) -%}
+{% for name, member in struct_ft.members.items() if name not in exclude_list -%}
+,
+	{{ func_param(name_prefix + name, member.field_type) }}
+{%- endfor %}
+{%- endmacro %}
