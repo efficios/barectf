@@ -353,8 +353,6 @@ _HEADER_BEGIN = '''#ifndef _{ucprefix}H
 
 #include <stdint.h>
 
-#include "{bitfield_header_filename}"
-
 #ifdef __cplusplus
 extern "C" {{
 #endif
@@ -426,6 +424,7 @@ _C_SRC = '''/*
 #include <assert.h>
 
 #include "{header_filename}"
+#include "{bitfield_header_filename}"
 
 #define _ALIGN(_at, _align)					\\
 	do {{							\\

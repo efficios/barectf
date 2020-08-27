@@ -59,23 +59,26 @@ class CodeGenerator:
     def _barectf_header_name(self):
         return f'{self._file_name_prefix}.h'
 
+    @property
+    def _bitfield_header_name(self):
+        return f'{self._file_name_prefix}-bitfield.h'
+
     def generate_c_headers(self):
         if self._c_headers is None:
-            bitfield_header_name = f'{self._file_name_prefix}-bitfield.h'
             self._c_headers = [
-                _GeneratedFile(self._barectf_header_name,
-                               self._ccode_gen.generate_header(bitfield_header_name)),
-                _GeneratedFile(bitfield_header_name,
-                               self._ccode_gen.generate_bitfield_header()),
+                _GeneratedFile(self._barectf_header_name, self._ccode_gen.generate_header()),
+                _GeneratedFile(self._bitfield_header_name, self._ccode_gen.generate_bitfield_header()),
             ]
 
         return self._c_headers
 
     def generate_c_sources(self):
         if self._c_sources is None:
+            bitfield_header_name = f'{self._file_name_prefix}-bitfield.h'
             self._c_sources = [
                 _GeneratedFile(f'{self._file_name_prefix}.c',
-                               self._ccode_gen.generate_c_src(self._barectf_header_name))
+                               self._ccode_gen.generate_c_src(self._barectf_header_name,
+                                                              self._bitfield_header_name))
             ]
 
         return self._c_sources
@@ -398,7 +401,7 @@ class _CCodeGenerator:
     def _punctuate_proto(self):
         self._cg.append_to_last_line(';')
 
-    def generate_header(self, bitfield_header_name):
+    def generate_header(self):
         self._cg.reset()
         dt = datetime.datetime.now().isoformat()
         prefix_def = ''
@@ -430,7 +433,6 @@ class _CCodeGenerator:
         tmpl = barectf_templates._HEADER_BEGIN
         self._cg.add_lines(tmpl.format(prefix=self._iden_prefix,
                                        ucprefix=self._iden_prefix.upper(),
-                                       bitfield_header_filename=bitfield_header_name,
                                        version=barectf_version.__version__, date=dt,
                                        prefix_def=prefix_def,
                                        default_stream_def=def_stream_type_name_def,
@@ -1002,11 +1004,12 @@ class _CCodeGenerator:
         tmpl = barectf_templates._FUNC_CLOSE_BODY_END
         self._cg.add_lines(tmpl)
 
-    def generate_c_src(self, header_name):
+    def generate_c_src(self, header_name, bitfield_header_name):
         self._cg.reset()
         dt = datetime.datetime.now().isoformat()
         tmpl = barectf_templates._C_SRC
         self._cg.add_lines(tmpl.format(prefix=self._iden_prefix, header_filename=header_name,
+                                       bitfield_header_filename=bitfield_header_name,
                                        version=barectf_version.__version__, date=dt))
         self._cg.add_empty_line()
 
