@@ -31,9 +31,10 @@
  * For more details, see <https://barectf.org/>.
  */
 {#
-Generates a root field type string named `name` for the field type `rft`
-with all the lines except the first one indented with a single tab.
-#}
+ # Generates a root field type string named `name` for the field type
+ # `rft` with all the lines except the first one indented with a single
+ # tab.
+ #}
 {% macro root_ft(name, rft) -%}
 {{ name }} := {{ rft | ft_str | indent_tab }};
 {%- endmacro %}
