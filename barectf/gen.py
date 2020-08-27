@@ -294,20 +294,7 @@ class _CCodeGenerator:
         self._cg.add_lines(tmpl)
 
     def generate_bitfield_header(self):
-        self._cg.reset()
-        tmpl = barectf_templates._BITFIELD
-        tmpl = tmpl.replace('$prefix$', self._iden_prefix)
-        tmpl = tmpl.replace('$PREFIX$', self._iden_prefix.upper())
-
-        if self._trace_type.default_byte_order == barectf_config.ByteOrder.BIG_ENDIAN:
-            endian_def = 'BIG_ENDIAN'
-        else:
-            endian_def = 'LITTLE_ENDIAN'
-
-        tmpl = tmpl.replace('$ENDIAN_DEF$', endian_def)
-        self._cg.add_lines(tmpl)
-
-        return self._cg.code
+        return self._create_file_template('bitfield.h.j2').render()
 
     def _generate_func_init_proto(self):
         tmpl = barectf_templates._FUNC_INIT_PROTO
