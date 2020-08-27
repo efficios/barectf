@@ -34,10 +34,10 @@
 #include <limits.h>
 
 #ifdef __cplusplus
-# define CAST_PTR(_type, _value) \
+# define {{ ucprefix }}CAST_PTR(_type, _value) \
 	static_cast<_type>(static_cast<void *>(_value))
 #else
-# define CAST_PTR(_type, _value)	((void *) (_value))
+# define {{ ucprefix }}CAST_PTR(_type, _value)	((void *) (_value))
 #endif
 
 {% set def_bo = cfg.trace.type.default_byte_order %}
@@ -78,7 +78,7 @@ do {									\
 #define _{{ prefix }}bt_bitfield_write_le(_ptr, type, _start, _length, _vtype, _v) \
 do {									\
 	_vtype __v = (_v);						\
-	type *__ptr = CAST_PTR(type *, _ptr);				\
+	type *__ptr = {{ ucprefix }}CAST_PTR(type *, _ptr);			\
 	unsigned long __start = (_start), __length = (_length);		\
 	type mask, cmask;						\
 	unsigned long ts = sizeof(type) * CHAR_BIT; /* type size */	\
@@ -137,7 +137,7 @@ do {									\
 #define _{{ prefix }}bt_bitfield_write_be(_ptr, type, _start, _length, _vtype, _v) \
 do {									\
 	_vtype __v = (_v);						\
-	type *__ptr = CAST_PTR(type *, _ptr);				\
+	type *__ptr = {{ ucprefix }}CAST_PTR(type *, _ptr);			\
 	unsigned long __start = (_start), __length = (_length);		\
 	type mask, cmask;						\
 	unsigned long ts = sizeof(type) * CHAR_BIT; /* type size */	\
