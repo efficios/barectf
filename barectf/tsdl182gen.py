@@ -23,7 +23,6 @@
 
 import barectf.config as barectf_config
 import barectf.template as barectf_template
-import jinja2
 from typing import List, Optional
 import typing
 
