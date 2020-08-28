@@ -1,0 +1,15 @@
+{% import 'c/common.j2' as c_common %}
+{% set union_name = 'f2u' if op.ft.size == 32 else 'd2u' %}
+{% set c_type = 'uint32_t' if op.ft.size == 32 else 'uint64_t' %}
+{% set src %}{{ union_name }}.u{% endset %}
+{% include 'c/serialize-write-statements-comment.j2' %}
+
+{
+	union _{{ union_name }} {{ union_name }};
+
+	{{ union_name }}.f = {{ c_common.op_src(op) }};
+{% filter indent_tab(indent_first=True) %}
+	{% include 'c/serialize-write-bit-array-statements.j2' %}
+
+{% endfilter %}
+}

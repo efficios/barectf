@@ -1,0 +1,7 @@
+{% if op.names %}
+	{% if op.names | length == 1 %}
+/* align for {{ root_ft_prefix_names[op.top_name] }} structure */
+	{%- else %}
+/* align for `{{ op.top_name }}` field */
+	{%- endif %}
+{% endif %}

@@ -44,12 +44,12 @@ trace {
 	major = 1;
 	minor = 8;
 	byte_order = {{ cfg.trace.type.default_byte_order | bo_str }};
-	{% if cfg.trace.type.uuid %}
+{% if cfg.trace.type.uuid %}
 	uuid = "{{ cfg.trace.type.uuid }}";
-	{% endif %}
-	{% if cfg.trace.type._pkt_header_ft %}
+{% endif %}
+{% if cfg.trace.type._pkt_header_ft %}
 	{{ root_ft('packet.header', cfg.trace.type._pkt_header_ft) }}
-	{% endif %}
+{% endif %}
 };
 
 env {
@@ -90,22 +90,22 @@ stream {
 	{% endif %}
 };
 
-{# stream type's event types #}
-{% for ev_type in stream_type.event_types | sort %}
+	{# stream type's event types #}
+	{% for ev_type in stream_type.event_types | sort %}
 event {
 	id = {{ ev_type.id }};
 	stream_id = {{ stream_type.id }};
 	name = "{{ ev_type.name }}";
-	{% if ev_type.log_level %}
+		{% if ev_type.log_level %}
 	loglevel = {{ ev_type.log_level }};
-	{% endif %}
-	{% if ev_type.specific_context_field_type %}
+		{% endif %}
+		{% if ev_type.specific_context_field_type %}
 	{{ root_ft('context', ev_type.specific_context_field_type) }}
-	{% endif %}
-	{% if ev_type.payload_field_type %}
+		{% endif %}
+		{% if ev_type.payload_field_type %}
 	{{ root_ft('fields', ev_type.payload_field_type) }}
-	{% endif %}
+		{% endif %}
 };
 
-{% endfor %}
+	{% endfor %}
 {% endfor %}

@@ -1,0 +1,4 @@
+{% for param in params %}
+    {% set c_type = param.ft | ft_c_type %},
+	{{ c_type }}{{ ' ' if not c_type.endswith('*') }}{{ prefix }}_{{ param.name }}
+{%- endfor %}

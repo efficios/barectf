@@ -1,0 +1,4 @@
+{% set c_type = op.ft | ft_c_type %}
+{% set src = 'ts' %}
+/* write {{ 'beginning ' if op.top_name == 'timestamp_begin' }}time field */
+{% include 'c/serialize-write-bit-array-statements.j2' %}

@@ -1,0 +1,3 @@
+{% import 'common.j2' as common %}
+/* trace (stream type `{{ stream_type.name }}`, event type `{{ ev_type.name }}`) */
+void {{ common.prefix }}{{ stream_type.name }}_trace_{{ ev_type.name }}(struct {{ common.prefix }}{{ stream_type.name }}_ctx *sctx{{ (stream_type, ev_type) | trace_func_params_str }})

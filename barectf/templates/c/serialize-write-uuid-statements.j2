@@ -1,0 +1,12 @@
+/* write UUID */
+{
+	static uint8_t uuid[] = {
+{% for row in cfg.trace.type.uuid.bytes | batch(4) %}
+		{{ row | join(', ') }},
+{% endfor %}
+	};
+
+	_ALIGN(ctx->at, 8);
+	memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], uuid, 16);
+	ctx->at += _BYTES_TO_BITS(16);
+}

@@ -1,0 +1,5 @@
+{% import 'c/common.j2' as c_common %}
+{% set c_type = op.ft | ft_c_type %}
+{% include 'c/serialize-write-statements-comment.j2' %}
+
+{% include 'c/serialize-write-bit-array-statements.j2' %}

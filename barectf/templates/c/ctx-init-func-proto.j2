@@ -1,0 +1,5 @@
+{% import 'common.j2' as common %}
+/* initialize context */
+void {{ common.prefix }}init(void *vctx,
+	uint8_t *buf, uint32_t buf_size,
+	struct {{ common.prefix }}platform_callbacks cbs, void *data)

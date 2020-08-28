@@ -1,0 +1,39 @@
+{% import 'common.j2' as common %}
+
+{% set prefix = common.prefix %}
+{% set ucprefix = common.ucprefix %}
+{% set cg_opts = cfg.options.code_generation_options %}
+
+{#
+ # Generates the preamble of the packet opening/closing functions for
+ # the stream type `stream_type`.
+ #}
+{% macro open_close_func_preamble(stream_type) %}
+struct {{ prefix }}ctx *ctx = &sctx->parent;
+{% if stream_type.default_clock_type %}
+const {{ cg_opts.clock_type_c_types[stream_type.default_clock_type] }} ts = ctx->use_cur_last_event_ts ?
+	sctx->cur_last_event_ts :
+	ctx->cbs.{{ stream_type.default_clock_type.name }}_clock_get_value(ctx->data);
+{% endif %}
+const int saved_in_tracing_section = ctx->in_tracing_section;
+{%- endmacro %}
+
+{#
+ # Generates a list of function call parameters for the members of
+ # the structure field type `ft`.
+ #
+ # Each parameter has the prefix `param_prefix`.
+ #
+ # The list always starts with a comma (if there's at least one member).
+ #
+ # Example:
+ #
+ #     , sec_peer_id, sec_addr, ep_msg_id, ep_msg
+ #}
+{% macro ft_call_params(param_prefix, ft) %}
+{% if ft %}
+	{% for member_name in ft.members %}
+, {{ param_prefix }}_{{ member_name }}
+	{%- endfor %}
+{% endif %}
+{% endmacro %}

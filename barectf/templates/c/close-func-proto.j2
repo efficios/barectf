@@ -1,0 +1,3 @@
+{% import 'common.j2' as common %}
+/* close packet for stream type `{{ stream_type.name }}` */
+void {{ common.prefix }}{{ stream_type.name }}_close_packet(struct {{ common.prefix }}{{ stream_type.name }}_ctx *sctx)

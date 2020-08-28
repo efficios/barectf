@@ -100,15 +100,15 @@ _TEMPL_FILTERS = {
 
 def _create_template(name: str, is_file_template: bool = False,
                      cfg: Optional[barectf_config.Configuration] = None) -> barectf_template._Template:
-    return barectf_template._Template(name, is_file_template, cfg,
+    return barectf_template._Template(f'metadata/{name}', is_file_template, cfg,
                                       typing.cast(barectf_template._Filters, _TEMPL_FILTERS))
 
 
-_ENUM_FT_TEMPL = _create_template('metadata-enum-ft.j2')
-_INT_FT_TEMPL = _create_template('metadata-int-ft.j2')
-_REAL_FT_TEMPL = _create_template('metadata-real-ft.j2')
-_STR_FT_TEMPL = _create_template('metadata-str-ft.j2')
-_STRUCT_FT_TEMPL = _create_template('metadata-struct-ft.j2')
+_ENUM_FT_TEMPL = _create_template('enum-ft.j2')
+_INT_FT_TEMPL = _create_template('int-ft.j2')
+_REAL_FT_TEMPL = _create_template('real-ft.j2')
+_STR_FT_TEMPL = _create_template('str-ft.j2')
+_STRUCT_FT_TEMPL = _create_template('struct-ft.j2')
 
 
 def _from_config(cfg: barectf_config.Configuration) -> str:

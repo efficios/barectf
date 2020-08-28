@@ -1,0 +1,4 @@
+{% set c_type = op.ft | ft_c_type %}
+{% set src = 'ctx->packet_size' %}
+/* write packet total size field */
+{% include 'c/serialize-write-bit-array-statements.j2' %}

@@ -66,6 +66,7 @@ metadata:
           packet_size: uint32
           content_size: uint32
           events_discarded: uint32
+          salut: string
       event-header-type:
         class: struct
         fields:

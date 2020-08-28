@@ -1,0 +1,32 @@
+{#
+ # Common variables and macros (for C templates).
+ #}
+
+{% import 'common.j2' as common %}
+
+{# generic barectf context structure name #}
+{% set ctx_struct_name %}{{ common.prefix }}ctx{% endset %}
+
+{#
+ # Generates the name of a tracing function for the stream type
+ # `stream_type` and the event type `ev_type`.
+ #
+ # Example:
+ #
+ #     barectf_my_stream_trace_my_event
+ #}
+{% macro trace_func_name(stream_type, ev_type) %}
+{{ common.prefix }}{{ stream_type.name }}_trace_{{ ev_type.name }}
+{%- endmacro %}
+
+{#
+ # Generates the name of a source variable from the names of the
+ # operation `op`.
+ #
+ # Example:
+ #
+ #     ep_msg_id
+ #}
+{% macro op_src(op) %}
+{{ op.names | join('_') }}
+{%- endmacro %}

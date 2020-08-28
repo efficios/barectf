@@ -1,0 +1,6 @@
+{% import 'common.j2' as common %}
+{% set bo = 'le' if op.ft.byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN else 'be' %}
+{{ common.prefix }}bt_bitfield_write_{{ bo }}(&ctx->buf[_BITS_TO_BYTES(ctx->at)],
+	uint8_t, {{ op.offset_in_byte }}, {{ op.ft.size }}, {{ c_type }},
+	({{ c_type }}) {{ src }});
+ctx->at += {{ op.ft.size }};

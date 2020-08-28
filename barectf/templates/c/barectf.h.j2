@@ -1,5 +1,5 @@
 {% import 'common.j2' as common %}
-{% import 'c-common.j2' as c_common %}
+{% import 'c/common.j2' as c_common %}
 {% set prefix = common.prefix %}
 {% set ucprefix = common.ucprefix %}
 {% set trace_type = cfg.trace.type %}
@@ -56,9 +56,9 @@ extern "C" {
 {% endif %}
 {% if def_stream_type %}
 
-{% for ev_type in def_stream_type.event_types | sort %}
+	{% for ev_type in def_stream_type.event_types | sort %}
 #define {{ prefix }}trace_{{ ev_type.name }} {{ c_common.trace_func_name(def_stream_type, ev_type) }}
-{% endfor %}
+	{% endfor %}
 {% endif %}
 
 struct {{ prefix }}ctx;
@@ -81,9 +81,9 @@ struct {{ prefix }}platform_callbacks {
 {% set clk_types = trace_type.clock_types %}
 {% if clk_types %}
 	/* clock callbacks */
-{% for clk_type in clk_types | sort %}
+	{% for clk_type in clk_types | sort %}
 	{{ cg_opts.clock_type_c_types[clk_type] }} (*{{ clk_type.name }}_clock_get_value)(void *);
-{% endfor %}
+	{% endfor %}
 
 {% endif %}
 	/* is back-end full? */
@@ -142,30 +142,30 @@ struct {{ prefix }}{{ stream_type.name }}_ctx {
 	struct {{ prefix }}ctx parent;
 
 	/* config-specific members follow */
-{% if trace_type._pkt_header_ft %}
-{% for member_name in trace_type._pkt_header_ft.members %}
+	{% if trace_type._pkt_header_ft %}
+		{% for member_name in trace_type._pkt_header_ft.members %}
 	uint32_t off_tph_{{ member_name }};
-{% endfor %}
-{% endif %}
-{% for member_name in stream_type._pkt_ctx_ft.members %}
+		{% endfor %}
+	{% endif %}
+	{% for member_name in stream_type._pkt_ctx_ft.members %}
 	uint32_t off_spc_{{ member_name }};
-{% endfor %}
-{% if stream_type.default_clock_type %}
+	{% endfor %}
+	{% if stream_type.default_clock_type %}
 	{{ cg_opts.clock_type_c_types[stream_type.default_clock_type] }} cur_last_event_ts;
-{% endif %}
+	{% endif %}
 };
 
 {% endfor %}
-{% include 'c-ctx-init-func-proto.j2' %};
+{% include 'c/ctx-init-func-proto.j2' %};
 
 {% for stream_type in trace_type.stream_types | sort %}
-{% include 'c-open-func-proto.j2' %};
+	{% include 'c/open-func-proto.j2' %};
 
-{% include 'c-close-func-proto.j2' %};
-{% for ev_type in stream_type.event_types | sort %}
+	{% include 'c/close-func-proto.j2' %};
+	{% for ev_type in stream_type.event_types | sort %}
 
-{% include 'c-trace-func-proto.j2' %};
-{% endfor %}
+		{% include 'c/trace-func-proto.j2' %};
+	{% endfor %}
 {% endfor %}
 
 #ifdef __cplusplus
