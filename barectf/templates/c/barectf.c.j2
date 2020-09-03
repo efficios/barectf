@@ -336,7 +336,7 @@ void _commit_ev(void * const vctx)
 	ctx->at = sctx->off_{{ c_common.op_src(op) }};
 
 		{% set src = 'ts' %}
-		{% filter indent_tab(indent_first=True) %}
+		{% filter indent_tab(indent_first=true) %}
 			{% include 'c/serialize-write-saved-int-statements.j2' %}
 
 		{% endfilter %}
@@ -349,7 +349,7 @@ void _commit_ev(void * const vctx)
 	ctx->at = sctx->off_{{ c_common.op_src(op) }};
 
 		{% set src %}ctx->{{ name }}{% endset %}
-		{% filter indent_tab(indent_first=True) %}
+		{% filter indent_tab(indent_first=true) %}
 			{% include 'c/serialize-write-saved-int-statements.j2' %}
 
 		{% endfilter %}
@@ -362,7 +362,7 @@ void _commit_ev(void * const vctx)
 	ctx->at = sctx->off_{{ c_common.op_src(op) }};
 
 		{% set src %}ctx->{{ name }}{% endset %}
-		{% filter indent_tab(indent_first=True) %}
+		{% filter indent_tab(indent_first=true) %}
 			{% include 'c/serialize-write-saved-int-statements.j2' %}
 
 		{% endfilter %}

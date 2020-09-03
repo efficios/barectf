@@ -32,7 +32,7 @@
 	union _{{ union_name }} {{ union_name }};
 
 	{{ union_name }}.f = {{ c_common.op_src(op) }};
-{% filter indent_tab(indent_first=True) %}
+{% filter indent_tab(indent_first=true) %}
 	{% include 'c/serialize-write-bit-array-statements.j2' %}
 
 {% endfilter %}
