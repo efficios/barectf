@@ -419,7 +419,8 @@ class _CodeGen:
     # Each parameter has the prefix `name_prefix` followed with `_`.
     #
     # Members of which the name is in `exclude_set` are excluded.
-    def _proto_params_str(self, root_ft, name_prefix, const_params, exclude_set=None):
+    def _proto_params_str(self, root_ft, name_prefix, const_params, exclude_set=None,
+                          only_dyn=False):
         if root_ft is None:
             return
 
@@ -430,6 +431,9 @@ class _CodeGen:
 
         for member_name, member in root_ft.members.items():
             if member_name in exclude_set:
+                continue
+
+            if only_dyn and not member.field_type.size_is_dynamic:
                 continue
 
             params.append(_FtParam(member.field_type, member_name))
@@ -457,26 +461,29 @@ class _CodeGen:
 
     # Returns the tracing function prototype parameters for the stream
     # and event types `stream_ev_types`.
-    def _trace_func_params_str(self, stream_ev_types, const_params):
+    def _trace_func_params_str(self, stream_ev_types, const_params, only_dyn=False):
         stream_type = stream_ev_types[0]
         ev_type = stream_ev_types[1]
         parts = []
 
         if stream_type._ev_header_ft is not None:
             parts.append(self._proto_params_str(stream_type._ev_header_ft, _RootFtPrefixes.EH,
-                                                const_params, {'id', 'timestamp'}))
+                                                const_params, {'id', 'timestamp'},
+                                                only_dyn=only_dyn))
 
         if stream_type.event_common_context_field_type is not None:
             parts.append(self._proto_params_str(stream_type.event_common_context_field_type,
-                                                _RootFtPrefixes.ECC, const_params))
+                                                _RootFtPrefixes.ECC, const_params,
+                                                only_dyn=only_dyn))
 
         if ev_type.specific_context_field_type is not None:
             parts.append(self._proto_params_str(ev_type.specific_context_field_type,
-                                                _RootFtPrefixes.SC, const_params))
+                                                _RootFtPrefixes.SC, const_params,
+                                                only_dyn=only_dyn))
 
         if ev_type.payload_field_type is not None:
             parts.append(self._proto_params_str(ev_type.payload_field_type, _RootFtPrefixes.P,
-                                                const_params))
+                                                const_params, only_dyn=only_dyn))
 
         return ''.join(parts)
 

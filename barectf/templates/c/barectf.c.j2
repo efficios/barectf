@@ -456,7 +456,7 @@ static void _serialize_ev_{{ stream_type.name }}_{{ ev_type.name }}(void * const
 	{% for ev_type in stream_type.event_types | sort %}
 		{% set this_ev_ops = this_stream_ops.ev_ops[ev_type] %}
 
-static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void * const vctx{{ (stream_type, ev_type) | trace_func_params_str(const_params) }})
+static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void * const vctx{{ (stream_type, ev_type) | trace_func_params_str(const_params, only_dyn=true) }})
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 	uint32_t at = ctx->at;
@@ -527,9 +527,9 @@ static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void * const 
 	ctx->in_tracing_section = 1;
 
 	/* Compute event size */
-		{% set ev_common_ctx_params = macros.ft_call_params(root_ft_prefixes.ECC, stream_type.event_common_context_field_type) %}
-		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.SC, ev_type.specific_context_field_type) %}
-		{% set payload_params = macros.ft_call_params(root_ft_prefixes.P, ev_type.payload_field_type) %}
+		{% set ev_common_ctx_params = macros.ft_call_params(root_ft_prefixes.ECC, stream_type.event_common_context_field_type, true) %}
+		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.SC, ev_type.specific_context_field_type, true) %}
+		{% set payload_params = macros.ft_call_params(root_ft_prefixes.P, ev_type.payload_field_type, true) %}
 		{% set params %}{{ ev_common_ctx_params }}{{ spec_ctx_params }}{{ payload_params }}{% endset %}
 	ev_size = _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(_TO_VOID_PTR(ctx){{ params }});
 
@@ -541,6 +541,10 @@ static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void * const 
 	}
 
 	/* Serialize event */
+		{% set ev_common_ctx_params = macros.ft_call_params(root_ft_prefixes.ECC, stream_type.event_common_context_field_type) %}
+		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.SC, ev_type.specific_context_field_type) %}
+		{% set payload_params = macros.ft_call_params(root_ft_prefixes.P, ev_type.payload_field_type) %}
+		{% set params %}{{ ev_common_ctx_params }}{{ spec_ctx_params }}{{ payload_params }}{% endset %}
 	_serialize_ev_{{ stream_type.name }}_{{ ev_type.name }}(_TO_VOID_PTR(ctx){{ params }});
 
 	/* Commit event */
