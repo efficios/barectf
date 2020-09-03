@@ -23,7 +23,7 @@
 
 import pkg_resources
 import collections
-import jsonschema # type: ignore
+import jsonschema  # type: ignore
 import os.path
 import yaml
 import copy

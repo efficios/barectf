@@ -322,10 +322,8 @@ class _Parser(barectf_config_parse_common._Parser):
             # make sure the event type is not empty
             spec_ctx_ft_prop_name = 'specific-context-field-type'
             payload_ft_prop_name = 'payload-field-type'
-            ev_member_count = Count(ev_member_count +
-                                    self._total_struct_ft_node_members(ev_type_node.get(spec_ctx_ft_prop_name)))
-            ev_member_count = Count(ev_member_count +
-                                    self._total_struct_ft_node_members(ev_type_node.get(payload_ft_prop_name)))
+            ev_member_count = Count(ev_member_count + self._total_struct_ft_node_members(ev_type_node.get(spec_ctx_ft_prop_name)))
+            ev_member_count = Count(ev_member_count + self._total_struct_ft_node_members(ev_type_node.get(payload_ft_prop_name)))
 
             if ev_member_count == 0:
                 raise _ConfigurationParseError('Event type', 'Event type is empty (no members).')
@@ -503,8 +501,7 @@ class _Parser(barectf_config_parse_common._Parser):
 
             ev_common_ctx_ft_prop_name = 'event-common-context-field-type'
             ev_common_ctx_ft_node = stream_type_node.get(ev_common_ctx_ft_prop_name)
-            ev_header_common_ctx_member_count = Count(ev_header_common_ctx_member_count +
-                                                      self._total_struct_ft_node_members(ev_common_ctx_ft_node))
+            ev_header_common_ctx_member_count = Count(ev_header_common_ctx_member_count + self._total_struct_ft_node_members(ev_common_ctx_ft_node))
             ev_types = set()
 
             for ev_name, ev_type_node in stream_type_node[ev_types_prop_name].items():
