@@ -1,12 +1,12 @@
 enum : {{ ft | int_ft_str }} {
 {% for label, mapping in ft.mappings.items() %}
-{% for rg in mapping.ranges %}
-	{% if rg.lower == rg.upper %}
-		{% set rg_str = rg.lower %}
-	{% else %}
-		{% set rg_str %}{{ rg.lower }} ... {{ rg.upper }}{% endset %}
-	{% endif %}
+	{% for rg in mapping.ranges %}
+		{% if rg.lower == rg.upper %}
+			{% set rg_str = rg.lower %}
+		{% else %}
+			{% set rg_str %}{{ rg.lower }} ... {{ rg.upper }}{% endset %}
+		{% endif %}
 	"{{ label | escape_dq }}" = {{ rg_str }},
-{% endfor %}
+	{% endfor %}
 {% endfor %}
 }

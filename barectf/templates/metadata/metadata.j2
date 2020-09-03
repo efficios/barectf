@@ -36,7 +36,7 @@
  # `rft` with all the lines except the first one indented with a single
  # tab.
  #}
-{% macro root_ft(name, rft) -%}
+{% macro root_ft(name, rft) %}
 {{ name }} := {{ rft | ft_str | indent_tab }};
 {%- endmacro %}
 
@@ -77,7 +77,7 @@ clock {
 
 {% endfor %}
 {# stream types and their event types #}
-{%- for stream_type in cfg.trace.type.stream_types | sort %}
+{% for stream_type in cfg.trace.type.stream_types | sort %}
 /* Stream type `{{ stream_type.name }}` */
 stream {
 	id = {{ stream_type.id }};
@@ -93,8 +93,8 @@ stream {
 	{# stream type's event types #}
 	{% for ev_type in stream_type.event_types | sort %}
 event {
-	id = {{ ev_type.id }};
 	stream_id = {{ stream_type.id }};
+	id = {{ ev_type.id }};
 	name = "{{ ev_type.name }}";
 		{% if ev_type.log_level %}
 	loglevel = {{ ev_type.log_level }};
