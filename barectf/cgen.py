@@ -115,7 +115,7 @@ _Ops = List[_Op]
 #
 # Get an operation builder's operations with its `ops` property.
 class _OpsBuilder:
-    def __init__(self, cg: _CodeGen):
+    def __init__(self, cg: '_CodeGen'):
         self._last_alignment: Optional[Alignment] = None
         self._last_bit_array_size: Optional[Count] = None
         self._ops: _Ops = []
@@ -516,7 +516,7 @@ class _CodeGen:
     def _serialize_ev_common_ctx_func_params_str(self, stream_type: barectf_config.StreamType,
                                                  const_params: bool) -> str:
         return self._proto_params_str(stream_type.event_common_context_field_type,
-                                      _RootFtPrefixes.ECC, const_params);
+                                      _RootFtPrefixes.ECC, const_params)
 
     # Generates the bitfield header file contents.
     def gen_bitfield_header(self) -> str:

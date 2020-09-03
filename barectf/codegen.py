@@ -22,7 +22,6 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import barectf.tsdl182gen as barectf_tsdl182gen
-import barectf.template as barectf_template
 import barectf.config as barectf_config
 import barectf.cgen as barectf_cgen
 from typing import List, Optional
