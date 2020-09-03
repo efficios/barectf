@@ -64,6 +64,7 @@ jinja2 = '^2.11'
 [tool.poetry.dev-dependencies]
 flake8 = '*'
 pylint = '*'
+mypy = '*'
 
 [tool.poetry.scripts]
 barectf = 'barectf.cli:_run'
