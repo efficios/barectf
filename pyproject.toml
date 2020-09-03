@@ -61,6 +61,9 @@ jsonschema = '^3.2'
 setuptools = '*'
 jinja2 = '^2.11'
 
+[tool.poetry.dev-dependencies]
+flake8 = '*'
+
 [tool.poetry.scripts]
 barectf = 'barectf.cli:_run'
 
