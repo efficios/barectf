@@ -23,6 +23,6 @@
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
 {% import 'c/common.j2' as c_common %}
-/* do not write `{{ op.top_name }}` field; save its offset */
+/* Do not write `{{ op.top_name }}` field; save its offset */
 sctx->off_{{ c_common.op_src(op) }} = ctx->at;
 ctx->at += {{ op.ft.size }};

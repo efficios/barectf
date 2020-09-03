@@ -23,5 +23,5 @@
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
 {% import 'c/common.j2' as c_common %}
-/* add `{{ op.top_name }}` string field's size */
+/* Add `{{ op.top_name }}` string field's size */
 at += _BYTES_TO_BITS(strlen({{ c_common.op_src(op) }}) + 1);

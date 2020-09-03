@@ -24,7 +24,7 @@
  #}
 {% import 'common.j2' as common %}
 {% import 'c/common.j2' as c_common %}
-/* initialize context */
+/* Initialize context */
 void {{ common.prefix }}init(void *vctx,
 	uint8_t *{{ c_common.const_ptr_str(const_params) }}buf, {{ c_common.const_str(const_params) }}uint32_t buf_size,
 	const struct {{ common.prefix }}platform_callbacks cbs, void *{{ c_common.const_ptr_str(const_params) }}data)

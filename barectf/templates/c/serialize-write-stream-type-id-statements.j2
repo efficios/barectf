@@ -24,5 +24,5 @@
  #}
 {% set c_type = op.ft | ft_c_type %}
 {% set src = stream_type.id %}
-/* write stream type ID field */
+/* Write stream type ID field */
 {% include 'c/serialize-write-bit-array-statements.j2' %}

@@ -24,5 +24,5 @@
  #}
 {% set c_type = op.ft | ft_c_type %}
 {% set src = '0xc1fc1fc1UL' %}
-/* write magic number field */
+/* Write magic number field */
 {% include 'c/serialize-write-bit-array-statements.j2' %}

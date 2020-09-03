@@ -24,6 +24,6 @@
  #}
 {% import 'common.j2' as common %}
 {% import 'c/common.j2' as c_common %}
-/* open packet for stream type `{{ stream_type.name }}` */
+/* Open packet for stream type `{{ stream_type.name }}` */
 void {{ common.prefix }}{{ stream_type.name }}_open_packet(
 	struct {{ common.prefix }}{{ stream_type.name }}_ctx *{{ c_common.const_ptr_str(const_params) }}sctx{{ stream_type | open_func_params_str(const_params) }})

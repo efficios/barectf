@@ -75,68 +75,68 @@ void {{ prefix }}enable_tracing(void *ctx, int enable);
 struct {{ prefix }}platform_callbacks {
 {% set clk_types = trace_type.clock_types %}
 {% if clk_types %}
-	/* clock callbacks */
+	/* Clock callbacks */
 	{% for clk_type in clk_types | sort %}
 	{{ cg_opts.clock_type_c_types[clk_type] }} (*{{ clk_type.name }}_clock_get_value)(void *);
 	{% endfor %}
 
 {% endif %}
-	/* is back-end full? */
+	/* Is the back-end full? */
 	int (*is_backend_full)(void *);
 
-	/* open packet */
+	/* Open packet */
 	void (*open_packet)(void *);
 
-	/* close packet */
+	/* Close packet */
 	void (*close_packet)(void *);
 };
 
-/* common barectf context */
+/* Common barectf context */
 struct {{ prefix }}ctx {
-	/* platform callbacks */
+	/* Platform callbacks */
 	struct {{ prefix }}platform_callbacks cbs;
 
-	/* platform data (passed to callbacks) */
+	/* Platform data (passed to callbacks) */
 	void *data;
 
-	/* output buffer (will contain a CTF binary packet) */
+	/* Output buffer (will contain a CTF binary packet) */
 	uint8_t *buf;
 
-	/* packet's total size (bits) */
+	/* Packet's total size (bits) */
 	uint32_t packet_size;
 
-	/* packet's content size (bits) */
+	/* Packet's content size (bits) */
 	uint32_t content_size;
 
-	/* current position from beginning of packet (bits) */
+	/* Current position from beginning of packet (bits) */
 	uint32_t at;
 
-	/* size of packet header + context fields (content offset) */
+	/* Size of packet header + context fields (content offset) */
 	uint32_t off_content;
 
-	/* discarded event counter */
+	/* Discarded event counter */
 	uint32_t events_discarded;
 
-	/* current packet is open? */
+	/* Current packet is open? */
 	int packet_is_open;
 
-	/* in tracing code? */
+	/* In tracing code? */
 	volatile int in_tracing_section;
 
-	/* tracing is enabled? */
+	/* Tracing is enabled? */
 	volatile int is_tracing_enabled;
 
-	/* use current/last event time when opening/closing packets */
+	/* Use current/last event time when opening/closing packets */
 	int use_cur_last_event_ts;
 };
 
 {% for stream_type in trace_type.stream_types | sort %}
-/* context for stream type `{{ stream_type.name }}` */
+/* Context for stream type `{{ stream_type.name }}` */
 struct {{ prefix }}{{ stream_type.name }}_ctx {
-	/* parent */
+	/* Parent */
 	struct {{ prefix }}ctx parent;
 
-	/* config-specific members follow */
+	/* Config-specific members follow */
 	{% if trace_type._pkt_header_ft %}
 		{% for member_name in trace_type._pkt_header_ft.members %}
 	uint32_t off_ph_{{ member_name }};
