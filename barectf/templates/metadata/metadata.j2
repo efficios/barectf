@@ -34,7 +34,7 @@
  # tab.
  #}
 {% macro root_ft(name, rft) %}
-{{ name }} := {{ rft | ft_str | indent_tab }};
+{{ name }} := {{ rft | ft_str }};
 {%- endmacro %}
 trace {
 	major = 1;
@@ -44,7 +44,7 @@ trace {
 	uuid = "{{ cfg.trace.type.uuid }}";
 {% endif %}
 {% if cfg.trace.type._pkt_header_ft %}
-	{{ root_ft('packet.header', cfg.trace.type._pkt_header_ft) }}
+	{{ root_ft('packet.header', cfg.trace.type._pkt_header_ft) | indent_tab }}
 {% endif %}
 };
 
@@ -77,12 +77,12 @@ clock {
 /* Stream type `{{ stream_type.name }}` */
 stream {
 	id = {{ stream_type.id }};
-	{{ root_ft('packet.context', stream_type._pkt_ctx_ft) }}
+	{{ root_ft('packet.context', stream_type._pkt_ctx_ft) | indent_tab }}
 	{% if stream_type._ev_header_ft %}
-	{{ root_ft('event.header', stream_type._ev_header_ft) }}
+	{{ root_ft('event.header', stream_type._ev_header_ft) | indent_tab }}
 	{% endif %}
 	{% if stream_type.event_common_context_field_type %}
-	{{ root_ft('event.context', stream_type.event_common_context_field_type) }}
+	{{ root_ft('event.context', stream_type.event_common_context_field_type) | indent_tab }}
 	{% endif %}
 };
 
@@ -96,10 +96,10 @@ event {
 	loglevel = {{ ev_type.log_level }};
 		{% endif %}
 		{% if ev_type.specific_context_field_type %}
-	{{ root_ft('context', ev_type.specific_context_field_type) }}
+	{{ root_ft('context', ev_type.specific_context_field_type) | indent_tab }}
 		{% endif %}
 		{% if ev_type.payload_field_type %}
-	{{ root_ft('fields', ev_type.payload_field_type) }}
+	{{ root_ft('fields', ev_type.payload_field_type) | indent_tab }}
 		{% endif %}
 };
 
