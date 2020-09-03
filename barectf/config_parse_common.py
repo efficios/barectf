@@ -355,7 +355,7 @@ class _Parser:
         self._ignore_include_not_found = ignore_include_not_found
         self._include_stack: List[str] = []
         self._resolved_ft_aliases: Set[str] = set()
-        self._schema_validator = _SchemaValidator({'common/config', f'{major_version}/config'})
+        self._schema_validator = _SchemaValidator({'config/common', f'config/{major_version}'})
         self._major_version = major_version
 
     @property

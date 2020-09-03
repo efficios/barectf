@@ -22,7 +22,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/2/config/field-type.json
+$id: https://barectf.org/schemas/config/2/field-type.json
 title: Effective field type object
 definitions:
   opt-encoding-prop:
@@ -56,17 +56,17 @@ definitions:
       class:
         $ref: '#/definitions/int-ft-class-prop'
       size:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/int-ft-size-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/int-ft-size-prop
       signed:
         oneOf:
           - type: boolean
           - type: 'null'
       align:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-1
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-1
       byte-order:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-byte-order-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-byte-order-prop
       base:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-ft-preferred-display-base-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-ft-preferred-display-base-prop
       encoding:
         $ref: '#/definitions/opt-encoding-prop'
       property-mappings:
@@ -133,9 +133,9 @@ definitions:
           - mant
         additionalProperties: false
       align:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-1
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-1
       byte-order:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-byte-order-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-byte-order-prop
     required:
       - class
       - size
@@ -229,7 +229,7 @@ definitions:
       class:
         $ref: '#/definitions/struct-ft-class-prop'
       min-align:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-1
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-1
       fields:
         if:
           type: object

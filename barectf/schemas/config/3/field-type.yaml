@@ -22,7 +22,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/3/config/field-type.json
+$id: https://barectf.org/schemas/config/3/field-type.json
 title: Effective field type object
 definitions:
   ft-base:
@@ -34,11 +34,11 @@ definitions:
       - $ref: '#/definitions/ft-base'
       - properties:
           size:
-            $ref: https://barectf.org/schemas/common/config/common.json#/definitions/int-ft-size-prop
+            $ref: https://barectf.org/schemas/config/common/common.json#/definitions/int-ft-size-prop
           alignment:
-            $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-1
+            $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-1
           byte-order:
-            $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-byte-order-prop
+            $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-byte-order-prop
         required:
           - size
   int-ft-props:
@@ -54,7 +54,7 @@ definitions:
       - $ref: '#/definitions/bit-array-ft'
       - properties:
           preferred-display-base:
-            $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-ft-preferred-display-base-prop
+            $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-ft-preferred-display-base-prop
   uint-ft-class-prop:
     type: string
     enum:
@@ -239,7 +239,7 @@ definitions:
           class:
             $ref: '#/definitions/struct-ft-class-prop'
           minimum-alignment:
-            $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-1
+            $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-1
           members:
             if:
               type: array

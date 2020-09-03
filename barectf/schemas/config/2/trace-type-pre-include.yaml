@@ -22,13 +22,9 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/2/config/include-prop.json
-title: Inclusion property value
-if:
-  type: array
-then:
-  items:
-    type: string
-  minItems: 1
-else:
-  type: string
+$id: https://barectf.org/schemas/config/2/trace-type-pre-include.json
+title: Trace type object before inclusions
+type: object
+properties:
+  $include:
+    $ref: https://barectf.org/schemas/config/2/include-prop.json

@@ -22,19 +22,19 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/2/config/config.json
+$id: https://barectf.org/schemas/config/2/config.json
 title: Effective configuration object
 definitions:
   opt-struct-ft:
     if:
       type: object
     then:
-      $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/struct-ft
+      $ref: https://barectf.org/schemas/config/2/field-type.json#/definitions/struct-ft
     else:
       type: 'null'
   uint-ft:
     allOf:
-      - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/int-ft
+      - $ref: https://barectf.org/schemas/config/2/field-type.json#/definitions/int-ft
       - properties:
           signed:
             const: false
@@ -66,13 +66,13 @@ definitions:
                           const: 32
                 uuid:
                   allOf:
-                    - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/static-array-ft
+                    - $ref: https://barectf.org/schemas/config/2/field-type.json#/definitions/static-array-ft
                     - properties:
                         length:
                           const: 16
                         element-type:
                           allOf:
-                            - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/int-ft
+                            - $ref: https://barectf.org/schemas/config/2/field-type.json#/definitions/int-ft
                             - properties:
                                 size:
                                   const: 8
@@ -93,9 +93,9 @@ definitions:
     type: object
     properties:
       byte-order:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/byte-order-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/byte-order-prop
       uuid:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-trace-type-uuid-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-trace-type-uuid-prop
       packet-header-type:
         $ref: '#/definitions/packet-header-ft-prop'
     required:
@@ -118,21 +118,21 @@ definitions:
                 - return-ctype
     properties:
       uuid:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-uuid-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-uuid-prop
       description:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-string
       freq:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-1
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-1
       error-cycles:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-0
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-0
       offset:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-clock-type-offset-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-clock-type-offset-prop
       absolute:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-bool
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-bool
       return-ctype:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-string
       $return-ctype:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-string
     additionalProperties: false
   $default-stream:
     if:
@@ -143,7 +143,7 @@ definitions:
       type: 'null'
   packet-context-ft-prop:
     allOf:
-      - $ref: https://barectf.org/schemas/2/config/field-type.json#/definitions/struct-ft
+      - $ref: https://barectf.org/schemas/config/2/field-type.json#/definitions/struct-ft
       - properties:
           fields:
             properties:
@@ -190,7 +190,7 @@ definitions:
     type: object
     properties:
       $default:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-bool
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-bool
       packet-context-type:
         $ref: '#/definitions/packet-context-ft-prop'
       event-header-type:
@@ -236,7 +236,7 @@ properties:
       - '2.1'
       - '2.2'
   prefix:
-    $ref: https://barectf.org/schemas/common/config/common.json#/definitions/config-prefix-prop
+    $ref: https://barectf.org/schemas/config/common/common.json#/definitions/config-prefix-prop
   options:
     title: Configuration options object
     type: object
@@ -263,13 +263,13 @@ properties:
                 - log-levels
     properties:
       log-levels:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-log-level-aliases-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-log-level-aliases-prop
       $log-levels:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-log-level-aliases-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-log-level-aliases-prop
       trace:
         $ref: '#/definitions/trace-type'
       env:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-env-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-env-prop
       clocks:
         title: Clock types object
         type: object
@@ -278,7 +278,7 @@ properties:
             $ref: '#/definitions/clock-type'
         additionalProperties: false
       $default-stream:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-string
       streams:
         title: Stream types object
         type: object

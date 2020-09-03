@@ -658,7 +658,7 @@ class _Parser(config_parse_common._Parser):
         # Make sure that the current configuration node is valid
         # considering field types are not expanded yet.
         self._schema_validator.validate(self._root_node,
-                                        '2/config/config-pre-field-type-expansion')
+                                        'config/2/config-pre-field-type-expansion')
 
         meta_node = self._root_node['metadata']
         ft_aliases_node = meta_node.get('type-aliases')
@@ -679,7 +679,7 @@ class _Parser(config_parse_common._Parser):
     def _process_ev_type_node_include(self, ev_type_node: _MapNode) -> _MapNode:
         # Make sure the event type node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(ev_type_node, '2/config/event-type-pre-include')
+        self._schema_validator.validate(ev_type_node, 'config/2/event-type-pre-include')
 
         # process inclusions
         return self._process_node_include(ev_type_node, self._process_ev_type_node_include)
@@ -698,7 +698,7 @@ class _Parser(config_parse_common._Parser):
 
         # Make sure the stream type node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(stream_type_node, '2/config/stream-type-pre-include')
+        self._schema_validator.validate(stream_type_node, 'config/2/stream-type-pre-include')
 
         # process inclusions
         return self._process_node_include(stream_type_node, self._process_stream_type_node_include,
@@ -709,7 +709,7 @@ class _Parser(config_parse_common._Parser):
     def _process_trace_type_node_include(self, trace_type_node: _MapNode) -> _MapNode:
         # Make sure the trace type node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(trace_type_node, '2/config/trace-type-pre-include')
+        self._schema_validator.validate(trace_type_node, 'config/2/trace-type-pre-include')
 
         # process inclusions
         return self._process_node_include(trace_type_node, self._process_trace_type_node_include)
@@ -719,7 +719,7 @@ class _Parser(config_parse_common._Parser):
     def _process_clk_type_node_include(self, clk_type_node: _MapNode) -> _MapNode:
         # Make sure the clock type node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(clk_type_node, '2/config/clock-type-pre-include')
+        self._schema_validator.validate(clk_type_node, 'config/2/clock-type-pre-include')
 
         # process inclusions
         return self._process_node_include(clk_type_node, self._process_clk_type_node_include)
@@ -751,7 +751,7 @@ class _Parser(config_parse_common._Parser):
 
         # Make sure the metadata node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(meta_node, '2/config/metadata-pre-include')
+        self._schema_validator.validate(meta_node, 'config/2/metadata-pre-include')
 
         # process inclusions
         return self._process_node_include(meta_node, self._process_meta_node_include,
@@ -779,7 +779,7 @@ class _Parser(config_parse_common._Parser):
         # First, make sure the configuration node itself is valid for
         # the inclusion processing stage.
         self._schema_validator.validate(self._root_node,
-                                        '2/config/config-pre-include')
+                                        'config/2/config-pre-include')
 
         # Process metadata node inclusions.
         #
@@ -799,7 +799,7 @@ class _Parser(config_parse_common._Parser):
         #
         # * Process inclusions.
         # * Expand field types (aliases and inheritance).
-        self._schema_validator.validate(self._root_node, '2/config/config-min')
+        self._schema_validator.validate(self._root_node, 'config/2/config-min')
 
         # process configuration node inclusions
         self._process_config_includes()
@@ -839,7 +839,7 @@ class _Parser(config_parse_common._Parser):
         # event type nodes can be log level aliases. Log level aliases
         # are also a feature of a barectf 3 configuration node,
         # therefore this is compatible.
-        self._schema_validator.validate(self._root_node, '2/config/config')
+        self._schema_validator.validate(self._root_node, 'config/2/config')
 
         # Transform the current configuration node into a valid v3
         # configuration node.

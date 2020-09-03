@@ -22,7 +22,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/3/config/config.json
+$id: https://barectf.org/schemas/config/3/config.json
 title: Effective configuration object
 definitions:
   feature-uint-ft:
@@ -40,15 +40,15 @@ definitions:
       - if:
           properties:
             class:
-              $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/uint-ft-class-prop
+              $ref: https://barectf.org/schemas/config/3/field-type.json#/definitions/uint-ft-class-prop
         then:
-          $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/uint-ft
+          $ref: https://barectf.org/schemas/config/3/field-type.json#/definitions/uint-ft
       - if:
           properties:
             class:
-              $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/uenum-ft-class-prop
+              $ref: https://barectf.org/schemas/config/3/field-type.json#/definitions/uenum-ft-class-prop
         then:
-          $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/uenum-ft
+          $ref: https://barectf.org/schemas/config/3/field-type.json#/definitions/uenum-ft
   opt-or-def-feature-uint-ft:
     if:
       type: object
@@ -74,7 +74,7 @@ definitions:
     if:
       type: object
     then:
-      $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/struct-ft
+      $ref: https://barectf.org/schemas/config/3/field-type.json#/definitions/struct-ft
     else:
       type: 'null'
   trace:
@@ -84,7 +84,7 @@ definitions:
       type:
         $ref: '#/definitions/trace-type'
       environment:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-env-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-env-prop
     required:
       - type
   trace-type:
@@ -92,9 +92,9 @@ definitions:
     type: object
     properties:
       uuid:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-trace-type-uuid-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-trace-type-uuid-prop
       $default-byte-order:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-byte-order-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-byte-order-prop
       $features:
         if:
           type: object
@@ -114,7 +114,7 @@ definitions:
                 type: object
               then:
                 allOf:
-                  - $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/static-array-ft
+                  - $ref: https://barectf.org/schemas/config/3/field-type.json#/definitions/static-array-ft
                   - properties:
                       length:
                         const: 16
@@ -165,31 +165,31 @@ definitions:
     type: object
     properties:
       uuid:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-uuid-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-uuid-prop
       description:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-string
       frequency:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-1
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-1
       precision:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-0
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-0
       offset:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-clock-type-offset-prop
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-clock-type-offset-prop
       origin-is-unix-epoch:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-bool
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-bool
       $c-type:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-string
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-string
     additionalProperties: false
   stream-type:
     title: Stream type object
     type: object
     properties:
       $is-default:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-bool
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-bool
       $default-clock-type-name:
         if:
           type: string
         then:
-          $ref: https://barectf.org/schemas/common/config/common.json#/definitions/iden-prop
+          $ref: https://barectf.org/schemas/config/common/common.json#/definitions/iden-prop
         else:
           type: 'null'
       $features:
@@ -234,7 +234,7 @@ definitions:
         if:
           type: array
         then:
-          $ref: https://barectf.org/schemas/3/config/field-type.json#/definitions/struct-ft-members
+          $ref: https://barectf.org/schemas/config/3/field-type.json#/definitions/struct-ft-members
         else:
           type: 'null'
       event-common-context-field-type:
@@ -255,7 +255,7 @@ definitions:
     type: object
     properties:
       log-level:
-        $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-int-min-0
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-0
       specific-context-field-type:
         $ref: '#/definitions/opt-struct-ft'
       payload-field-type:
@@ -275,12 +275,12 @@ properties:
             if:
               type: string
             then:
-              $ref: https://barectf.org/schemas/common/config/common.json#/definitions/config-prefix-prop
+              $ref: https://barectf.org/schemas/config/common/common.json#/definitions/config-prefix-prop
             else:
               type: object
               properties:
                 identifier:
-                  $ref: https://barectf.org/schemas/common/config/common.json#/definitions/iden-prop
+                  $ref: https://barectf.org/schemas/config/common/common.json#/definitions/iden-prop
                 file-name:
                   type: string
               required:

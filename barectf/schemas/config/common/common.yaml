@@ -22,7 +22,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/common/config/common.json
+$id: https://barectf.org/schemas/config/common/common.json
 definitions:
   opt-bool:
     oneOf:

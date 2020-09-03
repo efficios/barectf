@@ -22,13 +22,15 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/3/config/include-prop.json
-title: Inclusion property value
-if:
-  type: array
-then:
-  items:
+$id: https://barectf.org/schemas/config/2/config-min.json
+title: Minimal configuration object
+type: object
+properties:
+  version:
     type: string
-  minItems: 1
-else:
-  type: string
+    enum:
+      - '2.0'
+      - '2.1'
+      - '2.2'
+required:
+  - version

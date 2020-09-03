@@ -22,11 +22,15 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/2/config/config-pre-include.json
-title: Configuration object before inclusions
+$id: https://barectf.org/schemas/config/3/stream-type-pre-include.json
+title: Stream type object before inclusions
 type: object
 properties:
-  metadata:
-    $ref: https://barectf.org/schemas/2/config/metadata-pre-include.json
-required:
-  - metadata
+  $include:
+    $ref: https://barectf.org/schemas/config/3/include-prop.json
+  event-types:
+    title: Event types object before inclusions
+    type: object
+    patternProperties:
+      '.*':
+        $ref: https://barectf.org/schemas/config/3/event-type-pre-include.json

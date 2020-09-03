@@ -22,7 +22,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/3/config/config-pre-field-type-expansion.json
+$id: https://barectf.org/schemas/config/3/config-pre-field-type-expansion.json
 title: Configuration object before field type expansions
 definitions:
   partial-ft:

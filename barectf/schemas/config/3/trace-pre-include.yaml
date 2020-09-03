@@ -22,11 +22,11 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/3/config/trace-pre-include.json
+$id: https://barectf.org/schemas/config/3/trace-pre-include.json
 title: Trace object before inclusions
 type: object
 properties:
   $include:
-    $ref: https://barectf.org/schemas/3/config/include-prop.json
+    $ref: https://barectf.org/schemas/config/3/include-prop.json
   type:
-    $ref: https://barectf.org/schemas/3/config/trace-type-pre-include.json
+    $ref: https://barectf.org/schemas/config/3/trace-type-pre-include.json

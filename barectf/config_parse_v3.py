@@ -964,7 +964,7 @@ class _Parser(barectf_config_parse_common._Parser):
         # Make sure that the current configuration node is valid
         # considering field types are not expanded yet.
         self._schema_validator.validate(self.config_node,
-                                        '3/config/config-pre-field-type-expansion')
+                                        'config/3/config-pre-field-type-expansion')
 
         prop_name = '$field-type-aliases'
         ft_aliases_node = self._trace_type_node.get(prop_name)
@@ -995,7 +995,7 @@ class _Parser(barectf_config_parse_common._Parser):
         # Make sure that the current configuration node is valid
         # considering log level aliases are not substituted yet.
         self._schema_validator.validate(self.config_node,
-                                        '3/config/config-pre-log-level-alias-sub')
+                                        'config/3/config-pre-log-level-alias-sub')
 
         log_level_aliases_prop_name = '$log-level-aliases'
         log_level_aliases_node = self._trace_type_node.get(log_level_aliases_prop_name)
@@ -1234,7 +1234,7 @@ class _Parser(barectf_config_parse_common._Parser):
     def _process_ev_type_node_include(self, ev_type_node: _MapNode) -> _MapNode:
         # Make sure the event type node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(ev_type_node, '3/config/event-type-pre-include')
+        self._schema_validator.validate(ev_type_node, 'config/3/event-type-pre-include')
 
         # process inclusions
         return self._process_node_include(ev_type_node, self._process_ev_type_node_include)
@@ -1253,7 +1253,7 @@ class _Parser(barectf_config_parse_common._Parser):
 
         # Make sure the stream type node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(stream_type_node, '3/config/stream-type-pre-include')
+        self._schema_validator.validate(stream_type_node, 'config/3/stream-type-pre-include')
 
         # process inclusions
         return self._process_node_include(stream_type_node, self._process_stream_type_node_include,
@@ -1264,7 +1264,7 @@ class _Parser(barectf_config_parse_common._Parser):
     def _process_clk_type_node_include(self, clk_type_node: _MapNode) -> _MapNode:
         # Make sure the clock type node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(clk_type_node, '3/config/clock-type-pre-include')
+        self._schema_validator.validate(clk_type_node, 'config/3/clock-type-pre-include')
 
         # process inclusions
         return self._process_node_include(clk_type_node, self._process_clk_type_node_include)
@@ -1291,7 +1291,7 @@ class _Parser(barectf_config_parse_common._Parser):
 
         # Make sure the trace type node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(trace_type_node, '3/config/trace-type-pre-include')
+        self._schema_validator.validate(trace_type_node, 'config/3/trace-type-pre-include')
 
         # process inclusions
         return self._process_node_include(trace_type_node, self._process_trace_type_node_include,
@@ -1306,7 +1306,7 @@ class _Parser(barectf_config_parse_common._Parser):
 
         # Make sure the trace node is valid for the inclusion processing
         # stage.
-        self._schema_validator.validate(trace_node, '3/config/trace-pre-include')
+        self._schema_validator.validate(trace_node, 'config/3/trace-pre-include')
 
         # process inclusions
         return self._process_node_include(trace_node, self._process_trace_node_include,
@@ -1338,7 +1338,7 @@ class _Parser(barectf_config_parse_common._Parser):
         #
         # First, make sure the configuration node itself is valid for
         # the inclusion processing stage.
-        self._schema_validator.validate(self.config_node, '3/config/config-pre-include')
+        self._schema_validator.validate(self.config_node, 'config/3/config-pre-include')
 
         # Process trace node inclusions.
         #
@@ -1383,7 +1383,7 @@ class _Parser(barectf_config_parse_common._Parser):
 
         # At this point, the configuration node must be valid as an
         # effective configuration node.
-        self._schema_validator.validate(self.config_node, '3/config/config')
+        self._schema_validator.validate(self.config_node, 'config/3/config')
 
         # Normalize properties.
         #

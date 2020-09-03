@@ -22,7 +22,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://barectf.org/schemas/3/config/config-pre-log-level-alias-sub.json
+$id: https://barectf.org/schemas/config/3/config-pre-log-level-alias-sub.json
 title: Configuration object before log level alias substitutions
 type: object
 properties:
@@ -35,7 +35,7 @@ properties:
         type: object
         properties:
           $log-level-aliases:
-            $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-log-level-aliases-prop
+            $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-log-level-aliases-prop
           stream-types:
             title: Stream types object before log level alias substitutions
             type: object
@@ -53,7 +53,7 @@ properties:
                         type: object
                         properties:
                           log-level:
-                            $ref: https://barectf.org/schemas/common/config/common.json#/definitions/opt-log-level-or-alias-prop
+                            $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-log-level-or-alias-prop
                 required:
                   - event-types
           required:
