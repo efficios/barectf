@@ -43,6 +43,10 @@ class _FieldType:
     def alignment(self) -> Alignment:
         raise NotImplementedError
 
+    @property
+    def size_is_dynamic(self):
+        return False
+
 
 class _BitArrayFieldType(_FieldType):
     def __init__(self, size: Count, byte_order: Optional[ByteOrder] = None,
@@ -193,6 +197,10 @@ class StringFieldType(_FieldType):
     def alignment(self) -> Alignment:
         return Alignment(8)
 
+    @property
+    def size_is_dynamic(self):
+        return True
+
 
 class _ArrayFieldType(_FieldType):
     def __init__(self, element_field_type: _FieldType):
@@ -272,6 +280,10 @@ class StructureFieldType(_FieldType):
     @property
     def alignment(self) -> Alignment:
         return self._alignment
+
+    @property
+    def size_is_dynamic(self):
+        return any([member.field_type.size_is_dynamic for member in self.members.values()])
 
     @property
     def members(self) -> StructureFieldTypeMembers:
