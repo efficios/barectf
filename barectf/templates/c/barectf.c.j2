@@ -39,9 +39,9 @@
 #include "{{ header_file_name }}"
 #include "{{ bitfield_header_file_name }}"
 
-#define _ALIGN(_at, _align)					\
-	do {							\
-		(_at) = ((_at) + ((_align) - 1)) & -(_align);	\
+#define _ALIGN(_at_var, _align)						\
+	do {								\
+		(_at_var) = ((_at_var) + ((_align) - 1)) & -(_align);	\
 	} while (0)
 
 #ifdef __cplusplus
