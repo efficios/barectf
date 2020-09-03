@@ -75,12 +75,10 @@ class _IntegerFieldType(_BitArrayFieldType):
     def __init__(self, size: Count, byte_order: Optional[ByteOrder] = None,
                  alignment: Optional[Alignment] = None,
                  preferred_display_base: DisplayBase = DisplayBase.DECIMAL):
-        effective_alignment = 1
+        if alignment is None:
+            alignment = Alignment(8 if size % 8 == 0 else 1)
 
-        if alignment is None and size % 8 == 0:
-            effective_alignment = 8
-
-        super().__init__(size, byte_order, Alignment(effective_alignment))
+        super().__init__(size, byte_order, alignment)
         self._preferred_display_base = preferred_display_base
 
     @property
