@@ -367,22 +367,22 @@ class _StreamOps:
 
 # The C variable name prefixes for the six kinds of root field types.
 class _RootFtPrefixes:
-    TPH = 'tph'
-    SPC = 'spc'
-    SEH = 'seh'
-    SEC = 'sec'
-    EC = 'ec'
-    EP = 'ep'
+    PH = 'ph'
+    PC = 'pc'
+    EH = 'eh'
+    ECC = 'ecc'
+    SC = 'sc'
+    P = 'p'
 
 
 # The human-readable names of the `_RootFtPrefixes` members.
 _ROOT_FT_PREFIX_NAMES = {
-    _RootFtPrefixes.TPH: 'packet header',
-    _RootFtPrefixes.SPC: 'packet context',
-    _RootFtPrefixes.SEH: 'event header',
-    _RootFtPrefixes.SEC: 'event common context',
-    _RootFtPrefixes.EC: 'specific context',
-    _RootFtPrefixes.EP: 'payload',
+    _RootFtPrefixes.PH: 'packet header',
+    _RootFtPrefixes.PC: 'packet context',
+    _RootFtPrefixes.EH: 'event header',
+    _RootFtPrefixes.ECC: 'event common context',
+    _RootFtPrefixes.SC: 'specific context',
+    _RootFtPrefixes.P: 'payload',
 }
 
 
@@ -507,7 +507,7 @@ class _CCodeGenerator:
     # stream type `stream_type`.
     def _open_func_params_str(self, stream_type):
         parts = []
-        parts.append(self._proto_params_str(self._trace_type._pkt_header_ft, _RootFtPrefixes.TPH,
+        parts.append(self._proto_params_str(self._trace_type._pkt_header_ft, _RootFtPrefixes.PH,
                                             {'magic', 'stream_id', 'uuid'}))
 
         exclude_set = {
@@ -517,7 +517,7 @@ class _CCodeGenerator:
             'content_size',
             'events_discarded',
         }
-        parts.append(self._proto_params_str(stream_type._pkt_ctx_ft, _RootFtPrefixes.SPC,
+        parts.append(self._proto_params_str(stream_type._pkt_ctx_ft, _RootFtPrefixes.PC,
                                             exclude_set))
         return ''.join(parts)
 
@@ -529,19 +529,19 @@ class _CCodeGenerator:
         parts = []
 
         if stream_type._ev_header_ft is not None:
-            parts.append(self._proto_params_str(stream_type._ev_header_ft, _RootFtPrefixes.SEH,
+            parts.append(self._proto_params_str(stream_type._ev_header_ft, _RootFtPrefixes.EH,
                                                 {'id', 'timestamp'}))
 
         if stream_type.event_common_context_field_type is not None:
             parts.append(self._proto_params_str(stream_type.event_common_context_field_type,
-                                                _RootFtPrefixes.SEC))
+                                                _RootFtPrefixes.ECC))
 
         if ev_type.specific_context_field_type is not None:
             parts.append(self._proto_params_str(ev_type.specific_context_field_type,
-                                                _RootFtPrefixes.EC))
+                                                _RootFtPrefixes.SC))
 
         if ev_type.payload_field_type is not None:
-            parts.append(self._proto_params_str(ev_type.payload_field_type, _RootFtPrefixes.EP))
+            parts.append(self._proto_params_str(ev_type.payload_field_type, _RootFtPrefixes.P))
 
         return ''.join(parts)
 
@@ -549,7 +549,7 @@ class _CCodeGenerator:
     # parameters for the stream type `stream_type`.
     def _serialize_ev_common_ctx_func_params_str(self, stream_type):
         return self._proto_params_str(stream_type.event_common_context_field_type,
-                                      _RootFtPrefixes.SEC);
+                                      _RootFtPrefixes.ECC);
 
     # Generates the bitfield header file contents.
     def generate_bitfield_header(self):
@@ -578,7 +578,7 @@ class _CCodeGenerator:
                         'uuid': self._serialize_write_uuid_statements_templ,
                         'stream_id': self._serialize_write_stream_type_id_statements_templ,
                     }
-                    builder.append_root_ft(pkt_header_ft, _RootFtPrefixes.TPH,
+                    builder.append_root_ft(pkt_header_ft, _RootFtPrefixes.PH,
                                            spec_serialize_write_templates)
                     pkt_header_ser_ops = copy.copy(builder.ops)
 
@@ -591,7 +591,7 @@ class _CCodeGenerator:
                     'events_discarded': self._serialize_write_skip_save_statements_templ,
                     'content_size': self._serialize_write_skip_save_statements_templ,
                 }
-                builder.append_root_ft(stream_type._pkt_ctx_ft, _RootFtPrefixes.SPC,
+                builder.append_root_ft(stream_type._pkt_ctx_ft, _RootFtPrefixes.PC,
                                        spec_serialize_write_templates)
                 pkt_ctx_ser_ops = copy.copy(builder.ops[first_op_index:])
 
@@ -604,7 +604,7 @@ class _CCodeGenerator:
                         'timestamp': self._serialize_write_time_statements_templ,
                         'id': self._serialize_write_ev_type_id_statements_templ,
                     }
-                    builder.append_root_ft(stream_type._ev_header_ft, _RootFtPrefixes.SEH,
+                    builder.append_root_ft(stream_type._ev_header_ft, _RootFtPrefixes.EH,
                                            spec_serialize_write_templates)
                     ev_header_ser_ops = copy.copy(builder.ops)
 
@@ -614,7 +614,7 @@ class _CCodeGenerator:
                 if stream_type.event_common_context_field_type is not None:
                     first_op_index = len(builder.ops)
                     builder.append_root_ft(stream_type.event_common_context_field_type,
-                                           _RootFtPrefixes.SEC)
+                                           _RootFtPrefixes.ECC)
                     ev_common_ctx_ser_ops = copy.copy(builder.ops[first_op_index:])
 
                 # serialization operations specific to each event type
@@ -629,7 +629,7 @@ class _CCodeGenerator:
                     if ev_type.specific_context_field_type is not None:
                         first_op_index = len(ev_builder.ops)
                         ev_builder.append_root_ft(ev_type.specific_context_field_type,
-                                                  _RootFtPrefixes.EC)
+                                                  _RootFtPrefixes.SC)
                         spec_ctx_ser_ops = copy.copy(ev_builder.ops[first_op_index:])
 
                     # payload serialization operations
@@ -637,7 +637,7 @@ class _CCodeGenerator:
 
                     if ev_type.payload_field_type is not None:
                         first_op_index = len(ev_builder.ops)
-                        ev_builder.append_root_ft(ev_type.payload_field_type, _RootFtPrefixes.EP)
+                        ev_builder.append_root_ft(ev_type.payload_field_type, _RootFtPrefixes.P)
                         payload_ser_ops = copy.copy(ev_builder.ops[first_op_index:])
 
                     ev_ser_ops[ev_type] = _EventOps(spec_ctx_ser_ops, payload_ser_ops)

@@ -138,11 +138,11 @@ struct {{ prefix }}{{ stream_type.name }}_ctx {
 	/* config-specific members follow */
 	{% if trace_type._pkt_header_ft %}
 		{% for member_name in trace_type._pkt_header_ft.members %}
-	uint32_t off_tph_{{ member_name }};
+	uint32_t off_ph_{{ member_name }};
 		{% endfor %}
 	{% endif %}
 	{% for member_name in stream_type._pkt_ctx_ft.members %}
-	uint32_t off_spc_{{ member_name }};
+	uint32_t off_pc_{{ member_name }};
 	{% endfor %}
 	{% if stream_type.default_clock_type %}
 	{{ cg_opts.clock_type_c_types[stream_type.default_clock_type] }} cur_last_event_ts;
