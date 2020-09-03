@@ -49,9 +49,9 @@ def _filt_escape_dq(text: str) -> str:
     return text.replace('\\', '\\\\').replace('"', '\\"')
 
 
-_Filter = Callable[[Any], Any]
+_Filter = Callable[..., Any]
 _Filters = Mapping[str, _Filter]
-_Test = Callable[[Any], bool]
+_Test = Callable[..., bool]
 _Tests = Mapping[str, _Test]
 
 
