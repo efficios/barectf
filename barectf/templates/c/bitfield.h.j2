@@ -23,7 +23,6 @@
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
 {% import 'common.j2' as common %}
-{% set prefix = common.prefix %}
 {% set ucprefix = common.ucprefix %}
 #ifndef _{{ ucprefix }}BITFIELD_H
 #define _{{ ucprefix }}BITFIELD_H
@@ -34,19 +33,18 @@
 #include <limits.h>
 
 #ifdef __cplusplus
-# define {{ ucprefix }}CAST_PTR(_type, _value) \
+# define _CAST_PTR(_type, _value) \
 	static_cast<_type>(static_cast<void *>(_value))
 #else
-# define {{ ucprefix }}CAST_PTR(_type, _value)	((void *) (_value))
+# define _CAST_PTR(_type, _value)	((void *) (_value))
 #endif
 
 {% set def_bo = cfg.trace.type.default_byte_order %}
 {% set def_bo_str = 'LITTLE_ENDIAN' if def_bo == barectf_config.ByteOrder.LITTLE_ENDIAN else 'BIG_ENDIAN' %}
-#define {{ ucprefix }}BYTE_ORDER {{ def_bo_str }}
-
+#define _BYTE_ORDER {{ def_bo_str }}
 
 /* We can't shift a int from 32 bit, >> 32 and << 32 on int is undefined */
-#define _{{ prefix }}bt_piecewise_rshift(_vtype, _v, _shift) \
+#define _bt_piecewise_rshift(_vtype, _v, _shift) \
 do {									\
 	unsigned long ___shift = (_shift);				\
 	unsigned long sb = (___shift) / (sizeof(_v) * CHAR_BIT - 1);	\
@@ -58,7 +56,7 @@ do {									\
 } while (0)
 
 /*
- * {{ prefix }}bt_bitfield_write - write integer to a bitfield in native endianness
+ * bt_bitfield_write - write integer to a bitfield in native endianness
  *
  * Save integer to the bitfield, which starts at the "start" bit, has "len"
  * bits.
@@ -75,10 +73,10 @@ do {									\
  * Also, consecutive bitfields are placed from higher to lower bits.
  */
 
-#define _{{ prefix }}bt_bitfield_write_le(_ptr, type, _start, _length, _vtype, _v) \
+#define _bt_bitfield_write_le(_ptr, type, _start, _length, _vtype, _v)	\
 do {									\
 	_vtype __v = (_v);						\
-	type *__ptr = {{ ucprefix }}CAST_PTR(type *, _ptr);			\
+	type *__ptr = _CAST_PTR(type *, _ptr);				\
 	unsigned long __start = (_start), __length = (_length);		\
 	type mask, cmask;						\
 	unsigned long ts = sizeof(type) * CHAR_BIT; /* type size */	\
@@ -115,13 +113,13 @@ do {									\
 		cmask &= ~mask;						\
 		__ptr[this_unit] &= mask;				\
 		__ptr[this_unit] |= cmask;				\
-		_{{ prefix }}bt_piecewise_rshift(_vtype, __v, ts - cshift); \
+		_bt_piecewise_rshift(_vtype, __v, ts - cshift); 	\
 		__start += ts - cshift;					\
 		this_unit++;						\
 	}								\
 	for (; this_unit < end_unit - 1; this_unit++) {			\
 		__ptr[this_unit] = (type) __v;				\
-		_{{ prefix }}bt_piecewise_rshift(_vtype, __v, ts); 		\
+		_bt_piecewise_rshift(_vtype, __v, ts); 			\
 		__start += ts;						\
 	}								\
 	if (end % ts) {							\
@@ -134,10 +132,10 @@ do {									\
 		__ptr[this_unit] = (type) __v;				\
 } while (0)
 
-#define _{{ prefix }}bt_bitfield_write_be(_ptr, type, _start, _length, _vtype, _v) \
+#define _bt_bitfield_write_be(_ptr, type, _start, _length, _vtype, _v)	\
 do {									\
 	_vtype __v = (_v);						\
-	type *__ptr = {{ ucprefix }}CAST_PTR(type *, _ptr);			\
+	type *__ptr = _CAST_PTR(type *, _ptr);				\
 	unsigned long __start = (_start), __length = (_length);		\
 	type mask, cmask;						\
 	unsigned long ts = sizeof(type) * CHAR_BIT; /* type size */	\
@@ -174,13 +172,13 @@ do {									\
 		cmask &= ~mask;						\
 		__ptr[this_unit] &= mask;				\
 		__ptr[this_unit] |= cmask;				\
-		_{{ prefix }}bt_piecewise_rshift(_vtype, __v, cshift);	\
+		_bt_piecewise_rshift(_vtype, __v, cshift);		\
 		end -= cshift;						\
 		this_unit--;						\
 	}								\
 	for (; (long) this_unit >= (long) start_unit + 1; this_unit--) { \
 		__ptr[this_unit] = (type) __v;				\
-		_{{ prefix }}bt_piecewise_rshift(_vtype, __v, ts);		\
+		_bt_piecewise_rshift(_vtype, __v, ts);			\
 		end -= ts;						\
 	}								\
 	if (__start % ts) {						\
@@ -194,27 +192,27 @@ do {									\
 } while (0)
 
 /*
- * {{ prefix }}bt_bitfield_write_le - write integer to a bitfield in little endian
- * {{ prefix }}bt_bitfield_write_be - write integer to a bitfield in big endian
+ * bt_bitfield_write_le - write integer to a bitfield in little endian
+ * bt_bitfield_write_be - write integer to a bitfield in big endian
  */
 
-#if ({{ ucprefix }}BYTE_ORDER == LITTLE_ENDIAN)
+#if (_BYTE_ORDER == LITTLE_ENDIAN)
 
-#define {{ prefix }}bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v) \
-	_{{ prefix }}bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v)
+#define bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v)	\
+	_bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v)
 
-#define {{ prefix }}bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v) \
-	_{{ prefix }}bt_bitfield_write_be(ptr, unsigned char, _start, _length, _vtype, _v)
+#define bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v)	\
+	_bt_bitfield_write_be(ptr, unsigned char, _start, _length, _vtype, _v)
 
-#elif ({{ ucprefix }}BYTE_ORDER == BIG_ENDIAN)
+#elif (_BYTE_ORDER == BIG_ENDIAN)
 
-#define {{ prefix }}bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v) \
-	_{{ prefix }}bt_bitfield_write_le(ptr, unsigned char, _start, _length, _vtype, _v)
+#define bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v)	\
+	_bt_bitfield_write_le(ptr, unsigned char, _start, _length, _vtype, _v)
 
-#define {{ prefix }}bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v) \
-	_{{ prefix }}bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v)
+#define bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v)	\
+	_bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v)
 
-#else /* ({{ ucprefix }}BYTE_ORDER == PDP_ENDIAN) */
+#else /* (_BYTE_ORDER == PDP_ENDIAN) */
 
 #error "Byte order not supported"
 
