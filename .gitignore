@@ -58,3 +58,6 @@ target/
 
 # Virtual environment
 virt/
+
+# pytest
+.pytest_cache/

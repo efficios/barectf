@@ -1,5 +1,8 @@
 ![Icon made by Freepik from www.flaticon.com](https://lttng.org/blog/images/barectf.png)
 
+:bangbang: | ATTENTION: barectf is currently transitioning from v2 to v3. In the meantime, this README might be incorrect. New documentation will be written.
+:---: | :---
+
 [![](https://img.shields.io/pypi/v/barectf.svg)](https://pypi.python.org/pypi/barectf)
 [![Jenkins](https://img.shields.io/jenkins/s/https/ci.lttng.org/barectf_master_build.svg)](https://ci.lttng.org/job/barectf_master_build)
 
