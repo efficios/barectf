@@ -326,8 +326,9 @@ void _commit_ev(void *vctx)
 
 	/* save content size */
 	ctx->content_size = ctx->at;
-	{% if 'timestamp_end' in stream_type._pkt_ctx_ft.members %}
-		{% set op = stream_op_pkt_ctx_op(stream_type, 'timestamp_end') %}
+	{% set name = 'timestamp_end' %}
+	{% if name in stream_type._pkt_ctx_ft.members %}
+		{% set op = stream_op_pkt_ctx_op(stream_type, name) %}
 
 	/* go back to `timestamp_end` field offset */
 	ctx->at = sctx->off_{{ c_common.op_src(op) }};
@@ -338,25 +339,27 @@ void _commit_ev(void *vctx)
 
 		{% endfilter %}
 	{% endif %}
-	{% if 'content_size' in stream_type._pkt_ctx_ft.members %}
-		{% set op = stream_op_pkt_ctx_op(stream_type, 'content_size') %}
+	{% set name = 'content_size' %}
+	{% if name in stream_type._pkt_ctx_ft.members %}
+		{% set op = stream_op_pkt_ctx_op(stream_type, name) %}
 
 	/* go back to `content_size` field offset */
 	ctx->at = sctx->off_{{ c_common.op_src(op) }};
 
-		{% set src = 'ctx->content_size' %}
+		{% set src %}ctx->{{ name }}{% endset %}
 		{% filter indent_tab(indent_first=True) %}
 			{% include 'c/serialize-write-saved-int-statements.j2' %}
 
 		{% endfilter %}
 	{% endif %}
-	{% if 'events_discarded' in stream_type._pkt_ctx_ft.members %}
-		{% set op = stream_op_pkt_ctx_op(stream_type, 'events_discarded') %}
+	{% set name = 'events_discarded' %}
+	{% if name in stream_type._pkt_ctx_ft.members %}
+		{% set op = stream_op_pkt_ctx_op(stream_type, name) %}
 
 	/* go back to `events_discarded` field offset */
 	ctx->at = sctx->off_{{ c_common.op_src(op) }};
 
-		{% set src = 'ctx->events_discarded' %}
+		{% set src %}ctx->{{ name }}{% endset %}
 		{% filter indent_tab(indent_first=True) %}
 			{% include 'c/serialize-write-saved-int-statements.j2' %}
 
