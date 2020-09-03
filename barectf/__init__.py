@@ -25,7 +25,7 @@ import barectf.config_parse_common as barectf_config_parse_common
 import barectf.version as barectf_version
 import barectf.config as barectf_config
 import barectf.config_file as barectf_config_file
-import barectf.gen as barectf_gen
+import barectf.codegen as barectf_codegen
 import barectf.typing as barectf_typing
 
 
@@ -93,7 +93,7 @@ effective_configuration_file = barectf_config_file.effective_configuration_file
 
 
 # code generation API
-CodeGenerator = barectf_gen.CodeGenerator
+CodeGenerator = barectf_codegen.CodeGenerator
 
 
 # remove local names
@@ -101,5 +101,5 @@ del barectf_config_parse_common
 del barectf_version
 del barectf_config
 del barectf_config_file
-del barectf_gen
+del barectf_codegen
 del barectf_typing
