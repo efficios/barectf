@@ -24,7 +24,7 @@
  #}
 /* write UUID */
 {
-	static uint8_t uuid[] = {
+	static const uint8_t uuid[] = {
 {% for row in cfg.trace.type.uuid.bytes | batch(4) %}
 		{{ row | join(', ') }},
 {% endfor %}

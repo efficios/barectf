@@ -23,6 +23,6 @@
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
 {% for param in params %}
-    {% set c_type = param.ft | ft_c_type %},
+	{% set c_type = param.ft | ft_c_type(const_params) %},
 	{{ c_type }}{{ ' ' if not c_type.endswith('*') }}{{ prefix }}_{{ param.name }}
 {%- endfor %}

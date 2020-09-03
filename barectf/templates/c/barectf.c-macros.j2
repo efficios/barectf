@@ -34,7 +34,7 @@
  # the stream type `stream_type`.
  #}
 {% macro open_close_func_preamble(stream_type) %}
-struct {{ prefix }}ctx *ctx = &sctx->parent;
+struct {{ prefix }}ctx * const ctx = &sctx->parent;
 {% if stream_type.default_clock_type %}
 const {{ cg_opts.clock_type_c_types[stream_type.default_clock_type] }} ts = ctx->use_cur_last_event_ts ?
 	sctx->cur_last_event_ts :

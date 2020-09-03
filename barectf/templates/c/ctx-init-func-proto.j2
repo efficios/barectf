@@ -23,7 +23,8 @@
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
 {% import 'common.j2' as common %}
+{% import 'c/common.j2' as c_common %}
 /* initialize context */
 void {{ common.prefix }}init(void *vctx,
-	uint8_t *buf, uint32_t buf_size,
-	struct {{ common.prefix }}platform_callbacks cbs, void *data)
+	uint8_t *{{ c_common.const_ptr_str(const_params) }}buf, {{ c_common.const_str(const_params) }}uint32_t buf_size,
+	const struct {{ common.prefix }}platform_callbacks cbs, void *{{ c_common.const_ptr_str(const_params) }}data)

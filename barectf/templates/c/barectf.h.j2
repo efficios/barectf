@@ -30,6 +30,7 @@
 {% set cg_opts = cfg.options.code_generation_options %}
 {% set def_stream_type = cg_opts.default_stream_type %}
 {% set header_opts = cg_opts.header_options %}
+{% set const_params = false %}
 #ifndef _{{ ucprefix }}H
 #define _{{ ucprefix }}H
 
@@ -57,17 +58,17 @@ extern "C" {
 
 struct {{ prefix }}ctx;
 
-uint32_t {{ prefix }}packet_size(void *ctx);
-int {{ prefix }}packet_is_full(void *ctx);
-int {{ prefix }}packet_is_empty(void *ctx);
-uint32_t {{ prefix }}packet_events_discarded(void *ctx);
-uint8_t *{{ prefix }}packet_buf(void *ctx);
+uint32_t {{ prefix }}packet_size(const void *ctx);
+int {{ prefix }}packet_is_full(const void *ctx);
+int {{ prefix }}packet_is_empty(const void *ctx);
+uint32_t {{ prefix }}packet_events_discarded(const void *ctx);
+uint8_t *{{ prefix }}packet_buf(const void *ctx);
 void {{ prefix }}packet_set_buf(void *ctx, uint8_t *buf, uint32_t buf_size);
-uint32_t {{ prefix }}packet_buf_size(void *ctx);
-int {{ prefix }}packet_is_open(void *ctx);
-int {{ prefix }}is_in_tracing_section(void *ctx);
-volatile const int *{{ prefix }}is_in_tracing_section_ptr(void *ctx);
-int {{ prefix }}is_tracing_enabled(void *ctx);
+uint32_t {{ prefix }}packet_buf_size(const void *ctx);
+int {{ prefix }}packet_is_open(const void *ctx);
+int {{ prefix }}is_in_tracing_section(const void *ctx);
+volatile const int *{{ prefix }}is_in_tracing_section_ptr(const void *ctx);
+int {{ prefix }}is_tracing_enabled(const void *ctx);
 void {{ prefix }}enable_tracing(void *ctx, int enable);
 
 /* barectf platform callbacks */

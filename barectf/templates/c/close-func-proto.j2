@@ -23,5 +23,6 @@
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
 {% import 'common.j2' as common %}
+{% import 'c/common.j2' as c_common %}
 /* close packet for stream type `{{ stream_type.name }}` */
-void {{ common.prefix }}{{ stream_type.name }}_close_packet(struct {{ common.prefix }}{{ stream_type.name }}_ctx *sctx)
+void {{ common.prefix }}{{ stream_type.name }}_close_packet(struct {{ common.prefix }}{{ stream_type.name }}_ctx *{{ c_common.const_ptr_str(const_params) }}sctx)

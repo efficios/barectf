@@ -453,8 +453,11 @@ class _CCodeGenerator:
     def _trace_type(self):
         return self._cfg.trace.type
 
-    # Returns the C type for the field type `ft`.
-    def _ft_c_type(self, ft):
+    # Returns the C type for the field type `ft`, returning a `const` C
+    # type if `is_const` is `True`.
+    def _ft_c_type(self, ft, is_const=False):
+        const_beg_str = 'const '
+
         if isinstance(ft, barectf_config._IntegerFieldType):
             sign_prefix = 'u' if isinstance(ft, barectf_config.UnsignedIntegerFieldType) else ''
 
@@ -468,17 +471,19 @@ class _CCodeGenerator:
                 assert ft.size <= 64
                 sz = 64
 
-            return f'{sign_prefix}int{sz}_t'
+            return f'{const_beg_str if is_const else ""}{sign_prefix}int{sz}_t'
         elif type(ft) is barectf_config.RealFieldType:
             if ft.size == 32 and ft.alignment == 32:
-                return 'float'
+                c_type = 'float'
             elif ft.size == 64 and ft.alignment == 64:
-                return 'double'
+                c_type = 'double'
             else:
-                return 'uint64_t'
+                c_type = 'uint64_t'
+
+            return f'{const_beg_str if is_const else ""}{c_type}'
         else:
             assert type(ft) is barectf_config.StringFieldType
-            return 'const char *'
+            return f'const char *{" const" if is_const else ""}'
 
     # Returns the function prototype parameters for the members of the
     # root structure field type `root_ft`.
@@ -486,7 +491,7 @@ class _CCodeGenerator:
     # Each parameter has the prefix `name_prefix` followed with `_`.
     #
     # Members of which the name is in `exclude_set` are excluded.
-    def _proto_params_str(self, root_ft, name_prefix, exclude_set=None):
+    def _proto_params_str(self, root_ft, name_prefix, const_params, exclude_set=None):
         if root_ft is None:
             return
 
@@ -501,14 +506,15 @@ class _CCodeGenerator:
 
             params.append(_FtParam(member.field_type, member_name))
 
-        return self._func_proto_params_templ.render(params=params, prefix=name_prefix)
+        return self._func_proto_params_templ.render(params=params, prefix=name_prefix,
+                                                    const_params=const_params)
 
     # Returns the packet opening function prototype parameters for the
     # stream type `stream_type`.
-    def _open_func_params_str(self, stream_type):
+    def _open_func_params_str(self, stream_type, const_params):
         parts = []
         parts.append(self._proto_params_str(self._trace_type._pkt_header_ft, _RootFtPrefixes.PH,
-                                            {'magic', 'stream_id', 'uuid'}))
+                                            const_params, {'magic', 'stream_id', 'uuid'}))
 
         exclude_set = {
             'timestamp_begin',
@@ -518,38 +524,39 @@ class _CCodeGenerator:
             'events_discarded',
         }
         parts.append(self._proto_params_str(stream_type._pkt_ctx_ft, _RootFtPrefixes.PC,
-                                            exclude_set))
+                                            const_params, exclude_set))
         return ''.join(parts)
 
     # Returns the tracing function prototype parameters for the stream
     # and event types `stream_ev_types`.
-    def _trace_func_params_str(self, stream_ev_types):
+    def _trace_func_params_str(self, stream_ev_types, const_params):
         stream_type = stream_ev_types[0]
         ev_type = stream_ev_types[1]
         parts = []
 
         if stream_type._ev_header_ft is not None:
             parts.append(self._proto_params_str(stream_type._ev_header_ft, _RootFtPrefixes.EH,
-                                                {'id', 'timestamp'}))
+                                                const_params, {'id', 'timestamp'}))
 
         if stream_type.event_common_context_field_type is not None:
             parts.append(self._proto_params_str(stream_type.event_common_context_field_type,
-                                                _RootFtPrefixes.ECC))
+                                                _RootFtPrefixes.ECC, const_params))
 
         if ev_type.specific_context_field_type is not None:
             parts.append(self._proto_params_str(ev_type.specific_context_field_type,
-                                                _RootFtPrefixes.SC))
+                                                _RootFtPrefixes.SC, const_params))
 
         if ev_type.payload_field_type is not None:
-            parts.append(self._proto_params_str(ev_type.payload_field_type, _RootFtPrefixes.P))
+            parts.append(self._proto_params_str(ev_type.payload_field_type, _RootFtPrefixes.P,
+                                                const_params))
 
         return ''.join(parts)
 
     # Returns the event header serialization function prototype
     # parameters for the stream type `stream_type`.
-    def _serialize_ev_common_ctx_func_params_str(self, stream_type):
+    def _serialize_ev_common_ctx_func_params_str(self, stream_type, const_params):
         return self._proto_params_str(stream_type.event_common_context_field_type,
-                                      _RootFtPrefixes.ECC);
+                                      _RootFtPrefixes.ECC, const_params);
 
     # Generates the bitfield header file contents.
     def generate_bitfield_header(self):

@@ -23,5 +23,6 @@
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
 {% import 'common.j2' as common %}
+{% import 'c/common.j2' as c_common %}
 /* trace (stream type `{{ stream_type.name }}`, event type `{{ ev_type.name }}`) */
-void {{ common.prefix }}{{ stream_type.name }}_trace_{{ ev_type.name }}(struct {{ common.prefix }}{{ stream_type.name }}_ctx *sctx{{ (stream_type, ev_type) | trace_func_params_str }})
+void {{ common.prefix }}{{ stream_type.name }}_trace_{{ ev_type.name }}(struct {{ common.prefix }}{{ stream_type.name }}_ctx *{{ c_common.const_ptr_str(const_params) }}sctx{{ (stream_type, ev_type) | trace_func_params_str(const_params) }})

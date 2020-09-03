@@ -55,3 +55,29 @@
 {% macro op_src(op) %}
 {{ op.names | join('_') }}
 {%- endmacro %}
+
+{#
+ # Generates:
+ #
+ # If `is_const` is `true`:
+ #     The string ` const `.
+ #
+ # Otherwise:
+ #     An empty string.
+ #}
+{% macro const_ptr_str(is_const) %}
+{{ ' const ' if is_const else '' }}
+{%- endmacro %}
+
+{#
+ # Generates:
+ #
+ # If `is_const` is `true`:
+ #     The string `const `.
+ #
+ # Otherwise:
+ #     An empty string.
+ #}
+{% macro const_str(is_const) %}
+{{ 'const ' if is_const else '' }}
+{%- endmacro %}

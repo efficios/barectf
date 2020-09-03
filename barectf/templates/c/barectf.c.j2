@@ -29,6 +29,7 @@
 {% set ucprefix = common.ucprefix %}
 {% set ctx_struct_name = c_common.ctx_struct_name %}
 {% set cg_opts = cfg.options.code_generation_options %}
+{% set const_params = true %}
 {% include 'licence-header.j2' %}
 
 
@@ -65,88 +66,89 @@ union _d2u {
 	uint64_t u;
 };
 
-uint32_t {{ prefix }}packet_size(void *ctx)
+uint32_t {{ prefix }}packet_size(const void * const ctx)
 {
-	return _FROM_VOID_PTR(struct {{ ctx_struct_name }}, ctx)->packet_size;
+	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, ctx)->packet_size;
 }
 
-int {{ prefix }}packet_is_full(void *vctx)
+int {{ prefix }}packet_is_full(const void * const vctx)
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	const struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx);
 
 	return ctx->at == ctx->packet_size;
 }
 
-int {{ prefix }}packet_is_empty(void *vctx)
+int {{ prefix }}packet_is_empty(const void * const vctx)
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	const struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx);
 
 	return ctx->at <= ctx->off_content;
 }
 
-uint32_t {{ prefix }}packet_events_discarded(void *vctx)
+uint32_t {{ prefix }}packet_events_discarded(const void * const vctx)
 {
-	return _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx)->events_discarded;
+	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->events_discarded;
 }
 
-uint8_t *{{ prefix }}packet_buf(void *vctx)
+uint8_t *{{ prefix }}packet_buf(const void * const vctx)
 {
-	return _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx)->buf;
+	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->buf;
 }
 
-uint32_t {{ prefix }}packet_buf_size(void *vctx)
+uint32_t {{ prefix }}packet_buf_size(const void * const vctx)
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	const struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx);
 
 	return _BITS_TO_BYTES(ctx->packet_size);
 }
 
-void {{ prefix }}packet_set_buf(void *vctx, uint8_t *buf, uint32_t buf_size)
+void {{ prefix }}packet_set_buf(void * const vctx, uint8_t * const buf,
+		const uint32_t buf_size)
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 
 	ctx->buf = buf;
 	ctx->packet_size = _BYTES_TO_BITS(buf_size);
 }
 
-int {{ prefix }}packet_is_open(void *vctx)
+int {{ prefix }}packet_is_open(const void * const vctx)
 {
-	return _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx)->packet_is_open;
+	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->packet_is_open;
 }
 
-int {{ prefix }}is_in_tracing_section(void *vctx)
+int {{ prefix }}is_in_tracing_section(const void * const vctx)
 {
-	return _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx)->in_tracing_section;
+	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->in_tracing_section;
 }
 
-volatile const int *{{ prefix }}is_in_tracing_section_ptr(void *vctx)
+volatile const int *{{ prefix }}is_in_tracing_section_ptr(const void * const vctx)
 {
-	return &_FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx)->in_tracing_section;
+	return &_FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->in_tracing_section;
 }
 
-int {{ prefix }}is_tracing_enabled(void *vctx)
+int {{ prefix }}is_tracing_enabled(const void * const vctx)
 {
-	return _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx)->is_tracing_enabled;
+	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->is_tracing_enabled;
 }
 
-void {{ prefix }}enable_tracing(void *vctx, int enable)
+void {{ prefix }}enable_tracing(void * const vctx, const int enable)
 {
 	_FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx)->is_tracing_enabled = enable;
 }
 
 static
-void _write_c_str(struct {{ ctx_struct_name }} *ctx, const char *src)
+void _write_c_str(struct {{ ctx_struct_name }} * const ctx, const char * const src)
 {
-	uint32_t sz = strlen(src) + 1;
+	const uint32_t sz = strlen(src) + 1;
 
 	memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], src, sz);
 	ctx->at += _BYTES_TO_BITS(sz);
 }
 
 static
-int _reserve_ev_space(void *vctx, uint32_t ev_size)
+int _reserve_ev_space(void * const vctx, const uint32_t ev_size)
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 
 	/* event _cannot_ fit? */
 	if (ev_size > (ctx->packet_size - ctx->off_content)) {
@@ -194,9 +196,9 @@ int _reserve_ev_space(void *vctx, uint32_t ev_size)
 }
 
 static
-void _commit_ev(void *vctx)
+void _commit_ev(void * const vctx)
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 
 	/* is packet full? */
 	if ({{ prefix }}packet_is_full(ctx)) {
@@ -208,7 +210,7 @@ void _commit_ev(void *vctx)
 {% include 'c/ctx-init-func-proto.j2' %}
 
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 	ctx->cbs = cbs;
 	ctx->data = data;
 	ctx->buf = buf;
@@ -377,12 +379,12 @@ void _commit_ev(void *vctx)
 }
 	{% if stream_type._ev_header_ft %}
 
-static void _serialize_ev_header_{{ stream_type.name }}(void *vctx,
-	uint32_t ev_type_id)
+static void _serialize_ev_header_{{ stream_type.name }}(void * const vctx,
+	const uint32_t ev_type_id)
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 		{% if def_clk_type %}
-	struct {{ sctx_name }}_ctx *sctx = _FROM_VOID_PTR(struct {{ sctx_name }}_ctx, vctx);
+	struct {{ sctx_name }}_ctx * const sctx = _FROM_VOID_PTR(struct {{ sctx_name }}_ctx, vctx);
 	const {{ cg_opts.clock_type_c_types[def_clk_type] }} ts = sctx->cur_last_event_ts;
 		{% endif %}
 
@@ -397,9 +399,9 @@ static void _serialize_ev_header_{{ stream_type.name }}(void *vctx,
 	{% endif %}
 	{% if stream_type.event_common_context_field_type %}
 
-static void _serialize_ev_common_ctx_{{ stream_type.name }}(void *vctx{{ stream_type | serialize_ev_common_ctx_func_params_str }})
+static void _serialize_ev_common_ctx_{{ stream_type.name }}(void * const vctx{{ stream_type | serialize_ev_common_ctx_func_params_str(const_params) }})
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 
 	/* serialize event common context */
 	{
@@ -413,9 +415,9 @@ static void _serialize_ev_common_ctx_{{ stream_type.name }}(void *vctx{{ stream
 	{# internal serialization functions #}
 	{% for ev_type in stream_type.event_types | sort %}
 
-static void _serialize_ev_{{ stream_type.name }}_{{ ev_type.name }}(void *vctx{{ (stream_type, ev_type) | trace_func_params_str }})
+static void _serialize_ev_{{ stream_type.name }}_{{ ev_type.name }}(void * const vctx{{ (stream_type, ev_type) | trace_func_params_str(const_params) }})
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 		{% if stream_type._ev_header_ft %}
 
 	/* serialize header */
@@ -454,9 +456,9 @@ static void _serialize_ev_{{ stream_type.name }}_{{ ev_type.name }}(void *vctx{{
 	{% for ev_type in stream_type.event_types | sort %}
 		{% set this_ev_ops = this_stream_ops.ev_ops[ev_type] %}
 
-static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void *vctx{{ (stream_type, ev_type) | trace_func_params_str }})
+static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void * const vctx{{ (stream_type, ev_type) | trace_func_params_str(const_params) }})
 {
-	struct {{ ctx_struct_name }} *ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
+	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 	uint32_t at = ctx->at;
 		{% if this_stream_ops.ev_header_ops %}
 
@@ -508,7 +510,7 @@ static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void *vctx{{ 
 		{% include 'c/trace-func-proto.j2' %}
 
 {
-	struct {{ ctx_struct_name }} *ctx = &sctx->parent;
+	struct {{ ctx_struct_name }} * const ctx = &sctx->parent;
 	uint32_t ev_size;
 
 		{% if def_clk_type %}
