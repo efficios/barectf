@@ -65,6 +65,8 @@ jinja2 = '^2.11'
 flake8 = '*'
 pylint = '*'
 mypy = '*'
+pytest = '^6'
+pytest-xdist = '^2'
 
 [tool.poetry.scripts]
 barectf = 'barectf.cli:_run'
