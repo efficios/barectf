@@ -359,6 +359,10 @@ class _Parser:
         self._major_version = major_version
 
     @property
+    def root_node(self):
+        return self._root_node
+
+    @property
     def _struct_ft_node_members_prop_name(self) -> str:
         if self._major_version == 2:
             return 'fields'

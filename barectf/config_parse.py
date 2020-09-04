@@ -77,7 +77,7 @@ def _effective_config_file(file: TextIO, with_pkg_include_dir: bool,
                            include_dirs: Optional[List[str]], ignore_include_not_found: bool,
                            indent_space_count: Count) -> str:
     config_node = _create_v3_parser(file, with_pkg_include_dir, include_dirs,
-                                    ignore_include_not_found).config_node
+                                    ignore_include_not_found).root_node
     return barectf_config_parse_common._yaml_dump(config_node, indent=indent_space_count,
                                                   default_flow_style=False, explicit_start=True,
                                                   explicit_end=True)
