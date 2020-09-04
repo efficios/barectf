@@ -39,10 +39,6 @@
 # define _CAST_PTR(_type, _value)	((void *) (_value))
 #endif
 
-{% set tgt_bo = cfg.target_byte_order %}
-{% set tgt_bo_str = 'LITTLE_ENDIAN' if tgt_bo == barectf_config.ByteOrder.LITTLE_ENDIAN else 'BIG_ENDIAN' %}
-#define _BYTE_ORDER {{ tgt_bo_str }}
-
 /* We can't shift a int from 32 bit, >> 32 and << 32 on int is undefined */
 #define _bt_piecewise_rshift(_vtype, _v, _shift) \
 do {									\
@@ -191,31 +187,18 @@ do {									\
 		__ptr[this_unit] = (type) __v;				\
 } while (0)
 
-/*
- * bt_bitfield_write_le - write integer to a bitfield in little endian
- * bt_bitfield_write_be - write integer to a bitfield in big endian
- */
-
-#if (_BYTE_ORDER == LITTLE_ENDIAN)
-
-#define bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v)	\
+{% if cfg.target_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN %}
+/* Target byte order: little-endian */
+#define bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v) \
 	_bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v)
-
-#define bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v)	\
+#define bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v) \
 	_bt_bitfield_write_be(ptr, unsigned char, _start, _length, _vtype, _v)
-
-#elif (_BYTE_ORDER == BIG_ENDIAN)
-
-#define bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v)	\
+{% else %}
+/* Target byte order: big-endian */
+#define bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v) \
 	_bt_bitfield_write_le(ptr, unsigned char, _start, _length, _vtype, _v)
-
-#define bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v)	\
+#define bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v) \
 	_bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v)
-
-#else /* (_BYTE_ORDER == PDP_ENDIAN) */
-
-#error "Byte order not supported"
-
-#endif
+{% endif %}
 
 #endif /* _{{ ucprefix }}BITFIELD_H */
