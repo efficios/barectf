@@ -39,7 +39,7 @@
 trace {
 	major = 1;
 	minor = 8;
-	byte_order = {{ cfg.trace.type.default_byte_order | bo_str }};
+	byte_order = {{ cfg.target_byte_order | bo_str }};
 {% if cfg.trace.type.uuid %}
 	uuid = "{{ cfg.trace.type.uuid }}";
 {% endif %}

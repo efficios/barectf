@@ -462,8 +462,10 @@ class _Parser(barectf_config_parse_common._Parser):
                                                                    pkt_content_size_ft,
                                                                    pkt_beginning_time_ft,
                                                                    pkt_end_time_ft,
-                                                                   pkt_discarded_events_counter_ft)
-            ev_features = barectf_config.StreamTypeEventFeatures(ev_type_id_ft, ev_time_ft)
+                                                                   pkt_discarded_events_counter_ft,
+                                                                   default_byte_order=self._target_byte_order)
+            ev_features = barectf_config.StreamTypeEventFeatures(ev_type_id_ft, ev_time_ft,
+                                                                 default_byte_order=self._target_byte_order)
             features = barectf_config.StreamTypeFeatures(pkt_features, ev_features)
 
             # create packet context (structure) field type extra members
@@ -508,7 +510,7 @@ class _Parser(barectf_config_parse_common._Parser):
                 ev_types.add(self._create_ev_type(ev_name, ev_type_node, ev_header_common_ctx_member_count))
 
             # create stream type
-            return barectf_config.StreamType(name, ev_types, def_clk_type, features,
+            return barectf_config.StreamType(name, ev_types, def_clk_type, features, None,
                                              pkt_ctx_ft_extra_members,
                                              self._try_create_struct_ft(stream_type_node,
                                                                         ev_common_ctx_ft_prop_name))
@@ -604,7 +606,8 @@ class _Parser(barectf_config_parse_common._Parser):
             except _ConfigurationParseError as exc:
                 _append_error_ctx(exc, '`$features` property')
 
-            features = barectf_config.TraceTypeFeatures(magic_ft, uuid_ft, stream_type_id_ft)
+            features = barectf_config.TraceTypeFeatures(magic_ft, uuid_ft, stream_type_id_ft,
+                                                        default_byte_order=self._target_byte_order)
 
             # create stream types
             stream_types = set()
@@ -613,8 +616,7 @@ class _Parser(barectf_config_parse_common._Parser):
                 stream_types.add(self._create_stream_type(stream_name, stream_type_node))
 
             # create trace type
-            return barectf_config.TraceType(stream_types, self._default_byte_order,
-                                            trace_type_uuid, features)
+            return barectf_config.TraceType(stream_types, trace_type_uuid, features)
         except _ConfigurationParseError as exc:
             _append_error_ctx(exc, 'Trace type')
 
@@ -712,7 +714,7 @@ class _Parser(barectf_config_parse_common._Parser):
         opts = barectf_config.ConfigurationOptions(cg_opts)
 
         # create configuration
-        self._config = barectf_config.Configuration(trace, opts)
+        self._config = barectf_config.Configuration(trace, self._target_byte_order, opts)
 
     # Expands the field type aliases found in the trace type node.
     #
@@ -1051,7 +1053,7 @@ class _Parser(barectf_config_parse_common._Parser):
     #
     # 2. Chooses a specific `class` property value.
     #
-    # 3. Chooses a specific `byte-order`/`$default-byte-order` property
+    # 3. Chooses a specific `byte-order`/`target-byte-order` property
     #    value.
     #
     # 4. Chooses a specific `preferred-display-base` property value.
@@ -1069,10 +1071,7 @@ class _Parser(barectf_config_parse_common._Parser):
 
         trace_node = self.config_node['trace']
         trace_type_node = trace_node['type']
-        prop_name = '$default-byte-order'
-
-        if prop_name in trace_type_node and type(trace_type_node[prop_name]) is str:
-            normalize_byte_order_prop(trace_type_node, prop_name)
+        normalize_byte_order_prop(self.config_node, 'target-byte-order')
 
         for parent_node, key in self._trace_type_props():
             node = parent_node[key]
@@ -1118,9 +1117,9 @@ class _Parser(barectf_config_parse_common._Parser):
             if node is None:
                 del trace_node[prop_name]
 
-    # Substitutes missing/`None` `byte-order` properties with the trace
-    # type node's default byte order (`$default-byte-order` property),
-    # if any.
+    # Substitutes missing/`None` `byte-order` properties with the
+    # configuration node's target byte order (`target-byte-order`
+    # property).
     def _sub_ft_nodes_byte_order(self):
         ba_ft_class_names = {
             'unsigned-integer',
@@ -1144,11 +1143,7 @@ class _Parser(barectf_config_parse_common._Parser):
                 byte_order_node = ft_node.get(prop_name)
 
                 if byte_order_node is None:
-                    if default_byte_order_node is None:
-                        raise _ConfigurationParseError(f'`{key}` property`',
-                                                       '`byte-order` property is not set or null, but trace type has no `$default-byte-order` property')
-
-                    ft_node[prop_name] = default_byte_order_node
+                    ft_node[prop_name] = self._target_byte_order_node
 
             members_node = ft_node.get('members')
 
@@ -1166,13 +1161,8 @@ class _Parser(barectf_config_parse_common._Parser):
                 except _ConfigurationParseError as exc:
                     _append_error_ctx(exc, f'Structure field type member `{member_name}`')
 
-        default_byte_order_node = self._trace_type_node.get('$default-byte-order')
-
-        self._default_byte_order = None
-
-        if default_byte_order_node is not None:
-            self._default_byte_order = self._byte_order_from_node(default_byte_order_node)
-
+        self._target_byte_order_node = self.config_node['target-byte-order']
+        self._target_byte_order = self._byte_order_from_node(self._target_byte_order_node)
         features_prop_name = '$features'
         features_node = self._trace_type_node.get(features_prop_name)
 
@@ -1398,9 +1388,6 @@ class _Parser(barectf_config_parse_common._Parser):
 
         # Set `byte-order` properties of bit array field type nodes
         # missing one.
-        #
-        # This process also removes the `$default-byte-order` property
-        # from the trace type node.
         self._sub_ft_nodes_byte_order()
 
         # Create a barectf configuration object from the configuration
