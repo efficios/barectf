@@ -1070,7 +1070,6 @@ class _Parser(barectf_config_parse_common._Parser):
                 parent_node[key] = 'little-endian'
 
         trace_node = self.config_node['trace']
-        trace_type_node = trace_node['type']
         normalize_byte_order_prop(self.config_node, 'target-byte-order')
 
         for parent_node, key in self._trace_type_props():
