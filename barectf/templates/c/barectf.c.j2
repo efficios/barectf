@@ -530,7 +530,6 @@ static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void * const 
 	sctx->cur_last_event_ts = ctx->cbs.{{ def_clk_type.name }}_clock_get_value(ctx->data);
 
 		{% endif %}
-
 	if (!ctx->is_tracing_enabled) {
 		goto end;
 	}
