@@ -480,7 +480,6 @@ class StreamTypeFeatures:
         else:
             self._packet_features = packet_features
 
-
         if event_features is None:
             self._event_features = StreamTypeEventFeatures(default_byte_order=default_byte_order)
         else:
