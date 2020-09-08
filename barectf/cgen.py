@@ -36,31 +36,22 @@ from barectf.typing import Count, Alignment
 _OpTemplates = collections.namedtuple('_OpTemplates', ['serialize', 'size'])
 
 
-# Base class of any operation within source code.
+# Abstract base class of any operation within source code.
 #
 # Any operation has:
 #
-# * An offset at which to start to write within the current byte.
-#
 # * A field type.
 #
-# * A list of names which, when joined with `_`, form the generic C
-#   source variable name.
+# * A list of names which, when joined with `_`, form the generic
+#   C source variable name.
 #
 # * Serialization and size computation templates to generate the
 #   operation's source code for those functions.
 class _Op:
-    def __init__(self, offset_in_byte: Count, ft: barectf_config._FieldType, names: List[str],
-                 templates: _OpTemplates):
-        assert(offset_in_byte >= 0 and offset_in_byte < 8)
-        self._offset_in_byte = offset_in_byte
+    def __init__(self, ft: barectf_config._FieldType, names: List[str], templates: _OpTemplates):
         self._ft = ft
         self._names = copy.copy(names)
         self._templates = templates
-
-    @property
-    def offset_in_byte(self) -> Count:
-        return self._offset_in_byte
 
     @property
     def ft(self) -> barectf_config._FieldType:
@@ -85,8 +76,41 @@ class _Op:
         return self._render_template(self._templates.size, **kwargs)
 
 
+# Compound operation.
+#
+# A compound operation contains a list of suboperations (leaf or
+# compound).
+#
+# Get the suboperations of a compound operation with its `subops`
+# property.
+#
+# The templates of a compound operation handles its suboperations.
+class _CompoundOp(_Op):
+    def __init__(self, ft: barectf_config._FieldType, names: List[str], templates: _OpTemplates,
+                 subops: List[Any] = None):
+        super().__init__(ft, names, templates)
+        self._subops = subops
+
+    @property
+    def subops(self):
+        return self._subops
+
+
+# Leaf operation (abstract class).
+class _LeafOp(_Op):
+    def __init__(self, offset_in_byte: Count, ft: barectf_config._FieldType, names: List[str],
+                 templates: _OpTemplates):
+        super().__init__(ft, names, templates)
+        assert offset_in_byte >= 0 and offset_in_byte < 8
+        self._offset_in_byte = offset_in_byte
+
+    @property
+    def offset_in_byte(self) -> Count:
+        return self._offset_in_byte
+
+
 # An "align" operation.
-class _AlignOp(_Op):
+class _AlignOp(_LeafOp):
     def __init__(self, offset_in_byte: Count, ft: barectf_config._FieldType, names: List[str],
                  templates: _OpTemplates, value: Alignment):
         super().__init__(offset_in_byte, ft, names, templates)
@@ -98,67 +122,63 @@ class _AlignOp(_Op):
 
 
 # A "write" operation.
-class _WriteOp(_Op):
+class _WriteOp(_LeafOp):
     pass
 
 
 _SpecSerializeWriteTemplates = Mapping[str, barectf_template._Template]
-_Ops = List[_Op]
 
 
-# A builder of a chain of operations.
+# An operation builder.
 #
 # Such a builder is closely connected to a `_CodeGen` object using it to
 # find generic templates.
 #
-# Call append_root_ft() to make an operation builder append operations
-# to itself for each member, recursively, of the structure field type.
-#
-# Get an operation builder's operations with its `ops` property.
-class _OpsBuilder:
+# Call build_for_root_ft() to make an operation builder create a
+# compound operation for a given root structure field type, recursively,
+# and return it.
+class _OpBuilder:
     def __init__(self, cg: '_CodeGen'):
         self._last_alignment: Optional[Alignment] = None
         self._last_bit_array_size: Optional[Count] = None
-        self._ops: _Ops = []
         self._names: List[str] = []
         self._offset_in_byte = Count(0)
         self._cg = cg
 
-    @property
-    def ops(self) -> _Ops:
-        return self._ops
-
-    # Creates and appends the operations for the members, recursively,
-    # of the root structure field type `ft` named `name`.
+    # Creates and returns an operation for the root structure field type
+    # `ft` named `name`.
     #
     # `spec_serialize_write_templates` is a mapping of first level
     # member names to specialized serialization "write" templates.
-    def append_root_ft(self, ft: barectf_config._FieldType, name: str,
-                       spec_serialize_write_templates: Optional[_SpecSerializeWriteTemplates] = None):
-        if ft is None:
-            return
+    def build_for_root_ft(self, ft: barectf_config.StructureFieldType, name: str,
+                          spec_serialize_write_templates: Optional[_SpecSerializeWriteTemplates] = None) -> _CompoundOp:
+        assert ft is not None
 
         if spec_serialize_write_templates is None:
             spec_serialize_write_templates = {}
 
         assert type(ft) is barectf_config.StructureFieldType
         assert len(self._names) == 0
-        self._append_ft(ft, name, spec_serialize_write_templates)
+        ops = self._build_for_ft(ft, name, spec_serialize_write_templates)
+        assert len(ops) == 1
+        assert type(ops[0]) is _CompoundOp
+        return typing.cast(_CompoundOp, ops[0])
 
-    # Creates and appends the operations of a given field type `ft`
+    # Creates and returns the operation(s) for a given field type `ft`
     # named `name`.
     #
-    # See append_root_ft() for `spec_serialize_write_templates`.
-    def _append_ft(self, ft: barectf_config._FieldType, name: str,
-                   spec_serialize_write_templates: _SpecSerializeWriteTemplates):
+    # See build_for_root_ft() for `spec_serialize_write_templates`.
+    def _build_for_ft(self, ft: barectf_config._FieldType, name: str,
+                      spec_serialize_write_templates: _SpecSerializeWriteTemplates) -> List[_Op]:
         def top_name() -> str:
             return self._names[-1]
 
-        # Appends a "write" operation for the field type `ft`.
+        # Creates and returns a "write" operation for the field type
+        # `ft`.
         #
         # This function considers `spec_serialize_write_templates` to
         # override generic templates.
-        def append_write_op(ft: barectf_config._FieldType):
+        def create_write_op(ft: barectf_config._FieldType) -> _WriteOp:
             assert type(ft) is not barectf_config.StructureFieldType
             offset_in_byte = self._offset_in_byte
 
@@ -186,15 +206,15 @@ class _OpsBuilder:
             elif type(ft) is barectf_config.StringFieldType:
                 size_write_templ = self._cg._size_write_string_statements_templ
 
-            self._ops.append(_WriteOp(offset_in_byte, ft, self._names,
-                                      _OpTemplates(serialize_write_templ, size_write_templ)))
+            return _WriteOp(offset_in_byte, ft, self._names,
+                            _OpTemplates(serialize_write_templ, size_write_templ))
 
-        # Creates and appends an "align" operation for the field type
+        # Creates and returns an "align" operation for the field type
         # `ft` if needed.
         #
         # This function updates the builder's state.
-        def try_append_align_op(alignment: Alignment, do_align: bool,
-                                ft: barectf_config._FieldType):
+        def try_create_align_op(alignment: Alignment, do_align: bool,
+                                ft: barectf_config._FieldType) -> Optional[_AlignOp]:
             def align(v: Count, alignment: Alignment) -> Count:
                 return Count((v + (alignment - 1)) & -alignment)
 
@@ -202,10 +222,12 @@ class _OpsBuilder:
             self._offset_in_byte = Count(align(self._offset_in_byte, alignment) % 8)
 
             if do_align and alignment > 1:
-                self._ops.append(_AlignOp(offset_in_byte, ft, self._names,
-                                          _OpTemplates(self._cg._serialize_align_statements_templ,
-                                                       self._cg._size_align_statements_templ),
-                                          alignment))
+                return _AlignOp(offset_in_byte, ft, self._names,
+                                _OpTemplates(self._cg._serialize_align_statements_templ,
+                                             self._cg._size_align_statements_templ),
+                                alignment)
+
+            return None
 
         # Returns whether or not, considering the alignment requirement
         # `align_req` and the builder's current state, we must create
@@ -216,6 +238,9 @@ class _OpsBuilder:
         # push field type's name to the builder's name stack initially
         self._names.append(name)
 
+        # operations to return
+        ops: List[_Op] = []
+
         if isinstance(ft, (barectf_config.StringFieldType, barectf_config._ArrayFieldType)):
             assert type(ft) is barectf_config.StringFieldType or top_name() == 'uuid'
 
@@ -223,50 +248,78 @@ class _OpsBuilder:
             do_align = must_align(Alignment(8))
             self._last_alignment = Alignment(8)
             self._last_bit_array_size = Count(8)
-            try_append_align_op(Alignment(8), do_align, ft)
-            append_write_op(ft)
+            op = try_create_align_op(Alignment(8), do_align, ft)
+
+            if op is not None:
+                ops.append(op)
+
+            ops.append(create_write_op(ft))
         else:
             do_align = must_align(ft.alignment)
             self._last_alignment = ft.alignment
 
             if type(ft) is barectf_config.StructureFieldType:
+                # reset last bit array size
                 self._last_bit_array_size = typing.cast(Count, ft.alignment)
             else:
                 assert isinstance(ft, barectf_config._BitArrayFieldType)
                 ft = typing.cast(barectf_config._BitArrayFieldType, ft)
                 self._last_bit_array_size = ft.size
 
-            try_append_align_op(ft.alignment, do_align, ft)
+            init_align_op = try_create_align_op(ft.alignment, do_align, ft)
 
             if type(ft) is barectf_config.StructureFieldType:
                 ft = typing.cast(barectf_config.StructureFieldType, ft)
+                subops: List[_Op] = []
+
+                if init_align_op is not None:
+                    # append structure field's alignment as a suboperation
+                    subops.append(init_align_op)
+
+                # append suboperations for each member
                 for member_name, member in ft.members.items():
-                    self._append_ft(member.field_type, member_name, spec_serialize_write_templates)
+                    subops += self._build_for_ft(member.field_type, member_name,
+                                                 spec_serialize_write_templates)
+
+                # create structre field's compound operation
+                ops.append(_CompoundOp(ft, self._names,
+                                       _OpTemplates(self._cg._serialize_write_struct_statements_templ,
+                                                    self._cg._size_write_struct_statements_templ),
+                                        subops))
             else:
-                append_write_op(ft)
+                # leaf field: align + write
+                if init_align_op is not None:
+                    ops.append(init_align_op)
+
+                ops.append(create_write_op(ft))
 
         # exiting for this field type: pop its name
         del self._names[-1]
+
+        return ops
+
+
+_OptCompoundOp = Optional[_CompoundOp]
 
 
 # The operations for an event.
 #
 # The available operations are:
 #
-# * Specific context operations.
-# * Payload operations.
+# * Specific context operation.
+# * Payload operation.
 class _EvOps:
-    def __init__(self, spec_ctx_ops: _Ops, payload_ops: _Ops):
-        self._spec_ctx_ops = copy.copy(spec_ctx_ops)
-        self._payload_ops = copy.copy(payload_ops)
+    def __init__(self, spec_ctx_op: _OptCompoundOp, payload_op: _OptCompoundOp):
+        self._spec_ctx_op = spec_ctx_op
+        self._payload_op = payload_op
 
     @property
-    def spec_ctx_ops(self) -> _Ops:
-        return self._spec_ctx_ops
+    def spec_ctx_op(self) -> _OptCompoundOp:
+        return self._spec_ctx_op
 
     @property
-    def payload_ops(self) -> _Ops:
-        return self._payload_ops
+    def payload_op(self) -> _OptCompoundOp:
+        return self._payload_op
 
 
 _EvOpsMap = Mapping[barectf_config.EventType, _EvOps]
@@ -276,35 +329,35 @@ _EvOpsMap = Mapping[barectf_config.EventType, _EvOps]
 #
 # The available operations are:
 #
-# * Packet header operations.
-# * Packet context operations.
-# * Event header operations.
-# * Event common context operations.
+# * Packet header operation.
+# * Packet context operation.
+# * Event header operation.
+# * Event common context operation.
 # * Event operations (`_EvOps`).
 class _StreamOps:
-    def __init__(self, pkt_header_ops: _Ops, pkt_ctx_ops: _Ops, ev_header_ops: _Ops,
-                 ev_common_ctx_ops: _Ops, ev_ops: _EvOpsMap):
-        self._pkt_header_ops = copy.copy(pkt_header_ops)
-        self._pkt_ctx_ops = copy.copy(pkt_ctx_ops)
-        self._ev_header_ops = copy.copy(ev_header_ops)
-        self._ev_common_ctx_ops = copy.copy(ev_common_ctx_ops)
-        self._ev_ops = copy.copy(ev_ops)
+    def __init__(self, pkt_header_op: _OptCompoundOp, pkt_ctx_op: _CompoundOp,
+                 ev_header_op: _OptCompoundOp, ev_common_ctx_op: _OptCompoundOp, ev_ops: _EvOpsMap):
+        self._pkt_header_op = pkt_header_op
+        self._pkt_ctx_op = pkt_ctx_op
+        self._ev_header_op = ev_header_op
+        self._ev_common_ctx_op = ev_common_ctx_op
+        self._ev_ops = ev_ops
 
     @property
-    def pkt_header_ops(self) -> _Ops:
-        return self._pkt_header_ops
+    def pkt_header_op(self) -> _OptCompoundOp:
+        return self._pkt_header_op
 
     @property
-    def pkt_ctx_ops(self) -> _Ops:
-        return self._pkt_ctx_ops
+    def pkt_ctx_op(self) -> _CompoundOp:
+        return self._pkt_ctx_op
 
     @property
-    def ev_header_ops(self) -> _Ops:
-        return self._ev_header_ops
+    def ev_header_op(self) -> _OptCompoundOp:
+        return self._ev_header_op
 
     @property
-    def ev_common_ctx_ops(self) -> _Ops:
-        return self._ev_common_ctx_ops
+    def ev_common_ctx_op(self) -> _OptCompoundOp:
+        return self._ev_common_ctx_op
 
     @property
     def ev_ops(self) -> _EvOpsMap:
@@ -358,6 +411,7 @@ class _CodeGen:
         self._serialize_write_int_statements_templ = self._create_template('serialize-write-int-statements.j2')
         self._serialize_write_real_statements_templ = self._create_template('serialize-write-real-statements.j2')
         self._serialize_write_string_statements_templ = self._create_template('serialize-write-string-statements.j2')
+        self._serialize_write_struct_statements_templ = self._create_template('serialize-write-struct-statements.j2')
         self._serialize_write_magic_statements_templ = self._create_template('serialize-write-magic-statements.j2')
         self._serialize_write_uuid_statements_templ = self._create_template('serialize-write-uuid-statements.j2')
         self._serialize_write_stream_type_id_statements_templ = self._create_template('serialize-write-stream-type-id-statements.j2')
@@ -368,6 +422,7 @@ class _CodeGen:
         self._size_align_statements_templ = self._create_template('size-align-statements.j2')
         self._size_write_bit_array_statements_templ = self._create_template('size-write-bit-array-statements.j2')
         self._size_write_string_statements_templ = self._create_template('size-write-string-statements.j2')
+        self._size_write_struct_statements_templ = self._create_template('size-write-struct-statements.j2')
 
     # Creates and returns a template named `name` which is a file
     # template if `is_file_template` is `True`.
@@ -535,23 +590,22 @@ class _CodeGen:
             stream_ser_ops = {}
 
             for stream_type in self._trace_type.stream_types:
-                pkt_header_ser_ops = []
-                builder = _OpsBuilder(self)
+                pkt_header_ser_op = None
+                builder = _OpBuilder(self)
                 pkt_header_ft = self._trace_type._pkt_header_ft
 
-                # packet header serialization operations
+                # packet header operations
                 if pkt_header_ft is not None:
                     spec_serialize_write_templates = {
                         'magic': self._serialize_write_magic_statements_templ,
                         'uuid': self._serialize_write_uuid_statements_templ,
                         'stream_id': self._serialize_write_stream_type_id_statements_templ,
                     }
-                    builder.append_root_ft(pkt_header_ft, _RootFtPrefixes.PH,
-                                           spec_serialize_write_templates)
-                    pkt_header_ser_ops = copy.copy(builder.ops)
+                    pkt_header_ser_op = builder.build_for_root_ft(pkt_header_ft,
+                                                                  _RootFtPrefixes.PH,
+                                                                  spec_serialize_write_templates)
 
-                # packet context serialization operations
-                first_op_index = len(builder.ops)
+                # packet context operations
                 spec_serialize_write_templates = {
                     'timestamp_begin': self._serialize_write_time_statements_templ,
                     'packet_size': self._serialize_write_packet_size_statements_templ,
@@ -559,59 +613,54 @@ class _CodeGen:
                     'events_discarded': self._serialize_write_skip_save_statements_templ,
                     'content_size': self._serialize_write_skip_save_statements_templ,
                 }
-                builder.append_root_ft(stream_type._pkt_ctx_ft, _RootFtPrefixes.PC,
-                                       spec_serialize_write_templates)
-                pkt_ctx_ser_ops = copy.copy(builder.ops[first_op_index:])
+                pkt_ctx_ser_op = builder.build_for_root_ft(stream_type._pkt_ctx_ft,
+                                                           _RootFtPrefixes.PC,
+                                                           spec_serialize_write_templates)
 
-                # event header serialization operations
-                builder = _OpsBuilder(self)
-                ev_header_ser_ops = []
+                # event header operationss
+                builder = _OpBuilder(self)
+                ev_header_ser_op = None
 
                 if stream_type._ev_header_ft is not None:
                     spec_serialize_write_templates = {
                         'timestamp': self._serialize_write_time_statements_templ,
                         'id': self._serialize_write_ev_type_id_statements_templ,
                     }
-                    builder.append_root_ft(stream_type._ev_header_ft, _RootFtPrefixes.EH,
-                                           spec_serialize_write_templates)
-                    ev_header_ser_ops = copy.copy(builder.ops)
+                    ev_header_ser_op = builder.build_for_root_ft(stream_type._ev_header_ft,
+                                                                 _RootFtPrefixes.EH,
+                                                                 spec_serialize_write_templates)
 
-                # event common context serialization operations
-                ev_common_ctx_ser_ops = []
+                # event common context operations
+                ev_common_ctx_ser_op = None
 
                 if stream_type.event_common_context_field_type is not None:
-                    first_op_index = len(builder.ops)
-                    builder.append_root_ft(stream_type.event_common_context_field_type,
-                                           _RootFtPrefixes.ECC)
-                    ev_common_ctx_ser_ops = copy.copy(builder.ops[first_op_index:])
+                    ev_common_ctx_ser_op = builder.build_for_root_ft(stream_type.event_common_context_field_type,
+                                                                     _RootFtPrefixes.ECC)
 
-                # serialization operations specific to each event type
+                # operations specific to each event type
                 ev_ser_ops = {}
 
                 for ev_type in stream_type.event_types:
                     ev_builder = copy.copy(builder)
 
-                    # specific context serialization operations
-                    spec_ctx_ser_ops = []
+                    # specific context operations
+                    spec_ctx_ser_op = None
 
                     if ev_type.specific_context_field_type is not None:
-                        first_op_index = len(ev_builder.ops)
-                        ev_builder.append_root_ft(ev_type.specific_context_field_type,
-                                                  _RootFtPrefixes.SC)
-                        spec_ctx_ser_ops = copy.copy(ev_builder.ops[first_op_index:])
+                        spec_ctx_ser_op = ev_builder.build_for_root_ft(ev_type.specific_context_field_type,
+                                                                       _RootFtPrefixes.SC)
 
-                    # payload serialization operations
-                    payload_ser_ops = []
+                    # payload operations
+                    payload_ser_op = None
 
                     if ev_type.payload_field_type is not None:
-                        first_op_index = len(ev_builder.ops)
-                        ev_builder.append_root_ft(ev_type.payload_field_type, _RootFtPrefixes.P)
-                        payload_ser_ops = copy.copy(ev_builder.ops[first_op_index:])
+                        payload_ser_op = ev_builder.build_for_root_ft(ev_type.payload_field_type,
+                                                                      _RootFtPrefixes.P)
 
-                    ev_ser_ops[ev_type] = _EvOps(spec_ctx_ser_ops, payload_ser_ops)
+                    ev_ser_ops[ev_type] = _EvOps(spec_ctx_ser_op, payload_ser_op)
 
-                stream_ser_ops[stream_type] = _StreamOps(pkt_header_ser_ops, pkt_ctx_ser_ops,
-                                                         ev_header_ser_ops, ev_common_ctx_ser_ops,
+                stream_ser_ops[stream_type] = _StreamOps(pkt_header_ser_op, pkt_ctx_ser_op,
+                                                         ev_header_ser_op, ev_common_ctx_ser_op,
                                                          ev_ser_ops)
 
             return stream_ser_ops
@@ -621,7 +670,7 @@ class _CodeGen:
         def stream_op_pkt_ctx_op(stream_type: barectf_config.StreamType, member_name: str) -> _Op:
             ret_op = None
 
-            for op in stream_ops[stream_type].pkt_ctx_ops:
+            for op in stream_ops[stream_type].pkt_ctx_op.subops:
                 if op.top_name == member_name and type(op) is _WriteOp:
                     ret_op = op
                     break

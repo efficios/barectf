@@ -268,25 +268,13 @@ void _commit_ev(void * const vctx)
 	}
 
 	ctx->at = 0;
-	{% set pkt_header_ops = this_stream_ops.pkt_header_ops %}
-	{% if pkt_header_ops %}
+	{% set pkt_header_op = this_stream_ops.pkt_header_op %}
+	{% if pkt_header_op %}
 
-	/* Serialize packet header */
-	{
-		{% for op in pkt_header_ops %}
-		{{ op.serialize_str(stream_type=stream_type) | indent_tab(2) }}
-
-		{% endfor %}
-	}
+	{{ pkt_header_op.serialize_str(stream_type=stream_type) | indent_tab }}
 	{% endif %}
 
-	/* Serialize packet context */
-	{
-	{% for op in this_stream_ops.pkt_ctx_ops %}
-		{{ op.serialize_str(stream_type=stream_type) | indent_tab(2) }}
-
-	{% endfor %}
-	}
+	{{ this_stream_ops.pkt_ctx_op.serialize_str(stream_type=stream_type) | indent_tab }}
 
 	/* Save content beginning's offset */
 	ctx->off_content = ctx->at;
@@ -400,13 +388,7 @@ static void _serialize_ev_header_{{ stream_type.name }}(void * const vctx,
 	const {{ cg_opts.clock_type_c_types[def_clk_type] }} ts = sctx->cur_last_event_ts;
 		{% endif %}
 
-	/* Serialize event header */
-	{
-		{% for op in this_stream_ops.ev_header_ops %}
-		{{ op.serialize_str(stream_type=stream_type) | indent_tab(2) }}
-
-		{% endfor %}
-	}
+	{{ this_stream_ops.ev_header_op.serialize_str(stream_type=stream_type) | indent_tab }}
 }
 	{% endif %}
 	{% if stream_type.event_common_context_field_type %}
@@ -415,13 +397,7 @@ static void _serialize_ev_common_ctx_{{ stream_type.name }}(void * const vctx{{
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 
-	/* Serialize event common context */
-	{
-		{% for op in this_stream_ops.ev_common_ctx_ops %}
-		{{ op.serialize_str(stream_type=stream_type) | indent_tab(2) }}
-
-		{% endfor %}
-	}
+	{{ this_stream_ops.ev_common_ctx_op.serialize_str(stream_type=stream_type) | indent_tab }}
 }
 	{% endif %}
 	{# internal serialization functions #}
@@ -442,25 +418,13 @@ static void _serialize_ev_{{ stream_type.name }}_{{ ev_type.name }}(void * const
 	_serialize_ev_common_ctx_{{ stream_type.name }}(ctx{{ params }});
 		{% endif %}
 		{% set this_ev_ops = this_stream_ops.ev_ops[ev_type] %}
-		{% if this_ev_ops.spec_ctx_ops %}
+		{% if this_ev_ops.spec_ctx_op %}
 
-	/* Serialize specific context */
-	{
-			{% for op in this_ev_ops.spec_ctx_ops %}
-		{{ op.serialize_str(stream_type=stream_type, ev_type=ev_type) | indent_tab(2) }}
-
-			{% endfor %}
-	}
+	{{ this_ev_ops.spec_ctx_op.serialize_str(stream_type=stream_type, ev_type=ev_type) | indent_tab }}
 		{% endif %}
-		{% if this_ev_ops.payload_ops %}
+		{% if this_ev_ops.payload_op %}
 
-	/* Serialize payload */
-	{
-			{% for op in this_ev_ops.payload_ops %}
-		{{ op.serialize_str(stream_type=stream_type, ev_type=ev_type) | indent_tab(2) }}
-
-			{% endfor %}
-	}
+	{{ this_ev_ops.payload_op.serialize_str(stream_type=stream_type, ev_type=ev_type) | indent_tab }}
 		{% endif %}
 }
 	{% endfor %}
@@ -472,45 +436,21 @@ static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void * const 
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 	uint32_t at = ctx->at;
-		{% if this_stream_ops.ev_header_ops %}
+		{% if this_stream_ops.ev_header_op %}
 
-	/* Add header size */
-	{
-			{% for op in this_stream_ops.ev_header_ops %}
-		{{ op.size_str(stream_type=stream_type) | indent_tab(2) }}
-
-			{% endfor %}
-	}
+	{{ this_stream_ops.ev_header_op.size_str(stream_type=stream_type) | indent_tab }}
 		{% endif %}
-		{% if this_stream_ops.ev_common_ctx_ops %}
+		{% if this_stream_ops.ev_common_ctx_op %}
 
-	/* Add common context size */
-	{
-			{% for op in this_stream_ops.ev_common_ctx_ops %}
-		{{ op.size_str(stream_type=stream_type) | indent_tab(2) }}
-
-			{% endfor %}
-	}
+	{{ this_stream_ops.ev_common_ctx_op.size_str(stream_type=stream_type) | indent_tab }}
 		{% endif %}
-		{% if this_ev_ops.spec_ctx_ops %}
+		{% if this_ev_ops.spec_ctx_op %}
 
-	/* Add specific context size */
-	{
-			{% for op in this_ev_ops.spec_ctx_ops %}
-		{{ op.size_str(stream_type=stream_type, ev_type=ev_type) | indent_tab(2) }}
-
-			{% endfor %}
-	}
+	{{ this_ev_ops.spec_ctx_op.size_str(stream_type=stream_type, ev_type=ev_type) | indent_tab }}
 		{% endif %}
-		{% if this_ev_ops.payload_ops %}
+		{% if this_ev_ops.payload_op %}
 
-	/* Add payload size */
-	{
-			{% for op in this_ev_ops.payload_ops %}
-		{{ op.size_str(stream_type=stream_type, ev_type=ev_type) | indent_tab(2) }}
-
-			{% endfor %}
-	}
+	{{ this_ev_ops.payload_op.size_str(stream_type=stream_type, ev_type=ev_type) | indent_tab }}
 		{% endif %}
 
 	return at - ctx->at;
