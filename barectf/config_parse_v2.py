@@ -488,7 +488,7 @@ class _Parser(config_parse_common._Parser):
 
         # Move `byte-order` property to root node's `target-byte-order`
         # property.
-        self._root_node['target-byte-order'] = v2_trace_node['byte-order']
+        typing.cast(_MapNode, self._root_node)['target-byte-order'] = v2_trace_node['byte-order']
 
         # copy `uuid` property
         _copy_prop_if_exists(v3_trace_type_node, v2_trace_node, 'uuid')
