@@ -8,18 +8,6 @@ $field-type-aliases:
     size: 8
     alignment: 8
   byte: uint8
-  uint8-le:
-    $inherit: uint8
-    byte-order: le
-  byte-le:
-    $inherit: byte
-    byte-order: le
-  uint8-be:
-    $inherit: uint8
-    byte-order: be
-  byte-be:
-    $inherit: byte
-    byte-order: be
 
   # 8-bit signed integer, 8-bit aligned
   sint8:
@@ -27,18 +15,6 @@ $field-type-aliases:
     size: 8
     alignment: 8
   int8: sint8
-  sint8-le:
-    $inherit: sint8
-    byte-order: le
-  int8-le:
-    $inherit: int8
-    byte-order: le
-  sint8-be:
-    $inherit: sint8
-    byte-order: be
-  int8-be:
-    $inherit: int8
-    byte-order: be
 
   # 16-bit unsigned integer, 16-bit aligned
   uint16:
@@ -46,18 +22,6 @@ $field-type-aliases:
     size: 16
     alignment: 16
   word: uint16
-  uint16-le:
-    $inherit: uint16
-    byte-order: le
-  word-le:
-    $inherit: word
-    byte-order: le
-  uint16-be:
-    $inherit: uint16
-    byte-order: be
-  word-be:
-    $inherit: word
-    byte-order: be
 
   # 16-bit signed integer, 16-bit aligned
   sint16:
@@ -65,18 +29,6 @@ $field-type-aliases:
     size: 16
     alignment: 16
   int16: sint16
-  sint16-le:
-    $inherit: sint16
-    byte-order: le
-  int16-le:
-    $inherit: int16
-    byte-order: le
-  sint16-be:
-    $inherit: sint16
-    byte-order: be
-  int16-be:
-    $inherit: int16
-    byte-order: be
 
   # 32-bit unsigned integer, 32-bit aligned
   uint32:
@@ -84,18 +36,6 @@ $field-type-aliases:
     size: 32
     alignment: 32
   dword: uint32
-  uint32-le:
-    $inherit: uint32
-    byte-order: le
-  dword-le:
-    $inherit: dword
-    byte-order: le
-  uint32-be:
-    $inherit: uint32
-    byte-order: be
-  dword-be:
-    $inherit: dword
-    byte-order: be
 
   # 32-bit signed integer, 32-bit aligned
   sint32:
@@ -103,18 +43,6 @@ $field-type-aliases:
     size: 32
     alignment: 32
   int32: sint32
-  sint32-le:
-    $inherit: sint32
-    byte-order: le
-  int32-le:
-    $inherit: int32
-    byte-order: le
-  sint32-be:
-    $inherit: sint32
-    byte-order: be
-  int32-be:
-    $inherit: int32
-    byte-order: be
 
   # 64-bit unsigned integer, 64-bit aligned
   uint64:
@@ -122,18 +50,6 @@ $field-type-aliases:
     size: 64
     alignment: 64
   qword: uint64
-  uint64-le:
-    $inherit: uint64
-    byte-order: le
-  qword-le:
-    $inherit: qword
-    byte-order: le
-  uint64-be:
-    $inherit: uint64
-    byte-order: be
-  qword-be:
-    $inherit: qword
-    byte-order: be
 
   # 64-bit signed integer, 64-bit aligned
   sint64:
@@ -141,299 +57,95 @@ $field-type-aliases:
     size: 64
     alignment: 64
   int64: sint64
-  sint64-le:
-    $inherit: sint64
-    byte-order: le
-  int64-le:
-    $inherit: int64
-    byte-order: le
-  sint64-be:
-    $inherit: sint64
-    byte-order: be
-  int64-be:
-    $inherit: int64
-    byte-order: be
 
   # byte-packed 8-bit unsigned integer
   byte-packed-uint8: uint8
   byte-packed-byte: byte-packed-uint8
-  byte-packed-uint8-le:
-    $inherit: byte-packed-uint8
-    byte-order: le
-  byte-packed-byte-le:
-    $inherit: byte-packed-byte
-    byte-order: le
-  byte-packed-uint8-be:
-    $inherit: byte-packed-uint8
-    byte-order: be
-  byte-packed-byte-be:
-    $inherit: byte-packed-byte
-    byte-order: be
 
   # byte-packed 8-bit signed integer
   byte-packed-sint8: sint8
   byte-packed-int8: byte-packed-sint8
-  byte-packed-sint8-le:
-    $inherit: byte-packed-sint8
-    byte-order: le
-  byte-packed-int8-le:
-    $inherit: byte-packed-int8
-    byte-order: le
-  byte-packed-sint8-be:
-    $inherit: byte-packed-sint8
-    byte-order: be
-  byte-packed-int8-be:
-    $inherit: byte-packed-int8
-    byte-order: be
 
   # byte-packed 16-bit unsigned integer
   byte-packed-uint16:
     $inherit: uint16
     alignment: 8
   byte-packed-word: byte-packed-uint16
-  byte-packed-uint16-le:
-    $inherit: byte-packed-uint16
-    byte-order: le
-  byte-packed-word-le:
-    $inherit: byte-packed-word
-    byte-order: le
-  byte-packed-uint16-be:
-    $inherit: byte-packed-uint16
-    byte-order: be
-  byte-packed-word-be:
-    $inherit: byte-packed-word
-    byte-order: be
 
   # byte-packed 16-bit signed integer
   byte-packed-sint16:
     $inherit: sint16
     alignment: 8
   byte-packed-int16: byte-packed-sint16
-  byte-packed-sint16-le:
-    $inherit: byte-packed-sint16
-    byte-order: le
-  byte-packed-int16-le:
-    $inherit: byte-packed-int16
-    byte-order: le
-  byte-packed-sint16-be:
-    $inherit: byte-packed-sint16
-    byte-order: be
-  byte-packed-int16-be:
-    $inherit: byte-packed-int16
-    byte-order: be
 
   # byte-packed 32-bit unsigned integer
   byte-packed-uint32:
     $inherit: uint32
     alignment: 8
   byte-packed-dword: byte-packed-uint32
-  byte-packed-uint32-le:
-    $inherit: byte-packed-uint32
-    byte-order: le
-  byte-packed-dword-le:
-    $inherit: byte-packed-dword
-    byte-order: le
-  byte-packed-uint32-be:
-    $inherit: byte-packed-uint32
-    byte-order: be
-  byte-packed-dword-be:
-    $inherit: byte-packed-dword
-    byte-order: be
 
   # byte-packed 32-bit signed integer
   byte-packed-sint32:
     $inherit: sint32
     alignment: 8
   byte-packed-int32: byte-packed-sint32
-  byte-packed-sint32-le:
-    $inherit: byte-packed-sint32
-    byte-order: le
-  byte-packed-int32-le:
-    $inherit: byte-packed-int32
-    byte-order: le
-  byte-packed-sint32-be:
-    $inherit: byte-packed-sint32
-    byte-order: be
-  byte-packed-int32-be:
-    $inherit: byte-packed-int32
-    byte-order: be
 
   # byte-packed 64-bit unsigned integer
   byte-packed-uint64:
     $inherit: uint64
     alignment: 8
   byte-packed-qword: byte-packed-uint64
-  byte-packed-uint64-le:
-    $inherit: byte-packed-uint64
-    byte-order: le
-  byte-packed-qword-le:
-    $inherit: byte-packed-qword
-    byte-order: le
-  byte-packed-uint64-be:
-    $inherit: byte-packed-uint64
-    byte-order: be
-  byte-packed-qword-be:
-    $inherit: byte-packed-qword
-    byte-order: be
 
   # byte-packed 64-bit signed integer
   byte-packed-sint64:
     $inherit: sint64
     alignment: 8
   byte-packed-int64: byte-packed-sint64
-  byte-packed-sint64-le:
-    $inherit: byte-packed-sint64
-    byte-order: le
-  byte-packed-int64-le:
-    $inherit: byte-packed-int64
-    byte-order: le
-  byte-packed-sint64-be:
-    $inherit: byte-packed-sint64
-    byte-order: be
-  byte-packed-int64-be:
-    $inherit: byte-packed-int64
-    byte-order: be
 
   # byte-packed 8-bit unsigned integer
   bit-packed-uint8:
     $inherit: uint8
     alignment: 1
   bit-packed-byte: bit-packed-uint8
-  bit-packed-uint8-le:
-    $inherit: bit-packed-uint8
-    byte-order: le
-  bit-packed-byte-le:
-    $inherit: bit-packed-byte
-    byte-order: le
-  bit-packed-uint8-be:
-    $inherit: bit-packed-uint8
-    byte-order: be
-  bit-packed-byte-be:
-    $inherit: bit-packed-byte
-    byte-order: be
 
   # bit-packed 8-bit signed integer
   bit-packed-sint8:
     $inherit: sint8
     alignment: 1
   bit-packed-int8: bit-packed-sint8
-  bit-packed-sint8-le:
-    $inherit: bit-packed-sint8
-    byte-order: le
-  bit-packed-int8-le:
-    $inherit: bit-packed-int8
-    byte-order: le
-  bit-packed-sint8-be:
-    $inherit: bit-packed-sint8
-    byte-order: be
-  bit-packed-int8-be:
-    $inherit: bit-packed-int8
-    byte-order: be
 
   # bit-packed 16-bit unsigned integer
   bit-packed-uint16:
     $inherit: uint16
     alignment: 1
   bit-packed-word: bit-packed-uint16
-  bit-packed-uint16-le:
-    $inherit: bit-packed-uint16
-    byte-order: le
-  bit-packed-word-le:
-    $inherit: bit-packed-word
-    byte-order: le
-  bit-packed-uint16-be:
-    $inherit: bit-packed-uint16
-    byte-order: be
-  bit-packed-word-be:
-    $inherit: bit-packed-word
-    byte-order: be
 
   # bit-packed 16-bit signed integer
   bit-packed-sint16:
     $inherit: sint16
     alignment: 1
   bit-packed-int16: bit-packed-sint16
-  bit-packed-sint16-le:
-    $inherit: bit-packed-sint16
-    byte-order: le
-  bit-packed-int16-le:
-    $inherit: bit-packed-int16
-    byte-order: le
-  bit-packed-sint16-be:
-    $inherit: bit-packed-sint16
-    byte-order: be
-  bit-packed-int16-be:
-    $inherit: bit-packed-int16
-    byte-order: be
 
   # bit-packed 32-bit unsigned integer
   bit-packed-uint32:
     $inherit: uint32
     alignment: 1
   bit-packed-dword: bit-packed-uint32
-  bit-packed-uint32-le:
-    $inherit: bit-packed-uint32
-    byte-order: le
-  bit-packed-dword-le:
-    $inherit: bit-packed-dword
-    byte-order: le
-  bit-packed-uint32-be:
-    $inherit: bit-packed-uint32
-    byte-order: be
-  bit-packed-dword-be:
-    $inherit: bit-packed-dword
-    byte-order: be
 
   # bit-packed 32-bit signed integer
   bit-packed-sint32:
     $inherit: sint32
     alignment: 1
   bit-packed-int32: bit-packed-sint32
-  bit-packed-sint32-le:
-    $inherit: bit-packed-sint32
-    byte-order: le
-  bit-packed-int32-le:
-    $inherit: bit-packed-int32
-    byte-order: le
-  bit-packed-sint32-be:
-    $inherit: bit-packed-sint32
-    byte-order: be
-  bit-packed-int32-be:
-    $inherit: bit-packed-int32
-    byte-order: be
 
   # bit-packed 64-bit unsigned integer
   bit-packed-uint64:
     $inherit: uint64
     alignment: 1
   bit-packed-qword: bit-packed-uint64
-  bit-packed-uint64-le:
-    $inherit: bit-packed-uint64
-    byte-order: le
-  bit-packed-qword-le:
-    $inherit: bit-packed-qword
-    byte-order: le
-  bit-packed-uint64-be:
-    $inherit: bit-packed-uint64
-    byte-order: be
-  bit-packed-qword-be:
-    $inherit: bit-packed-qword
-    byte-order: be
 
   # bit-packed 64-bit signed integer
   bit-packed-sint64:
     $inherit: sint64
     alignment: 1
   bit-packed-int64: bit-packed-sint64
-  bit-packed-sint64-le:
-    $inherit: bit-packed-sint64
-    byte-order: le
-  bit-packed-int64-le:
-    $inherit: bit-packed-int64
-    byte-order: le
-  bit-packed-sint64-be:
-    $inherit: bit-packed-sint64
-    byte-order: be
-  bit-packed-int64-be:
-    $inherit: bit-packed-int64
-    byte-order: be
