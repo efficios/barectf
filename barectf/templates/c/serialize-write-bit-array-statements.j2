@@ -25,7 +25,6 @@
 {% import 'common.j2' as common %}
 {% set bo = 'le' if cfg.target_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN else 'be' %}
 {% set c_type_non_const = c_type | replace('const ', '') %}
-bt_bitfield_write_{{ bo }}(&ctx->buf[_BITS_TO_BYTES(ctx->at)],
-	uint8_t, {{ op.offset_in_byte }}, {{ op.ft.size }}, {{ c_type_non_const }},
-	({{ c_type_non_const }}) {{ src }});
+bt_bitfield_write_{{ bo }}(&ctx->buf[_BITS_TO_BYTES(ctx->at)], {{ op.offset_in_byte }}, {{ op.ft.size }},
+	{{ c_type_non_const }}, ({{ c_type_non_const }}) {{ src }});
 ctx->at += {{ op.ft.size }};

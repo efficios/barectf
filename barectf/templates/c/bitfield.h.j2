@@ -27,6 +27,8 @@
 #ifndef _{{ ucprefix }}BITFIELD_H
 #define _{{ ucprefix }}BITFIELD_H
 
+#include <stdint.h>
+
 /*
  * BabelTrace
  *
@@ -96,6 +98,9 @@ do {									\
  * Also, consecutive bitfields are placed from higher to lower bits.
  */
 
+{% if cfg.target_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN %}
+/* Target byte order: little-endian */
+
 #define _bt_bitfield_write_le(_ptr, type, _start, _length, _vtype, _v)	\
 do {									\
 	_vtype __v = (_v);						\
@@ -154,6 +159,11 @@ do {									\
 	} else								\
 		__ptr[this_unit] = (type) __v;				\
 } while (0)
+
+#define bt_bitfield_write_le(ptr, _start, _length, _vtype, _v) \
+	_bt_bitfield_write_le(ptr, uint8_t, _start, _length, _vtype, _v)
+{% else %}
+/* Target byte order: big-endian */
 
 #define _bt_bitfield_write_be(_ptr, type, _start, _length, _vtype, _v)	\
 do {									\
@@ -214,18 +224,8 @@ do {									\
 		__ptr[this_unit] = (type) __v;				\
 } while (0)
 
-{% if cfg.target_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN %}
-/* Target byte order: little-endian */
-#define bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v) \
-	_bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v)
-#define bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v) \
-	_bt_bitfield_write_be(ptr, unsigned char, _start, _length, _vtype, _v)
-{% else %}
-/* Target byte order: big-endian */
-#define bt_bitfield_write_le(ptr, type, _start, _length, _vtype, _v) \
-	_bt_bitfield_write_le(ptr, unsigned char, _start, _length, _vtype, _v)
-#define bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v) \
-	_bt_bitfield_write_be(ptr, type, _start, _length, _vtype, _v)
+#define bt_bitfield_write_be(ptr, _start, _length, _vtype, _v) \
+	_bt_bitfield_write_be(ptr, uint8_t, _start, _length, _vtype, _v)
 {% endif %}
 
 #endif /* _{{ ucprefix }}BITFIELD_H */
