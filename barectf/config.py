@@ -49,18 +49,13 @@ class _FieldType:
 
 
 class _BitArrayFieldType(_FieldType):
-    def __init__(self, size: Count, byte_order: ByteOrder, alignment: Alignment = Alignment(1)):
+    def __init__(self, size: Count, alignment: Alignment = Alignment(1)):
         self._size = size
-        self._byte_order = byte_order
         self._alignment = alignment
 
     @property
     def size(self) -> Count:
         return self._size
-
-    @property
-    def byte_order(self) -> ByteOrder:
-        return self._byte_order
 
     @property
     def alignment(self) -> Alignment:
@@ -75,12 +70,12 @@ class DisplayBase(enum.Enum):
 
 
 class _IntegerFieldType(_BitArrayFieldType):
-    def __init__(self, size: Count, byte_order: ByteOrder, alignment: Optional[Alignment] = None,
+    def __init__(self, size: Count, alignment: Optional[Alignment] = None,
                  preferred_display_base: DisplayBase = DisplayBase.DECIMAL):
         if alignment is None:
             alignment = Alignment(8 if size % 8 == 0 else 1)
 
-        super().__init__(size, byte_order, alignment)
+        super().__init__(size, alignment)
         self._preferred_display_base = preferred_display_base
 
     @property
@@ -154,10 +149,10 @@ class EnumerationFieldTypeMappings(collections.abc.Mapping):
 
 
 class _EnumerationFieldType(_IntegerFieldType):
-    def __init__(self, size: Count, byte_order: ByteOrder, alignment: Optional[Alignment] = None,
+    def __init__(self, size: Count, alignment: Optional[Alignment] = None,
                  preferred_display_base: DisplayBase = DisplayBase.DECIMAL,
                  mappings: Optional[_EnumFtMappings] = None):
-        super().__init__(size, byte_order, alignment, preferred_display_base)
+        super().__init__(size, alignment, preferred_display_base)
         self._mappings = EnumerationFieldTypeMappings({})
 
         if mappings is not None:
@@ -412,12 +407,10 @@ class StreamTypePacketFeatures:
                  content_size_field_type: _DefaultableUIntFt = DEFAULT_FIELD_TYPE,
                  beginning_time_field_type: _OptDefaultableUIntFt = None,
                  end_time_field_type: _OptDefaultableUIntFt = None,
-                 discarded_events_counter_field_type: _OptDefaultableUIntFt = None,
-                 default_byte_order: Optional[ByteOrder] = None):
+                 discarded_events_counter_field_type: _OptDefaultableUIntFt = None):
         def get_ft(user_ft: _OptDefaultableUIntFt) -> _OptUIntFt:
             if user_ft == DEFAULT_FIELD_TYPE:
-                assert default_byte_order is not None
-                return UnsignedIntegerFieldType(64, typing.cast(ByteOrder, default_byte_order))
+                return UnsignedIntegerFieldType(64)
 
             return typing.cast(_OptUIntFt, user_ft)
 
@@ -450,12 +443,10 @@ class StreamTypePacketFeatures:
 
 class StreamTypeEventFeatures:
     def __init__(self, type_id_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE,
-                 time_field_type: _OptDefaultableUIntFt = None,
-                 default_byte_order: Optional[ByteOrder] = None):
+                 time_field_type: _OptDefaultableUIntFt = None):
         def get_ft(user_ft: _OptDefaultableUIntFt) -> _OptUIntFt:
             if user_ft == DEFAULT_FIELD_TYPE:
-                assert default_byte_order is not None
-                return UnsignedIntegerFieldType(64, typing.cast(ByteOrder, default_byte_order))
+                return UnsignedIntegerFieldType(64)
 
             return typing.cast(_OptUIntFt, user_ft)
 
@@ -473,15 +464,14 @@ class StreamTypeEventFeatures:
 
 class StreamTypeFeatures:
     def __init__(self, packet_features: Optional[StreamTypePacketFeatures] = None,
-                 event_features: Optional[StreamTypeEventFeatures] = None,
-                 default_byte_order: Optional[ByteOrder] = None):
+                 event_features: Optional[StreamTypeEventFeatures] = None):
         if packet_features is None:
-            self._packet_features = StreamTypePacketFeatures(default_byte_order=default_byte_order)
+            self._packet_features = StreamTypePacketFeatures()
         else:
             self._packet_features = packet_features
 
         if event_features is None:
-            self._event_features = StreamTypeEventFeatures(default_byte_order=default_byte_order)
+            self._event_features = StreamTypeEventFeatures()
         else:
             self._event_features = event_features
 
@@ -498,7 +488,6 @@ class StreamType(_UniqueByName):
     def __init__(self, name: str, event_types: Set[EventType],
                  default_clock_type: Optional[ClockType] = None,
                  features: Optional[StreamTypeFeatures] = None,
-                 default_feature_field_type_byte_order: Optional[ByteOrder] = None,
                  packet_context_field_type_extra_members: Optional[_StructFtMembers] = None,
                  event_common_context_field_type: _OptStructFt = None):
         self._id: Optional[Id] = None
@@ -512,7 +501,7 @@ class StreamType(_UniqueByName):
             assert ev_type._id is None
             ev_type._id = Id(index)
 
-        self._set_features(features, default_feature_field_type_byte_order)
+        self._set_features(features)
         self._packet_context_field_type_extra_members = StructureFieldTypeMembers({})
 
         if packet_context_field_type_extra_members is not None:
@@ -521,8 +510,7 @@ class StreamType(_UniqueByName):
         self._set_pkt_ctx_ft()
         self._set_ev_header_ft()
 
-    def _set_features(self, features: Optional[StreamTypeFeatures],
-                      default_byte_order: Optional[ByteOrder]):
+    def _set_features(self, features: Optional[StreamTypeFeatures]):
         if features is not None:
             self._features = features
             return None
@@ -539,10 +527,8 @@ class StreamType(_UniqueByName):
             pkt_end_time_ft = DEFAULT_FIELD_TYPE
 
         self._features = StreamTypeFeatures(StreamTypePacketFeatures(beginning_time_field_type=pkt_beginning_time_ft,
-                                                                     end_time_field_type=pkt_end_time_ft,
-                                                                     default_byte_order=default_byte_order),
-                                            StreamTypeEventFeatures(time_field_type=ev_time_ft,
-                                                                    default_byte_order=default_byte_order))
+                                                                     end_time_field_type=pkt_end_time_ft),
+                                            StreamTypeEventFeatures(time_field_type=ev_time_ft))
 
     def _set_ft_mapped_clk_type_name(self, ft: Optional[UnsignedIntegerFieldType]):
         if ft is None:
@@ -637,8 +623,7 @@ _OptUuidFt = Optional[Union[str, StaticArrayFieldType]]
 class TraceTypeFeatures:
     def __init__(self, magic_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE,
                  uuid_field_type: _OptUuidFt = None,
-                 stream_type_id_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE,
-                 default_byte_order: Optional[ByteOrder] = None):
+                 stream_type_id_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE):
         def get_field_type(user_ft: Optional[Union[str, _FieldType]],
                            create_default_ft: Callable[[], _FieldType]) -> _OptFt:
             if user_ft == DEFAULT_FIELD_TYPE:
@@ -647,16 +632,13 @@ class TraceTypeFeatures:
             return typing.cast(_OptFt, user_ft)
 
         def create_default_magic_ft():
-            assert default_byte_order is not None
-            return UnsignedIntegerFieldType(32, default_byte_order)
+            return UnsignedIntegerFieldType(32)
 
         def create_default_uuid_ft():
-            assert default_byte_order is not None
-            return StaticArrayFieldType(Count(16), UnsignedIntegerFieldType(8, default_byte_order))
+            return StaticArrayFieldType(Count(16), UnsignedIntegerFieldType(8))
 
         def create_default_stream_type_id_ft():
-            assert default_byte_order is not None
-            return UnsignedIntegerFieldType(64, default_byte_order)
+            return UnsignedIntegerFieldType(64)
 
         self._magic_field_type = typing.cast(_OptUIntFt, get_field_type(magic_field_type, create_default_magic_ft))
         self._uuid_field_type = typing.cast(Optional[StaticArrayFieldType],
@@ -680,8 +662,7 @@ class TraceTypeFeatures:
 
 class TraceType:
     def __init__(self, stream_types: Set[StreamType], uuid: _OptUuid = None,
-                 features: Optional[TraceTypeFeatures] = None,
-                 default_feature_field_type_byte_order: Optional[ByteOrder] = None):
+                 features: Optional[TraceTypeFeatures] = None):
         self._stream_types = frozenset(stream_types)
 
         # assign unique IDs
@@ -690,19 +671,17 @@ class TraceType:
             stream_type._id = Id(index)
 
         self._uuid = uuid
-        self._set_features(features, default_feature_field_type_byte_order)
+        self._set_features(features)
         self._set_pkt_header_ft()
 
-    def _set_features(self, features: Optional[TraceTypeFeatures],
-                      default_byte_order: Optional[ByteOrder]):
+    def _set_features(self, features: Optional[TraceTypeFeatures]):
         if features is not None:
             self._features = features
             return
 
         # automatic UUID field type because the trace type has a UUID
         uuid_ft = None if self._uuid is None else DEFAULT_FIELD_TYPE
-        self._features = TraceTypeFeatures(uuid_field_type=uuid_ft,
-                                           default_byte_order=default_byte_order)
+        self._features = TraceTypeFeatures(uuid_field_type=uuid_ft)
 
     def _set_pkt_header_ft(self):
         members = collections.OrderedDict()

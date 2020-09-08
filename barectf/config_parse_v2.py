@@ -129,6 +129,9 @@ class _Parser(config_parse_common._Parser):
         # remove `encoding` property
         _del_prop_if_exists(v3_ft_node, 'encoding')
 
+        # remove `byte-order` property (always target BO in v3)
+        _del_prop_if_exists(v3_ft_node, 'byte-order')
+
         # remove `property-mappings` property
         _del_prop_if_exists(v3_ft_node, 'property-mappings')
 

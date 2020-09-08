@@ -27,13 +27,6 @@ from typing import List, Optional
 import typing
 
 
-def _filt_bo_str(bo: barectf_config.ByteOrder) -> str:
-    return {
-        barectf_config.ByteOrder.LITTLE_ENDIAN: 'le',
-        barectf_config.ByteOrder.BIG_ENDIAN: 'be',
-    }[bo]
-
-
 def _filt_disp_base_int(disp_base: barectf_config.DisplayBase) -> int:
     return {
         barectf_config.DisplayBase.BINARY: 2,
@@ -91,7 +84,6 @@ def _filt_ft_str(ft: barectf_config._FieldType) -> str:
 
 
 _TEMPL_FILTERS = {
-    'bo_str': _filt_bo_str,
     'disp_base_int': _filt_disp_base_int,
     'int_ft_str': _filt_int_ft_str,
     'ft_str': _filt_ft_str,

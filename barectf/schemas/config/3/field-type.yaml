@@ -37,8 +37,6 @@ definitions:
             $ref: https://barectf.org/schemas/config/common/common.json#/definitions/int-ft-size-prop
           alignment:
             $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-int-min-1
-          byte-order:
-            $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-byte-order-prop
         required:
           - size
   int-ft-props:
@@ -46,7 +44,6 @@ definitions:
       class: true
       size: true
       alignment: true
-      byte-order: true
       preferred-display-base: true
     additionalProperties: false
   int-ft:
@@ -88,7 +85,6 @@ definitions:
       class: true
       size: true
       alignment: true
-      byte-order: true
       preferred-display-base: true
       mappings: true
     additionalProperties: false
@@ -117,7 +113,6 @@ definitions:
       class: true
       size: true
       alignment: true
-      byte-order: true
       preferred-display-base: true
       mappings: true
     additionalProperties: false
@@ -169,7 +164,6 @@ definitions:
       class: true
       size: true
       alignment: true
-      byte-order: true
     additionalProperties: false
   string-ft-class-prop:
     type: string

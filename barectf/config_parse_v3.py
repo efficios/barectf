@@ -131,13 +131,12 @@ class _Parser(barectf_config_parse_common._Parser):
                                     ft_type: Type[barectf_config._BitArrayFieldType],
                                     default_alignment: Optional[Alignment],
                                     *args) -> barectf_config._BitArrayFieldType:
-        byte_order = self._byte_order_from_node(ft_node['byte-order'])
         alignment = self._alignment_prop(ft_node, 'alignment')
 
         if alignment is None:
             alignment = default_alignment
 
-        return ft_type(ft_node['size'], byte_order, alignment, *args)
+        return ft_type(ft_node['size'], alignment, *args)
 
     # Creates an integer field type having the type `ft_type` from the
     # integer field type node `ft_node`, passing the additional `*args`
@@ -462,10 +461,8 @@ class _Parser(barectf_config_parse_common._Parser):
                                                                    pkt_content_size_ft,
                                                                    pkt_beginning_time_ft,
                                                                    pkt_end_time_ft,
-                                                                   pkt_discarded_events_counter_ft,
-                                                                   default_byte_order=self._target_byte_order)
-            ev_features = barectf_config.StreamTypeEventFeatures(ev_type_id_ft, ev_time_ft,
-                                                                 default_byte_order=self._target_byte_order)
+                                                                   pkt_discarded_events_counter_ft)
+            ev_features = barectf_config.StreamTypeEventFeatures(ev_type_id_ft, ev_time_ft)
             features = barectf_config.StreamTypeFeatures(pkt_features, ev_features)
 
             # create packet context (structure) field type extra members
@@ -510,7 +507,7 @@ class _Parser(barectf_config_parse_common._Parser):
                 ev_types.add(self._create_ev_type(ev_name, ev_type_node, ev_header_common_ctx_member_count))
 
             # create stream type
-            return barectf_config.StreamType(name, ev_types, def_clk_type, features, None,
+            return barectf_config.StreamType(name, ev_types, def_clk_type, features,
                                              pkt_ctx_ft_extra_members,
                                              self._try_create_struct_ft(stream_type_node,
                                                                         ev_common_ctx_ft_prop_name))
@@ -606,8 +603,7 @@ class _Parser(barectf_config_parse_common._Parser):
             except _ConfigurationParseError as exc:
                 _append_error_ctx(exc, '`$features` property')
 
-            features = barectf_config.TraceTypeFeatures(magic_ft, uuid_ft, stream_type_id_ft,
-                                                        default_byte_order=self._target_byte_order)
+            features = barectf_config.TraceTypeFeatures(magic_ft, uuid_ft, stream_type_id_ft)
 
             # create stream types
             stream_types = set()
@@ -1094,9 +1090,6 @@ class _Parser(barectf_config_parse_common._Parser):
                     parent_node[key] = 'string'
                 elif node == 'struct':
                     parent_node[key] = 'structure'
-            elif key == 'byte-order' and type(node) is str:
-                # byte order aliases
-                normalize_byte_order_prop(parent_node, key)
             elif key == 'preferred-display-base' and type(node) is str:
                 # display base aliases
                 if node == 'bin':
@@ -1116,104 +1109,10 @@ class _Parser(barectf_config_parse_common._Parser):
             if node is None:
                 del trace_node[prop_name]
 
-    # Substitutes missing/`None` `byte-order` properties with the
-    # configuration node's target byte order (`target-byte-order`
-    # property).
-    def _sub_ft_nodes_byte_order(self):
-        ba_ft_class_names = {
-            'unsigned-integer',
-            'signed-integer',
-            'unsigned-enumeration',
-            'signed-enumeration',
-            'real',
-        }
-
-        def set_ft_node_byte_order_prop(parent_node: _MapNode, key: str):
-            if key not in parent_node:
-                return
-
-            ft_node = parent_node[key]
-
-            if type(ft_node) is not collections.OrderedDict:
-                return
-
-            if ft_node['class'] in ba_ft_class_names:
-                prop_name = 'byte-order'
-                byte_order_node = ft_node.get(prop_name)
-
-                if byte_order_node is None:
-                    ft_node[prop_name] = self._target_byte_order_node
-
-            members_node = ft_node.get('members')
-
-            if members_node is not None:
-                set_struct_ft_node_members_byte_order_prop(members_node)
-
-            set_ft_node_byte_order_prop(ft_node, 'element-field-type')
-
-        def set_struct_ft_node_members_byte_order_prop(members_node: List[_MapNode]):
-            for member_node in members_node:
-                member_name, member_node = list(member_node.items())[0]
-
-                try:
-                    set_ft_node_byte_order_prop(member_node, 'field-type')
-                except _ConfigurationParseError as exc:
-                    _append_error_ctx(exc, f'Structure field type member `{member_name}`')
-
+    # Sets the parser's target byte order.
+    def _set_target_byte_order(self):
         self._target_byte_order_node = self.config_node['target-byte-order']
         self._target_byte_order = self._byte_order_from_node(self._target_byte_order_node)
-        features_prop_name = '$features'
-        features_node = self._trace_type_node.get(features_prop_name)
-
-        if features_node is not None:
-            try:
-                set_ft_node_byte_order_prop(features_node, 'magic-field-type')
-                set_ft_node_byte_order_prop(features_node, 'uuid-field-type')
-                set_ft_node_byte_order_prop(features_node, 'stream-type-id-field-type')
-            except _ConfigurationParseError as exc:
-                exc._append_ctx(exc, f'`{features_prop_name}` property')
-                _append_error_ctx(exc, 'Trace type')
-
-        for stream_type_name, stream_type_node in self._trace_type_node['stream-types'].items():
-            try:
-                features_node = stream_type_node.get(features_prop_name)
-
-                if features_node is not None:
-                    pkt_node = features_node.get('packet')
-
-                    if pkt_node is not None:
-                        set_ft_node_byte_order_prop(pkt_node, 'total-size-field-type')
-                        set_ft_node_byte_order_prop(pkt_node, 'content-size-field-type')
-                        set_ft_node_byte_order_prop(pkt_node, 'beginning-time-field-type')
-                        set_ft_node_byte_order_prop(pkt_node, 'end-time-field-type')
-                        set_ft_node_byte_order_prop(pkt_node,
-                                                    'discarded-events-counter-field-type')
-
-                    ev_node = features_node.get('event')
-
-                    if ev_node is not None:
-                        set_ft_node_byte_order_prop(ev_node, 'type-id-field-type')
-                        set_ft_node_byte_order_prop(ev_node, 'time-field-type')
-
-                prop_name = 'packet-context-field-type-extra-members'
-                pkt_ctx_ft_extra_members_node = stream_type_node.get(prop_name)
-
-                if pkt_ctx_ft_extra_members_node is not None:
-                    try:
-                        set_struct_ft_node_members_byte_order_prop(pkt_ctx_ft_extra_members_node)
-                    except _ConfigurationParseError as exc:
-                        _append_error_ctx(exc, f'`{pkt_ctx_ft_extra_members_node}` property')
-
-                set_ft_node_byte_order_prop(stream_type_node, 'event-common-context-field-type')
-
-                for ev_type_name, ev_type_node in stream_type_node['event-types'].items():
-                    try:
-                        set_ft_node_byte_order_prop(ev_type_node, 'specific-context-field-type')
-                        set_ft_node_byte_order_prop(ev_type_node, 'payload-field-type')
-                    except _ConfigurationParseError as exc:
-                        _append_error_ctx(exc, f'Event type `{ev_type_name}`')
-            except _ConfigurationParseError as exc:
-                _append_error_ctx(exc, f'Stream type `{stream_type_name}`')
 
     # Processes the inclusions of the event type node `ev_type_node`,
     # returning the effective node.
@@ -1385,9 +1284,8 @@ class _Parser(barectf_config_parse_common._Parser):
         # doesn't need to check for `None` nodes or enumerator aliases.
         self._normalize_props()
 
-        # Set `byte-order` properties of bit array field type nodes
-        # missing one.
-        self._sub_ft_nodes_byte_order()
+        # Set the target byte order.
+        self._set_target_byte_order()
 
         # Create a barectf configuration object from the configuration
         # node.
