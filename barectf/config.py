@@ -206,6 +206,10 @@ class _ArrayFieldType(_FieldType):
     def alignment(self) -> Alignment:
         return self._element_field_type.alignment
 
+    @property
+    def size_is_dynamic(self):
+        return self._element_field_type.size_is_dynamic
+
 
 class StaticArrayFieldType(_ArrayFieldType):
     def __init__(self, length: Count, element_field_type: _FieldType):
