@@ -24,4 +24,4 @@
  #}
 {% import 'c/common.j2' as c_common %}
 /* Add `{{ op.top_name }}` string field's size */
-at += _BYTES_TO_BITS(strlen({{ c_common.op_src(op) }}) + 1);
+at += _BYTES_TO_BITS(strlen({{ op | op_src_var_name }}) + 1);

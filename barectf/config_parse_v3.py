@@ -235,9 +235,9 @@ class _Parser(barectf_config_parse_common._Parser):
             ft_node = member_node[ft_prop_name]
 
             try:
-                if ft_node['class'] in ['structure', 'static-array']:
+                if ft_node['class'] in ['structure']:
                     raise _ConfigurationParseError(f'`{ft_prop_name}` property',
-                                                   'Nested structure and static array field types are not supported')
+                                                   'Nested structure field types are not supported')
 
                 try:
                     member_ft = self._create_ft(ft_node)

@@ -25,4 +25,4 @@
 {% import 'c/common.j2' as c_common %}
 {% include 'c/serialize-write-statements-comment.j2' %}
 
-_write_c_str(ctx, {{ c_common.op_src(op) }});
+_write_c_str(ctx, {{ op | op_src_var_name }});

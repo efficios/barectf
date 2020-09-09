@@ -45,18 +45,6 @@
 {%- endmacro %}
 
 {#
- # Generates the name of a source variable from the names of the
- # operation `op`.
- #
- # Example:
- #
- #     p_msg_id
- #}
-{% macro op_src(op) %}
-{{ op.names | join('_') }}
-{%- endmacro %}
-
-{#
  # Generates:
  #
  # If `is_const` is `true`:

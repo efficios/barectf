@@ -24,5 +24,5 @@
  #}
 {% import 'c/common.j2' as c_common %}
 /* Do not write `{{ op.top_name }}` field; save its offset */
-sctx->off_{{ c_common.op_src(op) }} = ctx->at;
+sctx->off_{{ op | op_src_var_name }} = ctx->at;
 ctx->at += {{ op.ft.size }};

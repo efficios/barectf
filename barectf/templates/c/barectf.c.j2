@@ -330,7 +330,7 @@ end:
 		{% set op = stream_op_pkt_ctx_op(stream_type, name) %}
 
 	/* Go back to `timestamp_end` field offset */
-	ctx->at = sctx->off_{{ c_common.op_src(op) }};
+	ctx->at = sctx->off_{{ op | op_src_var_name }};
 
 		{% set src = 'ts' %}
 		{% filter indent_tab(indent_first=true) %}
@@ -343,7 +343,7 @@ end:
 		{% set op = stream_op_pkt_ctx_op(stream_type, name) %}
 
 	/* Go back to `content_size` field offset */
-	ctx->at = sctx->off_{{ c_common.op_src(op) }};
+	ctx->at = sctx->off_{{ op | op_src_var_name }};
 
 		{% set src %}ctx->{{ name }}{% endset %}
 		{% filter indent_tab(indent_first=true) %}
@@ -356,7 +356,7 @@ end:
 		{% set op = stream_op_pkt_ctx_op(stream_type, name) %}
 
 	/* Go back to `events_discarded` field offset */
-	ctx->at = sctx->off_{{ c_common.op_src(op) }};
+	ctx->at = sctx->off_{{ op | op_src_var_name }};
 
 		{% set src %}ctx->{{ name }}{% endset %}
 		{% filter indent_tab(indent_first=true) %}

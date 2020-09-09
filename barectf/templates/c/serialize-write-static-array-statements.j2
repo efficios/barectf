@@ -23,8 +23,15 @@
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
 {% import 'c/common.j2' as c_common %}
-{% set c_type = op.ft | ft_c_type %}
-{% set src = op | op_src_var_name %}
+{% set var_name = op.level | loop_var_name %}
 {% include 'c/serialize-write-statements-comment.j2' %}
 
-{% include 'c/serialize-write-bit-array-statements.j2' %}
+{
+	uint32_t {{ var_name }};
+
+	for ({{ var_name }} = 0; {{ var_name }} < (uint32_t) {{ op.ft.length }}; ++{{ var_name }}) {
+{% for subop in op.subops %}
+		{{ subop.serialize_str(stream_type=stream_type, ev_type=ev_type) | indent_tab(2) }}
+{% endfor %}
+	}
+}

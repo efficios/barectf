@@ -45,12 +45,16 @@ _OpTemplates = collections.namedtuple('_OpTemplates', ['serialize', 'size'])
 # * A list of names which, when joined with `_`, form the generic
 #   C source variable name.
 #
+# * A level: how deep this operation is within the operation tree.
+#
 # * Serialization and size computation templates to generate the
 #   operation's source code for those functions.
 class _Op:
-    def __init__(self, ft: barectf_config._FieldType, names: List[str], templates: _OpTemplates):
+    def __init__(self, ft: barectf_config._FieldType, names: List[str], level: Count,
+                 templates: _OpTemplates):
         self._ft = ft
         self._names = copy.copy(names)
+        self._level = level
         self._templates = templates
 
     @property
@@ -60,6 +64,10 @@ class _Op:
     @property
     def names(self) -> List[str]:
         return self._names
+
+    @property
+    def level(self) -> Count:
+        return self._level
 
     @property
     def top_name(self) -> str:
@@ -86,9 +94,9 @@ class _Op:
 #
 # The templates of a compound operation handles its suboperations.
 class _CompoundOp(_Op):
-    def __init__(self, ft: barectf_config._FieldType, names: List[str], templates: _OpTemplates,
-                 subops: List[Any] = None):
-        super().__init__(ft, names, templates)
+    def __init__(self, ft: barectf_config._FieldType, names: List[str], level: Count,
+                 templates: _OpTemplates, subops: List[Any] = None):
+        super().__init__(ft, names, level, templates)
         self._subops = subops
 
     @property
@@ -99,8 +107,8 @@ class _CompoundOp(_Op):
 # Leaf operation (abstract class).
 class _LeafOp(_Op):
     def __init__(self, offset_in_byte: Count, ft: barectf_config._FieldType, names: List[str],
-                 templates: _OpTemplates):
-        super().__init__(ft, names, templates)
+                 level: Count, templates: _OpTemplates):
+        super().__init__(ft, names, level, templates)
         assert offset_in_byte >= 0 and offset_in_byte < 8
         self._offset_in_byte = offset_in_byte
 
@@ -112,8 +120,8 @@ class _LeafOp(_Op):
 # An "align" operation.
 class _AlignOp(_LeafOp):
     def __init__(self, offset_in_byte: Count, ft: barectf_config._FieldType, names: List[str],
-                 templates: _OpTemplates, value: Alignment):
-        super().__init__(offset_in_byte, ft, names, templates)
+                 level: Count, templates: _OpTemplates, value: Alignment):
+        super().__init__(offset_in_byte, ft, names, level, templates)
         self._value = value
 
     @property
@@ -142,6 +150,7 @@ class _OpBuilder:
         self._last_alignment: Optional[Alignment] = None
         self._last_bit_array_size: Optional[Count] = None
         self._names: List[str] = []
+        self._level = Count(0)
         self._offset_in_byte = Count(0)
         self._cg = cg
 
@@ -159,6 +168,7 @@ class _OpBuilder:
 
         assert type(ft) is barectf_config.StructureFieldType
         assert len(self._names) == 0
+        assert self._level == 0
         ops = self._build_for_ft(ft, name, spec_serialize_write_templates)
         assert len(ops) == 1
         assert type(ops[0]) is _CompoundOp
@@ -206,7 +216,7 @@ class _OpBuilder:
             elif type(ft) is barectf_config.StringFieldType:
                 size_write_templ = self._cg._size_write_string_statements_templ
 
-            return _WriteOp(offset_in_byte, ft, self._names,
+            return _WriteOp(offset_in_byte, ft, self._names, self._level,
                             _OpTemplates(serialize_write_templ, size_write_templ))
 
         # Creates and returns an "align" operation for the field type
@@ -222,7 +232,7 @@ class _OpBuilder:
             self._offset_in_byte = Count(align(self._offset_in_byte, alignment) % 8)
 
             if do_align and alignment > 1:
-                return _AlignOp(offset_in_byte, ft, self._names,
+                return _AlignOp(offset_in_byte, ft, self._names, self._level,
                                 _OpTemplates(self._cg._serialize_align_statements_templ,
                                              self._cg._size_align_statements_templ),
                                 alignment)
@@ -235,16 +245,20 @@ class _OpBuilder:
         def must_align(align_req: Alignment) -> bool:
             return self._last_alignment != align_req or typing.cast(Count, self._last_bit_array_size) % align_req != 0
 
+        # Returns whether or not `ft` is a compound field type.
+        def ft_is_compound(ft: barectf_config._FieldType) -> bool:
+            return isinstance(ft, (barectf_config.StructureFieldType, barectf_config.StaticArrayFieldType))
+
         # push field type's name to the builder's name stack initially
         self._names.append(name)
 
         # operations to return
         ops: List[_Op] = []
 
-        if isinstance(ft, (barectf_config.StringFieldType, barectf_config._ArrayFieldType)):
-            assert type(ft) is barectf_config.StringFieldType or top_name() == 'uuid'
+        is_uuid_ft = type(ft) is barectf_config.StaticArrayFieldType and self._names == [_RootFtPrefixes.PH, 'uuid']
 
-            # strings and arrays are always byte-aligned
+        if type(ft) is barectf_config.StringFieldType or is_uuid_ft:
+            # strings and UUID array are always byte-aligned
             do_align = must_align(Alignment(8))
             self._last_alignment = Alignment(8)
             self._last_bit_array_size = Count(8)
@@ -258,7 +272,7 @@ class _OpBuilder:
             do_align = must_align(ft.alignment)
             self._last_alignment = ft.alignment
 
-            if type(ft) is barectf_config.StructureFieldType:
+            if ft_is_compound(ft):
                 # reset last bit array size
                 self._last_bit_array_size = typing.cast(Count, ft.alignment)
             else:
@@ -267,10 +281,10 @@ class _OpBuilder:
                 self._last_bit_array_size = ft.size
 
             init_align_op = try_create_align_op(ft.alignment, do_align, ft)
+            subops: List[_Op] = []
 
             if type(ft) is barectf_config.StructureFieldType:
                 ft = typing.cast(barectf_config.StructureFieldType, ft)
-                subops: List[_Op] = []
 
                 if init_align_op is not None:
                     # append structure field's alignment as a suboperation
@@ -281,11 +295,30 @@ class _OpBuilder:
                     subops += self._build_for_ft(member.field_type, member_name,
                                                  spec_serialize_write_templates)
 
-                # create structre field's compound operation
-                ops.append(_CompoundOp(ft, self._names,
+                # create structure field's compound operation
+                ops.append(_CompoundOp(ft, self._names, self._level,
                                        _OpTemplates(self._cg._serialize_write_struct_statements_templ,
                                                     self._cg._size_write_struct_statements_templ),
-                                        subops))
+                                       subops))
+            elif type(ft) is barectf_config.StaticArrayFieldType:
+                ft = typing.cast(barectf_config.StaticArrayFieldType, ft)
+
+                if init_align_op is not None:
+                    # append static array field's alignment as a suboperation
+                    subops.append(init_align_op)
+
+                # append element's suboperations
+                self._level = Count(self._level + 1)
+                subops += self._build_for_ft(ft.element_field_type,
+                                             f'[{_loop_var_name(Count(self._level - 1))}]',
+                                             spec_serialize_write_templates)
+                self._level = Count(self._level - 1)
+
+                # create static array field's compound operation
+                ops.append(_CompoundOp(ft, self._names, self._level,
+                                       _OpTemplates(self._cg._serialize_write_static_array_statements_templ,
+                                                    self._cg._size_write_static_array_statements_templ),
+                                       subops))
             else:
                 # leaf field: align + write
                 if init_align_op is not None:
@@ -437,6 +470,14 @@ class _PointerCType(_CType):
         return s
 
 
+# Returns the name of a loop variable given a nesting level `level`.
+def _loop_var_name(level: Count) -> str:
+    if level < 3:
+        return 'ijk'[level]
+
+    return f'k{level - 2}'
+
+
 # A C code generator.
 #
 # Such a code generator can generate:
@@ -453,6 +494,8 @@ class _CodeGen:
             'open_func_params_str': self._open_func_params_str,
             'trace_func_params_str': self._trace_func_params_str,
             'serialize_ev_common_ctx_func_params_str': self._serialize_ev_common_ctx_func_params_str,
+            'loop_var_name': _loop_var_name,
+            'op_src_var_name': self._op_src_var_name,
         }
         self._func_proto_params_templ = self._create_template('func-proto-params.j2')
         self._serialize_align_statements_templ = self._create_template('serialize-align-statements.j2')
@@ -460,6 +503,7 @@ class _CodeGen:
         self._serialize_write_real_statements_templ = self._create_template('serialize-write-real-statements.j2')
         self._serialize_write_string_statements_templ = self._create_template('serialize-write-string-statements.j2')
         self._serialize_write_struct_statements_templ = self._create_template('serialize-write-struct-statements.j2')
+        self._serialize_write_static_array_statements_templ = self._create_template('serialize-write-static-array-statements.j2')
         self._serialize_write_magic_statements_templ = self._create_template('serialize-write-magic-statements.j2')
         self._serialize_write_uuid_statements_templ = self._create_template('serialize-write-uuid-statements.j2')
         self._serialize_write_stream_type_id_statements_templ = self._create_template('serialize-write-stream-type-id-statements.j2')
@@ -471,6 +515,7 @@ class _CodeGen:
         self._size_write_bit_array_statements_templ = self._create_template('size-write-bit-array-statements.j2')
         self._size_write_string_statements_templ = self._create_template('size-write-string-statements.j2')
         self._size_write_struct_statements_templ = self._create_template('size-write-struct-statements.j2')
+        self._size_write_static_array_statements_templ = self._create_template('size-write-static-array-statements.j2')
 
     # Creates and returns a template named `name` which is a file
     # template if `is_file_template` is `True`.
@@ -502,6 +547,18 @@ class _CodeGen:
     def _trace_type(self) -> barectf_config.TraceType:
         return self._cfg.trace.type
 
+    # Returns the name of a source variable for the operation `op`.
+    def _op_src_var_name(self, op: _LeafOp) -> str:
+        s = ''
+
+        for index, name in enumerate(op.names):
+            if index > 0 and not name.startswith('['):
+                s += '_'
+
+            s += name
+
+        return s
+
     # Returns the C type for the field type `ft`, making it `const` if
     # `is_const` is `True`.
     def _ft_c_type(self, ft: barectf_config._FieldType, is_const: bool = False):
@@ -531,9 +588,12 @@ class _CodeGen:
                 s = 'uint64_t'
 
             return _ArithCType(s, is_const)
-        else:
-            assert type(ft) is barectf_config.StringFieldType
+        elif type(ft) is barectf_config.StringFieldType:
             return _PointerCType(_ArithCType('char', True), is_const)
+        else:
+            assert type(ft) is barectf_config.StaticArrayFieldType
+            ft = typing.cast(barectf_config.StaticArrayFieldType, ft)
+            return _PointerCType(self._ft_c_type(ft.element_field_type, True), is_const)
 
     # Returns the function prototype parameters for the members of the
     # root structure field type `root_ft`.
