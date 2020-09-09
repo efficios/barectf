@@ -180,28 +180,46 @@ definitions:
     properties:
       class: true
     additionalProperties: false
+  array-ft:
+    title: Array field type object
+    allOf:
+      - $ref: '#/definitions/ft-base'
+      - properties:
+          element-field-type:
+            $ref: '#/definitions/ft'
+        required:
+          - element-field-type
   static-array-ft-class-prop:
     type: string
     const: static-array
   static-array-ft:
     title: Static array field type object
     allOf:
-      - $ref: '#/definitions/ft-base'
+      - $ref: '#/definitions/array-ft'
       - properties:
           class:
             $ref: '#/definitions/static-array-ft-class-prop'
-          element-field-type:
-            $ref: '#/definitions/ft'
           length:
             type: integer
             minimum: 0
-        required:
-          - element-field-type
-          - length
     properties:
       class: true
       element-field-type: true
       length: true
+    additionalProperties: false
+  dynamic-array-ft-class-prop:
+    type: string
+    const: dynamic-array
+  dynamic-array-ft-class-prop:
+    title: Dynamic array field type object
+    allOf:
+      - $ref: '#/definitions/array-ft'
+      - properties:
+          class:
+            $ref: '#/definitions/dynamic-array-ft-class-prop'
+    properties:
+      class: true
+      element-field-type: true
     additionalProperties: false
   struct-ft-class-prop:
     type: string
@@ -278,6 +296,7 @@ definitions:
               - str
               - string
               - static-array
+              - dynamic-array
               - struct
               - structure
       - if:
@@ -322,6 +341,12 @@ definitions:
               $ref: '#/definitions/static-array-ft-class-prop'
         then:
           $ref: '#/definitions/static-array-ft'
+      - if:
+          properties:
+            class:
+              $ref: '#/definitions/dynamic-array-ft-class-prop'
+        then:
+          $ref: '#/definitions/dynamic-array-ft'
       - if:
           properties:
             class:

@@ -69,3 +69,11 @@
 {% macro const_str(is_const) %}
 {{ 'const ' if is_const else '' }}
 {%- endmacro %}
+
+{#
+ # Generates the length variable name of the dynamic field type
+ # operation `op`.
+ #}
+{% macro dyn_array_ft_op_len_var_name(op) %}
+{{ op.names[0] }}_{{ op.ft._length_ft_member_name }}
+{%- endmacro %}

@@ -58,7 +58,7 @@ const int saved_in_tracing_section = ctx->in_tracing_section;
 {% macro ft_call_params(param_prefix, ft, only_dyn=false) %}
 {% if ft %}
 	{% for member_name, member in ft.members.items() %}
-		{% if not only_dyn or member.field_type.size_is_dynamic %}
+		{% if not only_dyn or member.field_type.size_is_dynamic or member.field_type._is_len %}
 , {{ param_prefix }}_{{ member_name }}
 		{%- endif %}
 	{% endfor %}

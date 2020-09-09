@@ -23,7 +23,7 @@
 
 import barectf.config as barectf_config
 import barectf.template as barectf_template
-from typing import List, Optional
+from typing import List, Optional, Union
 import typing
 
 
@@ -53,19 +53,32 @@ def _gen_str_ft(ft: barectf_config._FieldType) -> str:
     return _STR_FT_TEMPL.render(ft=ft)
 
 
-def _ft_chain(ft: barectf_config._FieldType) -> List[barectf_config._FieldType]:
-    chain: List[barectf_config._FieldType] = []
+def _filt_ft_lengths(ft: barectf_config._FieldType, name: str) -> List[Union[str, int]]:
+    lengths: List[Union[str, int]] = []
 
-    while isinstance(ft, barectf_config.StaticArrayFieldType):
-        chain.append(ft)
+    while isinstance(ft, barectf_config._ArrayFieldType):
+        if type(ft) is barectf_config.StaticArrayFieldType:
+            ft = typing.cast(barectf_config.StaticArrayFieldType, ft)
+            lengths.append(ft.length)
+        else:
+            assert type(ft) is barectf_config.DynamicArrayFieldType
+            ft = typing.cast(barectf_config.DynamicArrayFieldType, ft)
+            lengths.append(ft._length_ft_member_name)
+
         ft = ft.element_field_type
 
-    chain.append(ft)
-    return chain
+    return lengths
+
+
+def _filt_deepest_ft(ft: barectf_config._FieldType) -> barectf_config._FieldType:
+    while isinstance(ft, barectf_config._ArrayFieldType):
+        ft = ft.element_field_type
+
+    return ft
 
 
 def _gen_struct_ft(ft: barectf_config._FieldType) -> str:
-    return _STRUCT_FT_TEMPL.render(ft=ft, ft_chain=_ft_chain)
+    return _STRUCT_FT_TEMPL.render(ft=ft)
 
 
 _FT_CLS_TO_GEN_FT_FUNC = {
@@ -87,6 +100,8 @@ _TEMPL_FILTERS = {
     'disp_base_int': _filt_disp_base_int,
     'int_ft_str': _filt_int_ft_str,
     'ft_str': _filt_ft_str,
+    'ft_lengths': _filt_ft_lengths,
+    'deepest_ft': _filt_deepest_ft,
 }
 
 

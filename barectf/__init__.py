@@ -61,6 +61,7 @@ ConfigurationCodeGenerationOptions = barectf_config.ConfigurationCodeGenerationO
 ConfigurationOptions = barectf_config.ConfigurationOptions
 DEFAULT_FIELD_TYPE = barectf_config.DEFAULT_FIELD_TYPE
 DisplayBase = barectf_config.DisplayBase
+DynamicArrayFieldType = barectf_config.DynamicArrayFieldType
 EnumerationFieldTypeMapping = barectf_config.EnumerationFieldTypeMapping
 EnumerationFieldTypeMappingRange = barectf_config.EnumerationFieldTypeMappingRange
 EnumerationFieldTypeMappings = barectf_config.EnumerationFieldTypeMappings

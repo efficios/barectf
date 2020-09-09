@@ -80,7 +80,7 @@ class _Parser(config_parse_common._Parser):
             'floating-point': self._conv_real_ft_node,
             'str': self._conv_string_ft_node,
             'string': self._conv_string_ft_node,
-            'array': self._conv_static_array_ft_node,
+            'array': self._conv_array_ft_node,
             'struct': self._conv_struct_ft_node,
             'structure': self._conv_struct_ft_node,
         }
@@ -222,12 +222,15 @@ class _Parser(config_parse_common._Parser):
 
     # Converts a v2 array field type node to a v3 (static) array field
     # type node and returns it.
-    def _conv_static_array_ft_node(self, v2_ft_node: _MapNode) -> _MapNode:
-        # class renamed to `static-array`
-        v3_ft_node: _MapNode = collections.OrderedDict({'class': 'static-array'})
+    def _conv_array_ft_node(self, v2_ft_node: _MapNode) -> _MapNode:
+        # class renamed to `static-array` or `dynamic-array`
+        is_dynamic = v2_ft_node['length'] == 'dynamic'
+        array_type = 'dynamic' if is_dynamic else 'static'
+        v3_ft_node: _MapNode = collections.OrderedDict({'class': f'{array_type}-array'})
 
-        # copy `length` property
-        _copy_prop_if_exists(v3_ft_node, v2_ft_node, 'length')
+        # copy `length` property if it's a static array field type
+        if not is_dynamic:
+            _copy_prop_if_exists(v3_ft_node, v2_ft_node, 'length')
 
         # convert element field type
         v3_ft_node['element-field-type'] = self._conv_ft_node(v2_ft_node['element-type'])

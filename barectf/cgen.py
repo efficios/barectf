@@ -106,22 +106,14 @@ class _CompoundOp(_Op):
 
 # Leaf operation (abstract class).
 class _LeafOp(_Op):
-    def __init__(self, offset_in_byte: Count, ft: barectf_config._FieldType, names: List[str],
-                 level: Count, templates: _OpTemplates):
-        super().__init__(ft, names, level, templates)
-        assert offset_in_byte >= 0 and offset_in_byte < 8
-        self._offset_in_byte = offset_in_byte
-
-    @property
-    def offset_in_byte(self) -> Count:
-        return self._offset_in_byte
+    pass
 
 
 # An "align" operation.
 class _AlignOp(_LeafOp):
-    def __init__(self, offset_in_byte: Count, ft: barectf_config._FieldType, names: List[str],
-                 level: Count, templates: _OpTemplates, value: Alignment):
-        super().__init__(offset_in_byte, ft, names, level, templates)
+    def __init__(self, ft: barectf_config._FieldType, names: List[str], level: Count,
+                 templates: _OpTemplates, value: Alignment):
+        super().__init__(ft, names, level, templates)
         self._value = value
 
     @property
@@ -131,7 +123,15 @@ class _AlignOp(_LeafOp):
 
 # A "write" operation.
 class _WriteOp(_LeafOp):
-    pass
+    def __init__(self, ft: barectf_config._FieldType, names: List[str], level: Count,
+                 templates: _OpTemplates, offset_in_byte: Optional[Count]):
+        super().__init__(ft, names, level, templates)
+        assert offset_in_byte is None or (offset_in_byte >= 0 and offset_in_byte < 8)
+        self._offset_in_byte = offset_in_byte
+
+    @property
+    def offset_in_byte(self) -> Optional[Count]:
+        return self._offset_in_byte
 
 
 _SpecSerializeWriteTemplates = Mapping[str, barectf_template._Template]
@@ -147,12 +147,15 @@ _SpecSerializeWriteTemplates = Mapping[str, barectf_template._Template]
 # and return it.
 class _OpBuilder:
     def __init__(self, cg: '_CodeGen'):
-        self._last_alignment: Optional[Alignment] = None
-        self._last_bit_array_size: Optional[Count] = None
         self._names: List[str] = []
         self._level = Count(0)
-        self._offset_in_byte = Count(0)
+        self._offset_in_byte: Optional[Count] = None
         self._cg = cg
+
+    # Whether or not we're within an array operation.
+    @property
+    def _in_array(self):
+        return self._level > 0
 
     # Creates and returns an operation for the root structure field type
     # `ft` named `name`.
@@ -192,7 +195,7 @@ class _OpBuilder:
             assert type(ft) is not barectf_config.StructureFieldType
             offset_in_byte = self._offset_in_byte
 
-            if isinstance(ft, barectf_config._BitArrayFieldType):
+            if isinstance(ft, barectf_config._BitArrayFieldType) and self._offset_in_byte is not None:
                 self._offset_in_byte = Count((self._offset_in_byte + ft.size) % 8)
 
             serialize_write_templ: Optional[barectf_template._Template] = None
@@ -216,34 +219,32 @@ class _OpBuilder:
             elif type(ft) is barectf_config.StringFieldType:
                 size_write_templ = self._cg._size_write_string_statements_templ
 
-            return _WriteOp(offset_in_byte, ft, self._names, self._level,
-                            _OpTemplates(serialize_write_templ, size_write_templ))
+            return _WriteOp(ft, self._names, self._level,
+                            _OpTemplates(serialize_write_templ, size_write_templ), offset_in_byte)
 
         # Creates and returns an "align" operation for the field type
         # `ft` if needed.
         #
         # This function updates the builder's state.
-        def try_create_align_op(alignment: Alignment, do_align: bool,
-                                ft: barectf_config._FieldType) -> Optional[_AlignOp]:
+        def try_create_align_op(alignment: Alignment, ft: barectf_config._FieldType) -> Optional[_AlignOp]:
             def align(v: Count, alignment: Alignment) -> Count:
                 return Count((v + (alignment - 1)) & -alignment)
 
-            offset_in_byte = self._offset_in_byte
-            self._offset_in_byte = Count(align(self._offset_in_byte, alignment) % 8)
+            if self._offset_in_byte is None and alignment % 8 == 0:
+                self._offset_in_byte = Count(0)
+            else:
+                if self._in_array:
+                    self._offset_in_byte = None
+                elif self._offset_in_byte is not None:
+                    self._offset_in_byte = Count(align(self._offset_in_byte, alignment) % 8)
 
-            if do_align and alignment > 1:
-                return _AlignOp(offset_in_byte, ft, self._names, self._level,
+            if alignment > 1:
+                return _AlignOp(ft, self._names, self._level,
                                 _OpTemplates(self._cg._serialize_align_statements_templ,
                                              self._cg._size_align_statements_templ),
                                 alignment)
 
             return None
-
-        # Returns whether or not, considering the alignment requirement
-        # `align_req` and the builder's current state, we must create
-        # and append an "align" operation.
-        def must_align(align_req: Alignment) -> bool:
-            return self._last_alignment != align_req or typing.cast(Count, self._last_bit_array_size) % align_req != 0
 
         # Returns whether or not `ft` is a compound field type.
         def ft_is_compound(ft: barectf_config._FieldType) -> bool:
@@ -255,39 +256,32 @@ class _OpBuilder:
         # operations to return
         ops: List[_Op] = []
 
-        is_uuid_ft = type(ft) is barectf_config.StaticArrayFieldType and self._names == [_RootFtPrefixes.PH, 'uuid']
-
-        if type(ft) is barectf_config.StringFieldType or is_uuid_ft:
+        if type(ft) is barectf_config.StringFieldType or self._names == [_RootFtPrefixes.PH, 'uuid']:
             # strings and UUID array are always byte-aligned
-            do_align = must_align(Alignment(8))
-            self._last_alignment = Alignment(8)
-            self._last_bit_array_size = Count(8)
-            op = try_create_align_op(Alignment(8), do_align, ft)
+            op = try_create_align_op(Alignment(8), ft)
 
             if op is not None:
                 ops.append(op)
 
             ops.append(create_write_op(ft))
         else:
-            do_align = must_align(ft.alignment)
-            self._last_alignment = ft.alignment
-
             if ft_is_compound(ft):
-                # reset last bit array size
-                self._last_bit_array_size = typing.cast(Count, ft.alignment)
-            else:
-                assert isinstance(ft, barectf_config._BitArrayFieldType)
-                ft = typing.cast(barectf_config._BitArrayFieldType, ft)
-                self._last_bit_array_size = ft.size
+                self._offset_in_byte = None
 
-            init_align_op = try_create_align_op(ft.alignment, do_align, ft)
+            init_align_op = try_create_align_op(ft.alignment, ft)
             subops: List[_Op] = []
 
             if type(ft) is barectf_config.StructureFieldType:
                 ft = typing.cast(barectf_config.StructureFieldType, ft)
 
                 if init_align_op is not None:
-                    # append structure field's alignment as a suboperation
+                    # Append structure field's alignment as a
+                    # suboperation.
+                    #
+                    # This is not strictly needed (could be appended to
+                    # `ops`), but the properties of `_StreamOps` and
+                    # `_EvOps` offer a single (structure field type)
+                    # operation.
                     subops.append(init_align_op)
 
                 # append suboperations for each member
@@ -300,12 +294,12 @@ class _OpBuilder:
                                        _OpTemplates(self._cg._serialize_write_struct_statements_templ,
                                                     self._cg._size_write_struct_statements_templ),
                                        subops))
-            elif type(ft) is barectf_config.StaticArrayFieldType:
-                ft = typing.cast(barectf_config.StaticArrayFieldType, ft)
+            elif isinstance(ft, barectf_config._ArrayFieldType):
+                ft = typing.cast(barectf_config._ArrayFieldType, ft)
+                assert ft.alignment == 1 or init_align_op is not None
 
                 if init_align_op is not None:
-                    # append static array field's alignment as a suboperation
-                    subops.append(init_align_op)
+                    ops.append(init_align_op)
 
                 # append element's suboperations
                 self._level = Count(self._level + 1)
@@ -314,11 +308,17 @@ class _OpBuilder:
                                              spec_serialize_write_templates)
                 self._level = Count(self._level - 1)
 
-                # create static array field's compound operation
-                ops.append(_CompoundOp(ft, self._names, self._level,
-                                       _OpTemplates(self._cg._serialize_write_static_array_statements_templ,
-                                                    self._cg._size_write_static_array_statements_templ),
-                                       subops))
+                # select the right templates
+                if type(ft) is barectf_config.StaticArrayFieldType:
+                    templates = _OpTemplates(self._cg._serialize_write_static_array_statements_templ,
+                                             self._cg._size_write_static_array_statements_templ)
+                else:
+                    assert type(ft) is barectf_config.DynamicArrayFieldType
+                    templates = _OpTemplates(self._cg._serialize_write_dynamic_array_statements_templ,
+                                             self._cg._size_write_dynamic_array_statements_templ)
+
+                # create array field's compound operation
+                ops.append(_CompoundOp(ft, self._names, self._level, templates, subops))
             else:
                 # leaf field: align + write
                 if init_align_op is not None:
@@ -504,6 +504,7 @@ class _CodeGen:
         self._serialize_write_string_statements_templ = self._create_template('serialize-write-string-statements.j2')
         self._serialize_write_struct_statements_templ = self._create_template('serialize-write-struct-statements.j2')
         self._serialize_write_static_array_statements_templ = self._create_template('serialize-write-static-array-statements.j2')
+        self._serialize_write_dynamic_array_statements_templ = self._create_template('serialize-write-dynamic-array-statements.j2')
         self._serialize_write_magic_statements_templ = self._create_template('serialize-write-magic-statements.j2')
         self._serialize_write_uuid_statements_templ = self._create_template('serialize-write-uuid-statements.j2')
         self._serialize_write_stream_type_id_statements_templ = self._create_template('serialize-write-stream-type-id-statements.j2')
@@ -516,6 +517,7 @@ class _CodeGen:
         self._size_write_string_statements_templ = self._create_template('size-write-string-statements.j2')
         self._size_write_struct_statements_templ = self._create_template('size-write-struct-statements.j2')
         self._size_write_static_array_statements_templ = self._create_template('size-write-static-array-statements.j2')
+        self._size_write_dynamic_array_statements_templ = self._create_template('size-write-dynamic-array-statements.j2')
 
     # Creates and returns a template named `name` which is a file
     # template if `is_file_template` is `True`.
@@ -591,8 +593,8 @@ class _CodeGen:
         elif type(ft) is barectf_config.StringFieldType:
             return _PointerCType(_ArithCType('char', True), is_const)
         else:
-            assert type(ft) is barectf_config.StaticArrayFieldType
-            ft = typing.cast(barectf_config.StaticArrayFieldType, ft)
+            assert isinstance(ft, barectf_config._ArrayFieldType)
+            ft = typing.cast(barectf_config._ArrayFieldType, ft)
             return _PointerCType(self._ft_c_type(ft.element_field_type, True), is_const)
 
     # Returns the function prototype parameters for the members of the
@@ -616,7 +618,13 @@ class _CodeGen:
             if member_name in exclude_set:
                 continue
 
-            if only_dyn and not member.field_type.size_is_dynamic:
+            is_dyn = member.field_type.size_is_dynamic
+
+            if isinstance(member.field_type, barectf_config.UnsignedIntegerFieldType):
+                ft = typing.cast(barectf_config.UnsignedIntegerFieldType, member.field_type)
+                is_dyn = is_dyn or ft._is_len
+
+            if only_dyn and not is_dyn:
                 continue
 
             params.append(_FtParam(member.field_type, member_name))

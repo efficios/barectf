@@ -66,7 +66,7 @@ definitions:
                           const: 32
                 uuid:
                   allOf:
-                    - $ref: https://barectf.org/schemas/config/2/field-type.json#/definitions/static-array-ft
+                    - $ref: https://barectf.org/schemas/config/2/field-type.json#/definitions/array-ft
                     - properties:
                         length:
                           const: 16

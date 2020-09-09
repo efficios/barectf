@@ -222,6 +222,21 @@ class StaticArrayFieldType(_ArrayFieldType):
         return self._length
 
 
+class DynamicArrayFieldType(_ArrayFieldType):
+    def __init__(self, length_field_type: UnsignedIntegerFieldType, element_field_type: _FieldType):
+        super().__init__(element_field_type)
+        self._length_field_type = length_field_type
+        self._length_ft_member_name = None
+
+    @property
+    def length_field_type(self):
+        return self._length_field_type
+
+    @property
+    def size_is_dynamic(self):
+        return True
+
+
 class StructureFieldTypeMember:
     def __init__(self, field_type: _FieldType):
         self._field_type = field_type
@@ -262,11 +277,26 @@ class StructureFieldType(_FieldType):
             self._members = StructureFieldTypeMembers(members)
 
         self._set_alignment()
+        self._set_dyn_array_ft_length_ft_member_names()
 
     def _set_alignment(self):
         self._alignment: Alignment = self._minimum_alignment
 
         for member in self._members.values():
+            if member.field_type.alignment > self._alignment:
+                self._alignment = member.field_type.alignment
+
+    def _set_dyn_array_ft_length_ft_member_names(self):
+        for member in self._members.values():
+            if type(member.field_type) is DynamicArrayFieldType:
+                # Find length field type member name within the same
+                # structure field type members.
+                for len_name, len_member in self._members.items():
+                    if member.field_type.length_field_type is len_member.field_type:
+                        member.field_type._length_ft_member_name = len_name
+                        len_member.field_type._is_len = True
+                        break
+
             if member.field_type.alignment > self._alignment:
                 self._alignment = member.field_type.alignment
 

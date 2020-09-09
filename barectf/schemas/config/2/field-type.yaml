@@ -198,20 +198,25 @@ definitions:
     required:
       - class
     additionalProperties: false
-  static-array-ft-class-prop:
+  array-ft-class-prop:
     type: string
     const: array
-  static-array-ft:
+  array-ft:
     title: Static array field type object
     type: object
     properties:
       class:
-        $ref: '#/definitions/static-array-ft-class-prop'
+        $ref: '#/definitions/array-ft-class-prop'
       element-type:
         $ref: '#/definitions/ft'
       length:
-        type: integer
-        minimum: 0
+        if:
+          type: integer
+        then:
+          minimum: 0
+        else:
+          type: string
+          const: dynamic
     required:
       - class
       - element-type
@@ -298,9 +303,9 @@ definitions:
       - if:
           properties:
             class:
-              $ref: '#/definitions/static-array-ft-class-prop'
+              $ref: '#/definitions/array-ft-class-prop'
         then:
-          $ref: '#/definitions/static-array-ft'
+          $ref: '#/definitions/array-ft'
       - if:
           properties:
             class:

@@ -26,7 +26,7 @@ from barectf.config_parse_common import _ConfigurationParseError
 from barectf.config_parse_common import _append_error_ctx
 from barectf.config_parse_common import _MapNode
 import barectf.config as barectf_config
-from barectf.config import _OptFt, _OptStructFt
+from barectf.config import _OptStructFt
 import collections
 import uuid
 from barectf.typing import Count, Alignment, VersionNumber
@@ -52,7 +52,8 @@ class _Parser(barectf_config_parse_common._Parser):
                  ignore_include_not_found: bool):
         super().__init__(root_file, node, with_pkg_include_dir, inclusion_dirs,
                          ignore_include_not_found, VersionNumber(3))
-        self._ft_cls_name_to_create_method: Dict[str, Callable[[_MapNode], barectf_config._FieldType]] = {
+        self._ft_cls_name_to_create_method: Dict[str, Callable[[_MapNode],
+                                                               List[barectf_config._FieldType]]] = {
             'unsigned-integer': self._create_int_ft,
             'signed-integer': self._create_int_ft,
             'unsigned-enumeration': self._create_enum_ft,
@@ -60,6 +61,7 @@ class _Parser(barectf_config_parse_common._Parser):
             'real': self._create_real_ft,
             'string': self._create_string_ft,
             'static-array': self._create_static_array_ft,
+            'dynamic-array': self._create_dynamic_array_ft,
             'structure': self._create_struct_ft,
         }
         self._parse()
@@ -155,16 +157,16 @@ class _Parser(barectf_config_parse_common._Parser):
 
     # Creates an integer field type from the unsigned/signed integer
     # field type node `ft_node`.
-    def _create_int_ft(self, ft_node: _MapNode) -> barectf_config._IntegerFieldType:
+    def _create_int_ft(self, ft_node: _MapNode) -> List[barectf_config._FieldType]:
         ft_type = {
             'unsigned-integer': barectf_config.UnsignedIntegerFieldType,
             'signed-integer': barectf_config.SignedIntegerFieldType,
         }[ft_node['class']]
-        return self._create_common_int_ft(ft_node, ft_type)
+        return [self._create_common_int_ft(ft_node, ft_type)]
 
     # Creates an enumeration field type from the unsigned/signed
     # enumeration field type node `ft_node`.
-    def _create_enum_ft(self, ft_node: _MapNode) -> barectf_config._EnumerationFieldType:
+    def _create_enum_ft(self, ft_node: _MapNode) -> List[barectf_config._FieldType]:
         ft_type = {
             'unsigned-enumeration': barectf_config.UnsignedEnumerationFieldType,
             'signed-enumeration': barectf_config.SignedEnumerationFieldType,
@@ -185,32 +187,54 @@ class _Parser(barectf_config_parse_common._Parser):
 
             mappings[label] = barectf_config.EnumerationFieldTypeMapping(ranges)
 
-        return typing.cast(barectf_config._EnumerationFieldType,
-                           self._create_common_int_ft(ft_node, ft_type,
-                                                      barectf_config.EnumerationFieldTypeMappings(mappings)))
+        return [typing.cast(barectf_config._EnumerationFieldType,
+                            self._create_common_int_ft(ft_node, ft_type,
+                                                       barectf_config.EnumerationFieldTypeMappings(mappings)))]
 
     # Creates a real field type from the real field type node `ft_node`.
-    def _create_real_ft(self, ft_node: _MapNode) -> barectf_config.RealFieldType:
-        return typing.cast(barectf_config.RealFieldType,
-                           self._create_common_bit_array_ft(ft_node, barectf_config.RealFieldType,
-                                                            Alignment(8)))
+    def _create_real_ft(self, ft_node: _MapNode) -> List[barectf_config._FieldType]:
+        return [typing.cast(barectf_config.RealFieldType,
+                            self._create_common_bit_array_ft(ft_node, barectf_config.RealFieldType,
+                                                             Alignment(8)))]
 
     # Creates a string field type from the string field type node
     # `ft_node`.
-    def _create_string_ft(self, ft_node: _MapNode) -> barectf_config.StringFieldType:
-        return barectf_config.StringFieldType()
+    def _create_string_ft(self, ft_node: _MapNode) -> List[barectf_config._FieldType]:
+        return [barectf_config.StringFieldType()]
 
-    # Creates a static array field type from the static array field type
-    # node `ft_node`.
-    def _create_static_array_ft(self, ft_node: _MapNode) -> barectf_config.StaticArrayFieldType:
+    def _create_array_ft(self, ft_type, ft_node: _MapNode, **kwargs) -> barectf_config._ArrayFieldType:
         prop_name = 'element-field-type'
 
         try:
-            element_ft = self._create_ft(ft_node[prop_name])
+            element_fts = self._create_fts(ft_node[prop_name])
         except _ConfigurationParseError as exc:
             _append_error_ctx(exc, f'`{prop_name}` property')
 
-        return barectf_config.StaticArrayFieldType(ft_node['length'], element_ft)
+        if len(element_fts) != 1 or isinstance(element_fts[0], (barectf_config.StructureFieldType,
+                                                                barectf_config.DynamicArrayFieldType)):
+            raise _ConfigurationParseError(f'`{prop_name}` property',
+                                           'Nested structure and dynamic array field types are not supported')
+
+        return ft_type(element_field_type=element_fts[0], **kwargs)
+
+    # Creates a static array field type from the static array field type
+    # node `ft_node`.
+    def _create_static_array_ft(self, ft_node: _MapNode) -> List[barectf_config._FieldType]:
+        return [typing.cast(barectf_config.StaticArrayFieldType,
+                            self._create_array_ft(barectf_config.StaticArrayFieldType, ft_node,
+                                                  length=ft_node['length']))]
+
+    # Creates a dynamic array field type from the dynamic array field
+    # type node `ft_node`.
+    def _create_dynamic_array_ft(self, ft_node: _MapNode) -> List[barectf_config._FieldType]:
+        # create length unsigned integer field type
+        len_ft = barectf_config.UnsignedIntegerFieldType(32, alignment=Alignment(8))
+        return [
+            len_ft,
+            typing.cast(barectf_config.DynamicArrayFieldType,
+                        self._create_array_ft(barectf_config.DynamicArrayFieldType, ft_node,
+                                              length_field_type=len_ft))
+        ]
 
     # Creates structure field type members from the structure field type
     # members node `members_node`.
@@ -240,19 +264,29 @@ class _Parser(barectf_config_parse_common._Parser):
                                                    'Nested structure field types are not supported')
 
                 try:
-                    member_ft = self._create_ft(ft_node)
+                    member_fts = self._create_fts(ft_node)
                 except _ConfigurationParseError as exc:
-                    exc._append_ctx(f'`{ft_prop_name}` property')
+                    _append_error_ctx(exc, f'`{ft_prop_name}` property')
             except _ConfigurationParseError as exc:
                 _append_error_ctx(exc, f'Structure field type member `{member_name}`')
 
-            members[member_name] = barectf_config.StructureFieldTypeMember(member_ft)
+            if len(member_fts) == 2:
+                # The only case where this happens is a dynamic array
+                # field type node which generates an unsigned integer
+                # field type for the length and the dynamic array field
+                # type itself.
+                assert type(member_fts[1]) is barectf_config.DynamicArrayFieldType
+                members[f'__{member_name}_len'] = barectf_config.StructureFieldTypeMember(member_fts[0])
+            else:
+                assert len(member_fts) == 1
+
+            members[member_name] = barectf_config.StructureFieldTypeMember(member_fts[-1])
 
         return barectf_config.StructureFieldTypeMembers(members)
 
     # Creates a structure field type from the structure field type node
     # `ft_node`.
-    def _create_struct_ft(self, ft_node: _MapNode) -> barectf_config.StructureFieldType:
+    def _create_struct_ft(self, ft_node: _MapNode) -> List[barectf_config._FieldType]:
         minimum_alignment = self._alignment_prop(ft_node, 'minimum-alignment')
 
         if minimum_alignment is None:
@@ -265,32 +299,36 @@ class _Parser(barectf_config_parse_common._Parser):
         if members_node is not None:
             members = self._create_struct_ft_members(members_node, prop_name)
 
-        return barectf_config.StructureFieldType(minimum_alignment, members)
+        return [barectf_config.StructureFieldType(minimum_alignment, members)]
 
-    # Creates a field type from the field type node `ft_node`.
-    def _create_ft(self, ft_node: _MapNode) -> barectf_config._FieldType:
+    # Creates field types from the field type node `ft_node`.
+    def _create_fts(self, ft_node: _MapNode) -> List[barectf_config._FieldType]:
         return self._ft_cls_name_to_create_method[ft_node['class']](ft_node)
 
-    # Creates a field type from the field type node `parent_node[key]`
+    # Creates field types from the field type node `parent_node[key]`
     # if it exists.
-    def _try_create_ft(self, parent_node: _MapNode, key: str) -> _OptFt:
+    def _try_create_fts(self, parent_node: _MapNode, key: str) -> Optional[List[barectf_config._FieldType]]:
         if key not in parent_node:
             return None
 
         try:
-            return self._create_ft(parent_node[key])
+            return self._create_fts(parent_node[key])
         except _ConfigurationParseError as exc:
             _append_error_ctx(exc, f'`{key}` property')
 
             # satisfy static type checker (never reached)
             raise
 
-    # Like _try_create_ft(), but casts the result's type to
-    # `barectf_config.StructureFieldType` to satisfy static type
-    # checkers.
+    # Like _try_create_fts(), but casts the result's type (first and
+    # only element) to `barectf_config.StructureFieldType` to satisfy
+    # static type checkers.
     def _try_create_struct_ft(self, parent_node: _MapNode, key: str) -> _OptStructFt:
-        return typing.cast(barectf_config.StructureFieldType,
-                           self._try_create_ft(parent_node, key))
+        fts = self._try_create_fts(parent_node, key)
+
+        if fts is None:
+            return None
+
+        return typing.cast(barectf_config.StructureFieldType, fts[0])
 
     # Returns the total number of members in the structure field type
     # node `ft_node` if it exists, otherwise 0.
@@ -372,7 +410,7 @@ class _Parser(barectf_config_parse_common._Parser):
             return None
 
         assert type(ft_node) is collections.OrderedDict
-        return self._create_ft(ft_node)
+        return self._create_fts(ft_node)[0]
 
     def _create_stream_type(self, name: str, stream_type_node: _MapNode) -> barectf_config.StreamType:
         try:

@@ -22,5 +22,6 @@
  # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
-{% set length_src %}{{ op.ft.length }}U{% endset %}
-{% include 'c/size-write-array-statements.j2' %}
+{% import 'c/common.j2' as c_common %}
+{% set length_src = c_common.dyn_array_ft_op_len_var_name(op) %}
+{% include 'c/serialize-write-array-statements.j2' %}

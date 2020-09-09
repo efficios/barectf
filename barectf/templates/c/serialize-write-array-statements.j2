@@ -22,5 +22,17 @@
  # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
-{% set length_src %}{{ op.ft.length }}U{% endset %}
-{% include 'c/size-write-array-statements.j2' %}
+{% import 'c/common.j2' as c_common %}
+{% set var_name = op.level | loop_var_name %}
+{% include 'c/serialize-write-statements-comment.j2' %}
+
+{
+	uint32_t {{ var_name }};
+
+	for ({{ var_name }} = 0; {{ var_name }} < (uint32_t) {{ length_src }}; ++{{ var_name }}) {
+{% for subop in op.subops %}
+		{{ subop.serialize_str(stream_type=stream_type, ev_type=ev_type) | indent_tab(2) }}
+
+{% endfor %}
+	}
+}
