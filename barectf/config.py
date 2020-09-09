@@ -84,9 +84,10 @@ class _IntegerFieldType(_BitArrayFieldType):
 
 
 class UnsignedIntegerFieldType(_IntegerFieldType):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._mapped_clk_type_name = None
+        self._is_len = False
 
 
 class SignedIntegerFieldType(_IntegerFieldType):
