@@ -389,6 +389,54 @@ _ROOT_FT_PREFIX_NAMES = {
 _FtParam = collections.namedtuple('_FtParam', ['ft', 'name'])
 
 
+# C type abstract base class.
+class _CType:
+    def __init__(self, is_const: bool):
+        self._is_const = is_const
+
+    @property
+    def is_const(self) -> bool:
+        return self._is_const
+
+
+# Arithmetic C type.
+class _ArithCType(_CType):
+    def __init__(self, name: str, is_const: bool):
+        super().__init__(is_const)
+        self._name = name
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def __str__(self) -> str:
+        return f'{"const " if self._is_const else ""}{self._name}'
+
+
+# Pointer C type.
+class _PointerCType(_CType):
+    def __init__(self, pointed_c_type: _CType, is_const: bool):
+        super().__init__(is_const)
+        self._pointed_c_type = pointed_c_type
+
+    @property
+    def pointed_c_type(self) -> _CType:
+        return self._pointed_c_type
+
+    def __str__(self) -> str:
+        s = str(self._pointed_c_type)
+
+        if not s.endswith('*'):
+            s += ' '
+
+        s += '*'
+
+        if self._is_const:
+            s += ' const'
+
+        return s
+
+
 # A C code generator.
 #
 # Such a code generator can generate:
@@ -454,11 +502,9 @@ class _CodeGen:
     def _trace_type(self) -> barectf_config.TraceType:
         return self._cfg.trace.type
 
-    # Returns the C type for the field type `ft`, returning a `const` C
-    # type if `is_const` is `True`.
-    def _ft_c_type(self, ft: barectf_config._FieldType, is_const: bool = False) -> str:
-        const_beg_str = 'const '
-
+    # Returns the C type for the field type `ft`, making it `const` if
+    # `is_const` is `True`.
+    def _ft_c_type(self, ft: barectf_config._FieldType, is_const: bool = False):
         if isinstance(ft, barectf_config._IntegerFieldType):
             ft = typing.cast(barectf_config._IntegerFieldType, ft)
             sign_prefix = 'u' if isinstance(ft, barectf_config.UnsignedIntegerFieldType) else ''
@@ -473,21 +519,21 @@ class _CodeGen:
                 assert ft.size <= 64
                 sz = 64
 
-            return f'{const_beg_str if is_const else ""}{sign_prefix}int{sz}_t'
+            return _ArithCType(f'{sign_prefix}int{sz}_t', is_const)
         elif type(ft) is barectf_config.RealFieldType:
             ft = typing.cast(barectf_config.RealFieldType, ft)
 
             if ft.size == 32 and ft.alignment == 32:
-                c_type = 'float'
+                s = 'float'
             elif ft.size == 64 and ft.alignment == 64:
-                c_type = 'double'
+                s = 'double'
             else:
-                c_type = 'uint64_t'
+                s = 'uint64_t'
 
-            return f'{const_beg_str if is_const else ""}{c_type}'
+            return _ArithCType(s, is_const)
         else:
             assert type(ft) is barectf_config.StringFieldType
-            return f'const char *{" const" if is_const else ""}'
+            return _PointerCType(_ArithCType('char', True), is_const)
 
     # Returns the function prototype parameters for the members of the
     # root structure field type `root_ft`.
