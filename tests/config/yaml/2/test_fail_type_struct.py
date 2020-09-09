@@ -21,25 +21,25 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_fields_field_invalid_identifier(request, config_fail_test):
-    config_fail_test(request, 'type-struct/fields-field-invalid-identifier')
+def test_fields_field_invalid_identifier(config_fail_test):
+    config_fail_test()
 
 
-def test_fields_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'type-struct/fields-invalid-type')
+def test_fields_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_ma_0(request, config_fail_test):
-    config_fail_test(request, 'type-struct/ma-0')
+def test_ma_0(config_fail_test):
+    config_fail_test()
 
 
-def test_ma_3(request, config_fail_test):
-    config_fail_test(request, 'type-struct/ma-3')
+def test_ma_3(config_fail_test):
+    config_fail_test()
 
 
-def test_ma_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'type-struct/ma-invalid-type')
+def test_ma_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_unknown_prop(request, config_fail_test):
-    config_fail_test(request, 'type-struct/unknown-prop')
+def test_unknown_prop(config_fail_test):
+    config_fail_test()

@@ -21,33 +21,33 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_ct_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'event/ct-invalid-type')
+def test_ct_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_ct_not_struct(request, config_fail_test):
-    config_fail_test(request, 'event/ct-not-struct')
+def test_ct_not_struct(config_fail_test):
+    config_fail_test()
 
 
-def test_ll_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'event/ll-invalid-type')
+def test_ll_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_ll_non_existing(request, config_fail_test):
-    config_fail_test(request, 'event/ll-non-existing')
+def test_ll_non_existing(config_fail_test):
+    config_fail_test()
 
 
-def test_no_fields_at_all(request, config_fail_test):
-    config_fail_test(request, 'event/no-fields-at-all')
+def test_no_fields_at_all(config_fail_test):
+    config_fail_test()
 
 
-def test_pt_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'event/pt-invalid-type')
+def test_pt_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_pt_not_struct(request, config_fail_test):
-    config_fail_test(request, 'event/pt-not-struct')
+def test_pt_not_struct(config_fail_test):
+    config_fail_test()
 
 
-def test_unknown_prop(request, config_fail_test):
-    config_fail_test(request, 'event/unknown-prop')
+def test_unknown_prop(config_fail_test):
+    config_fail_test()

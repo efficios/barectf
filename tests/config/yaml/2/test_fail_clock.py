@@ -21,69 +21,69 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_absolute_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'clock/absolute-invalid-type')
+def test_absolute_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_description_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'clock/description-invalid-type')
+def test_description_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_ec_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'clock/ec-invalid-type')
+def test_ec_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_ec_invalid(request, config_fail_test):
-    config_fail_test(request, 'clock/ec-invalid')
+def test_ec_invalid(config_fail_test):
+    config_fail_test()
 
 
-def test_freq_0(request, config_fail_test):
-    config_fail_test(request, 'clock/freq-0')
+def test_freq_0(config_fail_test):
+    config_fail_test()
 
 
-def test_freq_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'clock/freq-invalid-type')
+def test_freq_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_freq_neg(request, config_fail_test):
-    config_fail_test(request, 'clock/freq-neg')
+def test_freq_neg(config_fail_test):
+    config_fail_test()
 
 
-def test_offset_cycles_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'clock/offset-cycles-invalid-type')
+def test_offset_cycles_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_offset_cycles_neg(request, config_fail_test):
-    config_fail_test(request, 'clock/offset-cycles-neg')
+def test_offset_cycles_neg(config_fail_test):
+    config_fail_test()
 
 
-def test_offset_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'clock/offset-invalid-type')
+def test_offset_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_offset_seconds_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'clock/offset-seconds-invalid-type')
+def test_offset_seconds_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_offset_seconds_neg(request, config_fail_test):
-    config_fail_test(request, 'clock/offset-seconds-neg')
+def test_offset_seconds_neg(config_fail_test):
+    config_fail_test()
 
 
-def test_offset_unknown_prop(request, config_fail_test):
-    config_fail_test(request, 'clock/offset-unknown-prop')
+def test_offset_unknown_prop(config_fail_test):
+    config_fail_test()
 
 
-def test_rct_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'clock/rct-invalid-type')
+def test_rct_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_unknown_prop(request, config_fail_test):
-    config_fail_test(request, 'clock/unknown-prop')
+def test_unknown_prop(config_fail_test):
+    config_fail_test()
 
 
-def test_uuid_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'clock/uuid-invalid-type')
+def test_uuid_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_uuid_invalid(request, config_fail_test):
-    config_fail_test(request, 'clock/uuid-invalid')
+def test_uuid_invalid(config_fail_test):
+    config_fail_test()

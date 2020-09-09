@@ -21,5 +21,5 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_invalid(request, config_fail_test):
-    config_fail_test(request, 'yaml/invalid')
+def test_invalid(config_fail_test):
+    config_fail_test()

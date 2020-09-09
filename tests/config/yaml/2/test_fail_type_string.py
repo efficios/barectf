@@ -21,5 +21,5 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_unknown_prop(request, config_fail_test):
-    config_fail_test(request, 'type-string/unknown-prop')
+def test_unknown_prop(config_fail_test):
+    config_fail_test()

@@ -27,13 +27,11 @@ import barectf
 
 
 @pytest.fixture
-def config_fail_test():
-    def func(request, rel_path):
-        yaml_path = os.path.join(os.path.dirname(request.fspath),
-                                 'configs', 'fail', rel_path) + '.yaml'
-        yaml_dir = os.path.dirname(yaml_path)
+def config_fail_test(yaml_cfg_path):
+    def func():
+        yaml_dir = os.path.dirname(yaml_cfg_path)
 
-        with open(yaml_path) as f:
+        with open(yaml_cfg_path) as f:
             with pytest.raises(barectf._ConfigurationParseError):
                 barectf.configuration_from_file(f, inclusion_directories=[yaml_dir])
 

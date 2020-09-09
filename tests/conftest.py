@@ -21,69 +21,34 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_align_0(config_fail_test):
-    config_fail_test()
+import pytest
+import os.path
 
 
-def test_align_3(config_fail_test):
-    config_fail_test()
-
-
-def test_align_invalid_type(config_fail_test):
-    config_fail_test()
-
-
-def test_base_invalid_type(config_fail_test):
-    config_fail_test()
-
-
-def test_base_invalid(config_fail_test):
-    config_fail_test()
-
-
-def test_bo_invalid_type(config_fail_test):
-    config_fail_test()
-
-
-def test_bo_invalid(config_fail_test):
-    config_fail_test()
-
-
-def test_pm_invalid_type(config_fail_test):
-    config_fail_test()
-
-
-def test_pm_property_invalid(config_fail_test):
-    config_fail_test()
-
-
-def test_pm_type_invalid(config_fail_test):
-    config_fail_test()
-
-
-def test_pm_unknown_clock(config_fail_test):
-    config_fail_test()
-
-
-def test_signed_invalid_type(config_fail_test):
-    config_fail_test()
-
-
-def test_size_0(config_fail_test):
-    config_fail_test()
-
-
-def test_size_65(config_fail_test):
-    config_fail_test()
-
-
-def test_size_invalid_type(config_fail_test):
-    config_fail_test()
-
-
-def test_size_no(config_fail_test):
-    config_fail_test()
-
-
-def test_unknown_prop(config_fail_test):
-    config_fail_test()
+@pytest.fixture
+def yaml_cfg_path(request):
+    # Use the test's module and function names to automatically find the
+    # YAML file.
+    #
+    # For:
+    #
+    # Test module name:
+    #     `test_fail_hello_there.py`
+    #
+    # Test function name:
+    #     `test_how_are_you`
+    #
+    # The corresponding YAML file path is
+    # `configs/fail/hello-there/how-are-you.yaml'.
+    elems = [os.path.dirname(request.fspath), 'configs']
+    mod = request.module.__name__
+    mod = mod.replace('test_', '')
+    mod = mod.replace('_', '-')
+    parts = mod.split('-')
+    elems.append(parts[0])
+    elems.append('-'.join(parts[1:]))
+    func = request.function.__name__
+    func = func.replace('test_', '')
+    func = func.replace('_', '-')
+    elems.append(f'{func}.yaml')
+    return os.path.join(*elems)

@@ -21,17 +21,17 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_inherit_forward(request, config_fail_test):
-    config_fail_test(request, 'type/inherit-forward')
+def test_inherit_forward(config_fail_test):
+    config_fail_test()
 
 
-def test_inherit_unknown(request, config_fail_test):
-    config_fail_test(request, 'type/inherit-unknown')
+def test_inherit_unknown(config_fail_test):
+    config_fail_test()
 
 
-def test_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'type/invalid-type')
+def test_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_no_class(request, config_fail_test):
-    config_fail_test(request, 'type/no-class')
+def test_no_class(config_fail_test):
+    config_fail_test()

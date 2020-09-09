@@ -21,49 +21,49 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_align_0(request, config_fail_test):
-    config_fail_test(request, 'type-float/align-0')
+def test_align_0(config_fail_test):
+    config_fail_test()
 
 
-def test_align_3(request, config_fail_test):
-    config_fail_test(request, 'type-float/align-3')
+def test_align_3(config_fail_test):
+    config_fail_test()
 
 
-def test_align_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'type-float/align-invalid-type')
+def test_align_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_bo_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'type-float/bo-invalid-type')
+def test_bo_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_bo_invalid(request, config_fail_test):
-    config_fail_test(request, 'type-float/bo-invalid')
+def test_bo_invalid(config_fail_test):
+    config_fail_test()
 
 
-def test_size_exp_mant_wrong_sum(request, config_fail_test):
-    config_fail_test(request, 'type-float/size-exp-mant-wrong-sum')
+def test_size_exp_mant_wrong_sum(config_fail_test):
+    config_fail_test()
 
 
-def test_size_exp_no(request, config_fail_test):
-    config_fail_test(request, 'type-float/size-exp-no')
+def test_size_exp_no(config_fail_test):
+    config_fail_test()
 
 
-def test_size_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'type-float/size-invalid-type')
+def test_size_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_size_mant_no(request, config_fail_test):
-    config_fail_test(request, 'type-float/size-mant-no')
+def test_size_mant_no(config_fail_test):
+    config_fail_test()
 
 
-def test_size_no(request, config_fail_test):
-    config_fail_test(request, 'type-float/size-no')
+def test_size_no(config_fail_test):
+    config_fail_test()
 
 
-def test_size_unknown_prop(request, config_fail_test):
-    config_fail_test(request, 'type-float/size-unknown-prop')
+def test_size_unknown_prop(config_fail_test):
+    config_fail_test()
 
 
-def test_unknown_prop(request, config_fail_test):
-    config_fail_test(request, 'type-float/unknown-prop')
+def test_unknown_prop(config_fail_test):
+    config_fail_test()

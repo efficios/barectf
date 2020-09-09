@@ -21,53 +21,53 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_metadata_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'config/metadata-invalid-type')
+def test_metadata_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_metadata_no(request, config_fail_test):
-    config_fail_test(request, 'config/metadata-no')
+def test_metadata_no(config_fail_test):
+    config_fail_test()
 
 
-def test_options_gen_default_stream_def_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'config/options-gen-default-stream-def-invalid-type')
+def test_options_gen_default_stream_def_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_options_gen_prefix_def_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'config/options-gen-prefix-def-invalid-type')
+def test_options_gen_prefix_def_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_options_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'config/options-invalid-type')
+def test_options_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_options_unknown_prop(request, config_fail_test):
-    config_fail_test(request, 'config/options-unknown-prop')
+def test_options_unknown_prop(config_fail_test):
+    config_fail_test()
 
 
-def test_prefix_invalid_identifier(request, config_fail_test):
-    config_fail_test(request, 'config/prefix-invalid-identifier')
+def test_prefix_invalid_identifier(config_fail_test):
+    config_fail_test()
 
 
-def test_prefix_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'config/prefix-invalid-type')
+def test_prefix_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_unknown_prop(request, config_fail_test):
-    config_fail_test(request, 'config/unknown-prop')
+def test_unknown_prop(config_fail_test):
+    config_fail_test()
 
 
-def test_version_invalid_19(request, config_fail_test):
-    config_fail_test(request, 'config/version-invalid-19')
+def test_version_invalid_19(config_fail_test):
+    config_fail_test()
 
 
-def test_version_invalid_23(request, config_fail_test):
-    config_fail_test(request, 'config/version-invalid-23')
+def test_version_invalid_23(config_fail_test):
+    config_fail_test()
 
 
-def test_version_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'config/version-invalid-type')
+def test_version_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_version_no(request, config_fail_test):
-    config_fail_test(request, 'config/version-no')
+def test_version_no(config_fail_test):
+    config_fail_test()

@@ -21,81 +21,81 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_clocks_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'metadata/clocks-invalid-type')
+def test_clocks_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_clocks_key_invalid_identifier(request, config_fail_test):
-    config_fail_test(request, 'metadata/clocks-key-invalid-identifier')
+def test_clocks_key_invalid_identifier(config_fail_test):
+    config_fail_test()
 
 
-def test_default_stream_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'metadata/default-stream-invalid-type')
+def test_default_stream_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_default_stream_stream_default_duplicate(request, config_fail_test):
-    config_fail_test(request, 'metadata/default-stream-stream-default-duplicate')
+def test_default_stream_stream_default_duplicate(config_fail_test):
+    config_fail_test()
 
 
-def test_default_stream_unknown_stream(request, config_fail_test):
-    config_fail_test(request, 'metadata/default-stream-unknown-stream')
+def test_default_stream_unknown_stream(config_fail_test):
+    config_fail_test()
 
 
-def test_env_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'metadata/env-invalid-type')
+def test_env_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_env_key_invalid_identifier(request, config_fail_test):
-    config_fail_test(request, 'metadata/env-key-invalid-identifier')
+def test_env_key_invalid_identifier(config_fail_test):
+    config_fail_test()
 
 
-def test_env_value_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'metadata/env-value-invalid-type')
+def test_env_value_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_ll_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'metadata/ll-invalid-type')
+def test_ll_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_ll_value_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'metadata/ll-value-invalid-type')
+def test_ll_value_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_multiple_streams_trace_ph_no_stream_id(request, config_fail_test):
-    config_fail_test(request, 'metadata/multiple-streams-trace-ph-no-stream-id')
+def test_multiple_streams_trace_ph_no_stream_id(config_fail_test):
+    config_fail_test()
 
 
-def test_streams_empty(request, config_fail_test):
-    config_fail_test(request, 'metadata/streams-empty')
+def test_streams_empty(config_fail_test):
+    config_fail_test()
 
 
-def test_streams_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'metadata/streams-invalid-type')
+def test_streams_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_streams_key_invalid_identifier(request, config_fail_test):
-    config_fail_test(request, 'metadata/streams-key-invalid-identifier')
+def test_streams_key_invalid_identifier(config_fail_test):
+    config_fail_test()
 
 
-def test_streams_no(request, config_fail_test):
-    config_fail_test(request, 'metadata/streams-no')
+def test_streams_no(config_fail_test):
+    config_fail_test()
 
 
-def test_ta_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'metadata/ta-invalid-type')
+def test_ta_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_trace_empty(request, config_fail_test):
-    config_fail_test(request, 'metadata/trace-empty')
+def test_trace_empty(config_fail_test):
+    config_fail_test()
 
 
-def test_trace_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'metadata/trace-invalid-type')
+def test_trace_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_trace_no(request, config_fail_test):
-    config_fail_test(request, 'metadata/trace-no')
+def test_trace_no(config_fail_test):
+    config_fail_test()
 
 
-def test_unknown_prop(request, config_fail_test):
-    config_fail_test(request, 'metadata/unknown-prop')
+def test_unknown_prop(config_fail_test):
+    config_fail_test()

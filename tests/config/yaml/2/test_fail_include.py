@@ -21,25 +21,25 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-def test_invalid_type(request, config_fail_test):
-    config_fail_test(request, 'include/invalid-type')
+def test_invalid_type(config_fail_test):
+    config_fail_test()
 
 
-def test_file_not_found(request, config_fail_test):
-    config_fail_test(request, 'include/file-not-found')
+def test_file_not_found(config_fail_test):
+    config_fail_test()
 
 
-def test_file_not_found_abs(request, config_fail_test):
-    config_fail_test(request, 'include/file-not-found-abs')
+def test_file_not_found_abs(config_fail_test):
+    config_fail_test()
 
 
-def test_file_not_found_in_array(request, config_fail_test):
-    config_fail_test(request, 'include/file-not-found-in-array')
+def test_file_not_found_in_array(config_fail_test):
+    config_fail_test()
 
 
-def test_file_not_found_recursive(request, config_fail_test):
-    config_fail_test(request, 'include/file-not-found-recursive')
+def test_file_not_found_recursive(config_fail_test):
+    config_fail_test()
 
 
-def test_cycle(request, config_fail_test):
-    config_fail_test(request, 'include/cycle')
+def test_cycle(config_fail_test):
+    config_fail_test()
