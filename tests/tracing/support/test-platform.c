@@ -51,6 +51,8 @@ static void open_packet(void * const data)
 {
 	struct test_platform_ctx * const platform_ctx = (void *) data;
 
+	memset(barectf_packet_buf(&platform_ctx->ctx), 0,
+		barectf_packet_buf_size(&platform_ctx->ctx));
 	barectf_default_open_packet(&platform_ctx->ctx);
 }
 
@@ -75,7 +77,6 @@ struct test_platform_ctx *test_platform_init(const size_t buf_size)
 	assert(platform_ctx);
 	buf = malloc(buf_size);
 	assert(buf);
-	memset(buf, 0, buf_size);
 	platform_ctx->fh = fopen("stream", "wb");
 	assert(platform_ctx->fh);
 	barectf_init(&platform_ctx->ctx, buf, buf_size, cbs, platform_ctx);
