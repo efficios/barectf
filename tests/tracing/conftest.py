@@ -27,67 +27,87 @@ import os.path
 import barectf
 import shutil
 import subprocess
+import tempfile
 
 
-@pytest.fixture
-def tracing_succeed_test(yaml_cfg_path, request, tmpdir):
-    def func():
-        test_dir = os.path.dirname(request.fspath)
+def pytest_collect_file(parent, path):
+    yaml_ext = '.yaml'
 
-        # Use the test's module and function names to automatically find
-        # the test-specific expectation files.
-        #
-        # For:
-        #
-        # Test module name:
-        #     `test_succeed_hello_there.py`
-        #
-        # Test function name:
-        #     `test_how_are_you`
-        #
-        # The corresponding base expectation file path is
-        # `expect/succeed/hello-there/how-are-you'.
-        elems = [test_dir, 'expect']
-        mod = request.module.__name__
-        mod = mod.replace('test_', '')
-        mod = mod.replace('_', '-')
-        parts = mod.split('-')
-        elems.append(parts[0])
-        elems.append('-'.join(parts[1:]))
-        func = request.function.__name__
-        func = func.replace('test_', '')
-        func = func.replace('_', '-')
-        elems.append(func)
-        expect_base_path = os.path.join(*elems)
+    if path.ext != yaml_ext:
+        # not a YAML file: cancel
+        return
 
-        # Use the test's module and function names to automatically find
-        # the test-specific C source file.
-        #
-        # For:
-        #
-        # Test module name:
-        #     `test_succeed_hello_there.py`
-        #
-        # Test function name:
-        #     `test_how_are_you`
-        #
-        # The corresponding expectation file path is
-        # `src/succeed/hello-there/how-are-you.c'.
-        elems = [test_dir, 'src']
-        mod = request.module.__name__
-        mod = mod.replace('test_', '')
-        mod = mod.replace('_', '-')
-        parts = mod.split('-')
-        elems.append(parts[0])
-        elems.append('-'.join(parts[1:]))
-        func = request.function.__name__
-        func = func.replace('test_', '')
-        func = func.replace('_', '-')
-        elems.append(f'{func}.c')
-        src_path = os.path.join(*elems)
+    # At the end of this loop, if `path` is
+    # `/home/jo/barectf/tests/tracing/configs/succeed/static-array/of-str.yaml`,
+    # for example, then `elems` is:
+    #
+    # * `of-str.yaml`
+    # * `static-array`
+    # * `succeed`
+    path_str = str(path)
+    elems = []
+
+    while True:
+        elem = os.path.basename(path_str)
+
+        if elem == 'configs':
+            break
+
+        elems.append(elem)
+        path_str = os.path.dirname(path_str)
+
+    # create C source, expectation file, and support directory paths
+    base_dir = os.path.dirname(path_str)
+    base_name = elems[0].replace(yaml_ext, '')
+    rel_dir = os.path.join(*list(reversed(elems[1:])))
+    src_path = os.path.join(*[base_dir, 'src', rel_dir, f'{base_name}.c'])
+    data_expect_path = os.path.join(*([base_dir, 'expect', rel_dir, f'{base_name}.data.expect']))
+    metadata_expect_path = os.path.join(*([base_dir, 'expect', rel_dir, f'{base_name}.metadata.expect']))
+    support_dir_path = os.path.join(base_dir, 'support')
+
+    # create a unique test name
+    name = f'test-{"-".join(reversed(elems))}'.replace(yaml_ext, '')
+
+    # create the file node
+    return _YamlFile.from_parent(parent, fspath=path, src_path=src_path,
+                                 data_expect_path=data_expect_path,
+                                 metadata_expect_path=metadata_expect_path,
+                                 support_dir_path=support_dir_path, name=name)
+
+
+class _YamlFile(pytest.File):
+    def __init__(self, parent, fspath, src_path, data_expect_path, metadata_expect_path,
+                 support_dir_path, name):
+        super().__init__(parent=parent, fspath=fspath)
+        self._name = name
+        self._src_path = src_path
+        self._data_expect_path = data_expect_path
+        self._metadata_expect_path = metadata_expect_path
+        self._support_dir_path = support_dir_path
+
+    def collect(self):
+        # yield a single item
+        yield _YamlItem.from_parent(self, name=self._name, src_path=self._src_path,
+                                    data_expect_path=self._data_expect_path,
+                                    metadata_expect_path=self._metadata_expect_path,
+                                    support_dir_path=self._support_dir_path)
+
+
+class _YamlItem(pytest.Item):
+    def __init__(self, parent, name, src_path, data_expect_path, metadata_expect_path,
+                 support_dir_path):
+        super().__init__(parent=parent, name=name)
+        self._src_path = src_path
+        self._data_expect_path = data_expect_path
+        self._metadata_expect_path = metadata_expect_path
+        self._support_dir_path = support_dir_path
+
+    def runtest(self):
+        # create a temporary directory
+        tmpdir = tempfile.TemporaryDirectory(prefix='pytest-barectf')
 
         # create barectf configuration
-        with open(yaml_cfg_path) as f:
+        with open(self.fspath) as f:
             cfg = barectf.configuration_from_file(f)
 
         # generate and write C code files
@@ -96,7 +116,7 @@ def tracing_succeed_test(yaml_cfg_path, request, tmpdir):
         files += cg.generate_c_sources()
 
         for file in files:
-            with open(os.path.join(tmpdir, file.name), 'w') as f:
+            with open(os.path.join(tmpdir.name, file.name), 'w') as f:
                 f.write(file.contents)
 
         # generate metadata stream, stripping the version and date
@@ -128,36 +148,42 @@ def tracing_succeed_test(yaml_cfg_path, request, tmpdir):
         actual_metadata = '\n'.join(new_lines)
 
         # copy Makefile to build directory
-        support_dir = os.path.join(test_dir, 'support')
-        shutil.copy(os.path.join(support_dir, 'Makefile'), tmpdir)
+        shutil.copy(os.path.join(self._support_dir_path, 'Makefile'), tmpdir.name)
 
         # copy platform files to build directory
-        shutil.copy(os.path.join(support_dir, 'test-platform.c'), tmpdir)
-        shutil.copy(os.path.join(support_dir, 'test-platform.h'), tmpdir)
+        shutil.copy(os.path.join(self._support_dir_path, 'test-platform.c'), tmpdir.name)
+        shutil.copy(os.path.join(self._support_dir_path, 'test-platform.h'), tmpdir.name)
 
         # copy specific source code file to build directory
-        shutil.copy(src_path, os.path.join(tmpdir, 'test.c'))
+        shutil.copy(self._src_path, os.path.join(tmpdir.name, 'test.c'))
 
         # build the test
-        subprocess.check_output(['make'], cwd=tmpdir)
+        subprocess.check_output(['make'], cwd=tmpdir.name)
 
         # run the test (produce the data stream)
-        subprocess.check_output(['./test'], cwd=tmpdir)
+        subprocess.check_output(['./test'], cwd=tmpdir.name)
 
         # read actual stream
-        with open(os.path.join(tmpdir, 'stream'), 'rb') as f:
+        with open(os.path.join(tmpdir.name, 'stream'), 'rb') as f:
             actual_stream = f.read()
 
         # read data stream expectation file
-        with open(f'{expect_base_path}.data.expect', 'rb') as f:
+        with open(self._data_expect_path, 'rb') as f:
             expected_stream = f.read()
 
         # read metadata stream expectation file
-        with open(f'{expect_base_path}.metadata.expect', 'r') as f:
+        with open(self._metadata_expect_path, 'r') as f:
             expected_metadata = f.read()
 
         # validate streams
         assert actual_metadata == expected_metadata
         assert actual_stream == expected_stream
 
-    return func
+        # delete temporary directory
+        tmpdir.cleanup()
+
+    def repr_failure(self, excinfo, style=None):
+        return f'`{self.fspath}` failed: {excinfo}.'
+
+    def reportinfo(self):
+        return self.fspath, None, self.name
