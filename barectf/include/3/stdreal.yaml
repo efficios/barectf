@@ -6,30 +6,30 @@ $field-type-aliases:
   float:
     class: real
     size: 32
-    align: 32
+    alignment: 32
 
   # IEEE 754-2008 binary64 (double-precision)
   double:
     class: real
     size: 64
-    align: 64
+    alignment: 64
 
   # byte-packed IEEE 754-2008 binary32 (single-precision)
   byte-packed-float:
     $inherit: float
-    align: 8
+    alignment: 8
 
   # byte-packed IEEE 754-2008 binary64 (double-precision)
   byte-packed-double:
     $inherit: double
-    align: 8
+    alignment: 8
 
   # bit-packed IEEE 754-2008 binary32 (single-precision)
   bit-packed-float:
     $inherit: float
-    align: 1
+    alignment: 1
 
   # bit-packed IEEE 754-2008 binary64 (double-precision)
   bit-packed-double:
     $inherit: double
-    align: 1
+    alignment: 1
