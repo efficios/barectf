@@ -53,7 +53,7 @@ def _gen_str_ft(ft: barectf_config._FieldType) -> str:
     return _STR_FT_TEMPL.render(ft=ft)
 
 
-def _filt_ft_lengths(ft: barectf_config._FieldType, name: str) -> List[Union[str, int]]:
+def _filt_ft_lengths(ft: barectf_config._FieldType) -> List[Union[str, int]]:
     lengths: List[Union[str, int]] = []
 
     while isinstance(ft, barectf_config._ArrayFieldType):
@@ -63,7 +63,7 @@ def _filt_ft_lengths(ft: barectf_config._FieldType, name: str) -> List[Union[str
         else:
             assert type(ft) is barectf_config.DynamicArrayFieldType
             ft = typing.cast(barectf_config.DynamicArrayFieldType, ft)
-            lengths.append(ft._length_ft_member_name)
+            lengths.append(typing.cast(str, ft._length_ft_member_name))
 
         ft = ft.element_field_type
 

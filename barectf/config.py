@@ -226,7 +226,7 @@ class DynamicArrayFieldType(_ArrayFieldType):
     def __init__(self, length_field_type: UnsignedIntegerFieldType, element_field_type: _FieldType):
         super().__init__(element_field_type)
         self._length_field_type = length_field_type
-        self._length_ft_member_name = None
+        self._length_ft_member_name: Optional[str] = None
 
     @property
     def length_field_type(self):

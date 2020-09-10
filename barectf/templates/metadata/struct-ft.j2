@@ -25,6 +25,6 @@
 struct {
 {% for name, member in ft.members.items() %}
 	{{ member.field_type | deepest_ft | ft_str | indent_tab }} {{ name }}
-	{%- for len in member.field_type | ft_lengths(name) %}[{{ len }}]{% endfor %};
+	{%- for len in member.field_type | ft_lengths %}[{{ len }}]{% endfor %};
 {% endfor %}
 } align({{ ft.minimum_alignment }})
