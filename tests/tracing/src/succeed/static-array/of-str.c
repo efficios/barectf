@@ -30,7 +30,7 @@
 int main()
 {
 	struct test_platform_ctx *platform_ctx;
-	const char *array[] = {"Lorem", "ipsum", "quis"};
+	const char * const array[] = {"Lorem", "ipsum", "quis"};
 
 	platform_ctx = test_platform_init(512);
 	assert(platform_ctx);

@@ -32,7 +32,7 @@ int main()
 	struct test_platform_ctx *platform_ctx;
 	const double subarray1[] = {-17.5, 15.48, 1001.};
 	const double subarray2[] = {.1534, 555.555, 1e9};
-	const double *array[] = {subarray1, subarray2};
+	const double * const array[] = {subarray1, subarray2};
 
 	platform_ctx = test_platform_init(512);
 	assert(platform_ctx);

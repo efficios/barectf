@@ -30,9 +30,9 @@
 int main()
 {
 	struct test_platform_ctx *platform_ctx;
-	const char *str1[] = {"Officia", "sit", "labore"};
-	const char *str2[] = {"Excepteur", "labore", "non"};
-	const char * const *array[] = {str1, str2};
+	const char * const str1[] = {"Officia", "sit", "labore"};
+	const char * const str2[] = {"Excepteur", "labore", "non"};
+	const char * const * const array[] = {str1, str2};
 
 	platform_ctx = test_platform_init(512);
 	assert(platform_ctx);
