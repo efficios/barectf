@@ -31,14 +31,14 @@
 
 {#
  # Generates the preamble of the packet opening/closing functions for
- # the stream type `stream_type`.
+ # the data stream type `dst`.
  #}
-{% macro open_close_func_preamble(stream_type) %}
+{% macro open_close_func_preamble(dst) %}
 struct {{ prefix }}ctx * const ctx = &sctx->parent;
-{% if stream_type.default_clock_type %}
-const {{ cg_opts.clock_type_c_types[stream_type.default_clock_type] }} ts = ctx->use_cur_last_event_ts ?
+{% if dst.default_clock_type %}
+const {{ cg_opts.clock_type_c_types[dst.default_clock_type] }} ts = ctx->use_cur_last_event_ts ?
 	sctx->cur_last_event_ts :
-	ctx->cbs.{{ stream_type.default_clock_type.name }}_clock_get_value(ctx->data);
+	ctx->cbs.{{ dst.default_clock_type.name }}_clock_get_value(ctx->data);
 {% endif %}
 const int saved_in_tracing_section = ctx->in_tracing_section;
 {%- endmacro %}
@@ -53,7 +53,7 @@ const int saved_in_tracing_section = ctx->in_tracing_section;
  #
  # Example:
  #
- #     , ecc_peer_id, ecc_addr, p_msg_id, p_msg
+ #     , ercc_peer_id, ercc_addr, p_msg_id, p_msg
  #}
 {% macro ft_call_params(param_prefix, ft, only_dyn=false) %}
 {% if ft %}

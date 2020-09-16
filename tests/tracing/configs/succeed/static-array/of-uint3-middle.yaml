@@ -27,10 +27,10 @@ trace:
     $include:
       - stdint.yaml
       - stdmisc.yaml
-    stream-types:
+    data-stream-types:
       default:
         $is-default: yes
-        event-types:
+        event-record-types:
           ev:
             payload-field-type:
               class: struct

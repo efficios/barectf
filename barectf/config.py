@@ -339,7 +339,7 @@ _OptStructFt = Optional[StructureFieldType]
 LogLevel = typing.NewType('LogLevel', int)
 
 
-class EventType(_UniqueByName):
+class EventRecordType(_UniqueByName):
     def __init__(self, name: str, log_level: Optional[LogLevel] = None,
                  specific_context_field_type: _OptStructFt = None, payload_field_type: _OptStructFt = None):
         self._id: Optional[Id] = None
@@ -437,12 +437,12 @@ _OptDefaultableUIntFt = Optional[_DefaultableUIntFt]
 _OptUIntFt = Optional[UnsignedIntegerFieldType]
 
 
-class StreamTypePacketFeatures:
+class DataStreamTypePacketFeatures:
     def __init__(self, total_size_field_type: _DefaultableUIntFt = DEFAULT_FIELD_TYPE,
                  content_size_field_type: _DefaultableUIntFt = DEFAULT_FIELD_TYPE,
                  beginning_time_field_type: _OptDefaultableUIntFt = None,
                  end_time_field_type: _OptDefaultableUIntFt = None,
-                 discarded_events_counter_field_type: _OptDefaultableUIntFt = None):
+                 discarded_event_records_snapshot_counter_field_type: _OptDefaultableUIntFt = None):
         def get_ft(user_ft: _OptDefaultableUIntFt) -> _OptUIntFt:
             if user_ft == DEFAULT_FIELD_TYPE:
                 return UnsignedIntegerFieldType(64)
@@ -453,7 +453,7 @@ class StreamTypePacketFeatures:
         self._content_size_field_type = get_ft(content_size_field_type)
         self._beginning_time_field_type = get_ft(beginning_time_field_type)
         self._end_time_field_type = get_ft(end_time_field_type)
-        self._discarded_events_counter_field_type = get_ft(discarded_events_counter_field_type)
+        self._discarded_event_records_snapshot_counter_field_type = get_ft(discarded_event_records_snapshot_counter_field_type)
 
     @property
     def total_size_field_type(self) -> _OptUIntFt:
@@ -472,11 +472,11 @@ class StreamTypePacketFeatures:
         return self._end_time_field_type
 
     @property
-    def discarded_events_counter_field_type(self) -> _OptUIntFt:
-        return self._discarded_events_counter_field_type
+    def discarded_event_records_snapshot_counter_field_type(self) -> _OptUIntFt:
+        return self._discarded_event_records_snapshot_counter_field_type
 
 
-class StreamTypeEventFeatures:
+class DataStreamTypeEventRecordFeatures:
     def __init__(self, type_id_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE,
                  time_field_type: _OptDefaultableUIntFt = None):
         def get_ft(user_ft: _OptDefaultableUIntFt) -> _OptUIntFt:
@@ -497,44 +497,44 @@ class StreamTypeEventFeatures:
         return self._time_field_type
 
 
-class StreamTypeFeatures:
-    def __init__(self, packet_features: Optional[StreamTypePacketFeatures] = None,
-                 event_features: Optional[StreamTypeEventFeatures] = None):
+class DataStreamTypeFeatures:
+    def __init__(self, packet_features: Optional[DataStreamTypePacketFeatures] = None,
+                 event_record_features: Optional[DataStreamTypeEventRecordFeatures] = None):
         if packet_features is None:
-            self._packet_features = StreamTypePacketFeatures()
+            self._packet_features = DataStreamTypePacketFeatures()
         else:
             self._packet_features = packet_features
 
-        if event_features is None:
-            self._event_features = StreamTypeEventFeatures()
+        if event_record_features is None:
+            self._event_record_features = DataStreamTypeEventRecordFeatures()
         else:
-            self._event_features = event_features
+            self._event_record_features = event_record_features
 
     @property
-    def packet_features(self) -> StreamTypePacketFeatures:
+    def packet_features(self) -> DataStreamTypePacketFeatures:
         return self._packet_features
 
     @property
-    def event_features(self) -> StreamTypeEventFeatures:
-        return self._event_features
+    def event_record_features(self) -> DataStreamTypeEventRecordFeatures:
+        return self._event_record_features
 
 
-class StreamType(_UniqueByName):
-    def __init__(self, name: str, event_types: Set[EventType],
+class DataStreamType(_UniqueByName):
+    def __init__(self, name: str, event_record_types: Set[EventRecordType],
                  default_clock_type: Optional[ClockType] = None,
-                 features: Optional[StreamTypeFeatures] = None,
+                 features: Optional[DataStreamTypeFeatures] = None,
                  packet_context_field_type_extra_members: Optional[_StructFtMembers] = None,
-                 event_common_context_field_type: _OptStructFt = None):
+                 event_record_common_context_field_type: _OptStructFt = None):
         self._id: Optional[Id] = None
         self._name = name
         self._default_clock_type = default_clock_type
-        self._event_common_context_field_type = event_common_context_field_type
-        self._event_types = frozenset(event_types)
+        self._event_record_common_context_field_type = event_record_common_context_field_type
+        self._event_record_types = frozenset(event_record_types)
 
         # assign unique IDs
-        for index, ev_type in enumerate(sorted(self._event_types, key=lambda evt: evt.name)):
-            assert ev_type._id is None
-            ev_type._id = Id(index)
+        for index, ert in enumerate(sorted(self._event_record_types, key=lambda evt: evt.name)):
+            assert ert._id is None
+            ert._id = Id(index)
 
         self._set_features(features)
         self._packet_context_field_type_extra_members = StructureFieldTypeMembers({})
@@ -543,27 +543,27 @@ class StreamType(_UniqueByName):
             self._packet_context_field_type_extra_members = StructureFieldTypeMembers(packet_context_field_type_extra_members)
 
         self._set_pkt_ctx_ft()
-        self._set_ev_header_ft()
+        self._set_er_header_ft()
 
-    def _set_features(self, features: Optional[StreamTypeFeatures]):
+    def _set_features(self, features: Optional[DataStreamTypeFeatures]):
         if features is not None:
             self._features = features
             return None
 
-        ev_time_ft = None
+        er_time_ft = None
         pkt_beginning_time_ft = None
         pkt_end_time_ft = None
 
         if self._default_clock_type is not None:
-            # Automatic time field types because the stream type has a
-            # default clock type.
-            ev_time_ft = DEFAULT_FIELD_TYPE
+            # Automatic time field types because the data stream type
+            # has a default clock type.
+            er_time_ft = DEFAULT_FIELD_TYPE
             pkt_beginning_time_ft = DEFAULT_FIELD_TYPE
             pkt_end_time_ft = DEFAULT_FIELD_TYPE
 
-        self._features = StreamTypeFeatures(StreamTypePacketFeatures(beginning_time_field_type=pkt_beginning_time_ft,
-                                                                     end_time_field_type=pkt_end_time_ft),
-                                            StreamTypeEventFeatures(time_field_type=ev_time_ft))
+        self._features = DataStreamTypeFeatures(DataStreamTypePacketFeatures(beginning_time_field_type=pkt_beginning_time_ft,
+                                                                             end_time_field_type=pkt_end_time_ft),
+                                                DataStreamTypeEventRecordFeatures(time_field_type=er_time_ft))
 
     def _set_ft_mapped_clk_type_name(self, ft: Optional[UnsignedIntegerFieldType]):
         if ft is None:
@@ -601,7 +601,7 @@ class StreamType(_UniqueByName):
         add_member_if_exists('timestamp_end', self._features.packet_features.end_time_field_type,
                              True)
         add_member_if_exists('events_discarded',
-                             self._features.packet_features.discarded_events_counter_field_type)
+                             self._features.packet_features.discarded_event_records_snapshot_counter_field_type)
 
         if self._packet_context_field_type_extra_members is not None:
             for name, field_type in self._packet_context_field_type_extra_members.items():
@@ -610,18 +610,18 @@ class StreamType(_UniqueByName):
 
         self._pkt_ctx_ft = StructureFieldType(8, members)
 
-    def _set_ev_header_ft(self):
+    def _set_er_header_ft(self):
         members = collections.OrderedDict()
 
-        if self._features.event_features.type_id_field_type is not None:
-            members['id'] = StructureFieldTypeMember(self._features.event_features.type_id_field_type)
+        if self._features.event_record_features.type_id_field_type is not None:
+            members['id'] = StructureFieldTypeMember(self._features.event_record_features.type_id_field_type)
 
-        if self._features.event_features.time_field_type is not None:
-            ft = self._features.event_features.time_field_type
+        if self._features.event_record_features.time_field_type is not None:
+            ft = self._features.event_record_features.time_field_type
             self._set_ft_mapped_clk_type_name(ft)
             members['timestamp'] = StructureFieldTypeMember(ft)
 
-        self._ev_header_ft = StructureFieldType(8, members)
+        self._er_header_ft = StructureFieldType(8, members)
 
     @property
     def id(self) -> Optional[Id]:
@@ -636,7 +636,7 @@ class StreamType(_UniqueByName):
         return self._default_clock_type
 
     @property
-    def features(self) -> StreamTypeFeatures:
+    def features(self) -> DataStreamTypeFeatures:
         return self._features
 
     @property
@@ -644,12 +644,12 @@ class StreamType(_UniqueByName):
         return self._packet_context_field_type_extra_members
 
     @property
-    def event_common_context_field_type(self) -> _OptStructFt:
-        return self._event_common_context_field_type
+    def event_record_common_context_field_type(self) -> _OptStructFt:
+        return self._event_record_common_context_field_type
 
     @property
-    def event_types(self) -> FrozenSet[EventType]:
-        return self._event_types
+    def event_record_types(self) -> FrozenSet[EventRecordType]:
+        return self._event_record_types
 
 
 _OptUuidFt = Optional[Union[str, StaticArrayFieldType]]
@@ -658,7 +658,7 @@ _OptUuidFt = Optional[Union[str, StaticArrayFieldType]]
 class TraceTypeFeatures:
     def __init__(self, magic_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE,
                  uuid_field_type: _OptUuidFt = None,
-                 stream_type_id_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE):
+                 data_stream_type_id_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE):
         def get_field_type(user_ft: Optional[Union[str, _FieldType]],
                            create_default_ft: Callable[[], _FieldType]) -> _OptFt:
             if user_ft == DEFAULT_FIELD_TYPE:
@@ -672,15 +672,15 @@ class TraceTypeFeatures:
         def create_default_uuid_ft():
             return StaticArrayFieldType(Count(16), UnsignedIntegerFieldType(8))
 
-        def create_default_stream_type_id_ft():
+        def create_default_dst_id_ft():
             return UnsignedIntegerFieldType(64)
 
         self._magic_field_type = typing.cast(_OptUIntFt, get_field_type(magic_field_type, create_default_magic_ft))
         self._uuid_field_type = typing.cast(Optional[StaticArrayFieldType],
                                             get_field_type(uuid_field_type, create_default_uuid_ft))
-        self._stream_type_id_field_type = typing.cast(_OptUIntFt,
-                                                      get_field_type(stream_type_id_field_type,
-                                                                     create_default_stream_type_id_ft))
+        self._data_stream_type_id_field_type = typing.cast(_OptUIntFt,
+                                                           get_field_type(data_stream_type_id_field_type,
+                                                                          create_default_dst_id_ft))
 
     @property
     def magic_field_type(self) -> _OptUIntFt:
@@ -691,19 +691,19 @@ class TraceTypeFeatures:
         return self._uuid_field_type
 
     @property
-    def stream_type_id_field_type(self) -> _OptUIntFt:
-        return self._stream_type_id_field_type
+    def data_stream_type_id_field_type(self) -> _OptUIntFt:
+        return self._data_stream_type_id_field_type
 
 
 class TraceType:
-    def __init__(self, stream_types: Set[StreamType], uuid: _OptUuid = None,
+    def __init__(self, data_stream_types: Set[DataStreamType], uuid: _OptUuid = None,
                  features: Optional[TraceTypeFeatures] = None):
-        self._stream_types = frozenset(stream_types)
+        self._data_stream_types = frozenset(data_stream_types)
 
         # assign unique IDs
-        for index, stream_type in enumerate(sorted(self._stream_types, key=lambda st: st.name)):
-            assert stream_type._id is None
-            stream_type._id = Id(index)
+        for index, dst in enumerate(sorted(self._data_stream_types, key=lambda st: st.name)):
+            assert dst._id is None
+            dst._id = Id(index)
 
         self._uuid = uuid
         self._set_features(features)
@@ -729,7 +729,7 @@ class TraceType:
 
         add_member_if_exists('magic', self._features.magic_field_type)
         add_member_if_exists('uuid', self._features.uuid_field_type)
-        add_member_if_exists('stream_id', self._features.stream_type_id_field_type)
+        add_member_if_exists('stream_id', self._features.data_stream_type_id_field_type)
         self._pkt_header_ft = StructureFieldType(8, members)
 
     @property
@@ -737,13 +737,13 @@ class TraceType:
         return self._uuid
 
     @property
-    def stream_types(self) -> FrozenSet[StreamType]:
-        return self._stream_types
+    def data_stream_types(self) -> FrozenSet[DataStreamType]:
+        return self._data_stream_types
 
-    def stream_type(self, name: str) -> Optional[StreamType]:
-        for cand_stream_type in self._stream_types:
-            if cand_stream_type.name == name:
-                return cand_stream_type
+    def data_stream_type(self, name: str) -> Optional[DataStreamType]:
+        for cand_dst in self._data_stream_types:
+            if cand_dst.name == name:
+                return cand_dst
 
         return None
 
@@ -755,9 +755,9 @@ class TraceType:
     def clock_types(self) -> Set[ClockType]:
         clk_types = set()
 
-        for stream_type in self._stream_types:
-            if stream_type.default_clock_type is not None:
-                clk_types.add(stream_type.default_clock_type)
+        for dst in self._data_stream_types:
+            if dst.default_clock_type is not None:
+                clk_types.add(dst.default_clock_type)
 
         return clk_types
 
@@ -829,27 +829,27 @@ class ClockTypeCTypes(collections.abc.Mapping):
 
 class ConfigurationCodeGenerationHeaderOptions:
     def __init__(self, identifier_prefix_definition: bool = False,
-                 default_stream_type_name_definition: bool = False):
+                 default_data_stream_type_name_definition: bool = False):
         self._identifier_prefix_definition = identifier_prefix_definition
-        self._default_stream_type_name_definition = default_stream_type_name_definition
+        self._default_data_stream_type_name_definition = default_data_stream_type_name_definition
 
     @property
     def identifier_prefix_definition(self) -> bool:
         return self._identifier_prefix_definition
 
     @property
-    def default_stream_type_name_definition(self) -> bool:
-        return self._default_stream_type_name_definition
+    def default_data_stream_type_name_definition(self) -> bool:
+        return self._default_data_stream_type_name_definition
 
 
 class ConfigurationCodeGenerationOptions:
     def __init__(self, identifier_prefix: str = 'barectf_', file_name_prefix: str = 'barectf',
-                 default_stream_type: Optional[StreamType] = None,
+                 default_data_stream_type: Optional[DataStreamType] = None,
                  header_options: Optional[ConfigurationCodeGenerationHeaderOptions] = None,
                  clock_type_c_types: Optional[_ClkTypeCTypes] = None):
         self._identifier_prefix = identifier_prefix
         self._file_name_prefix = file_name_prefix
-        self._default_stream_type = default_stream_type
+        self._default_data_stream_type = default_data_stream_type
 
         self._header_options = ConfigurationCodeGenerationHeaderOptions()
 
@@ -870,8 +870,8 @@ class ConfigurationCodeGenerationOptions:
         return self._file_name_prefix
 
     @property
-    def default_stream_type(self) -> Optional[StreamType]:
-        return self._default_stream_type
+    def default_data_stream_type(self) -> Optional[DataStreamType]:
+        return self._default_data_stream_type
 
     @property
     def header_options(self) -> ConfigurationCodeGenerationHeaderOptions:
@@ -907,8 +907,8 @@ class Configuration:
 
         clk_type_c_types = self._options.code_generation_options.clock_type_c_types
 
-        for stream_type in trace.type.stream_types:
-            def_clk_type = stream_type.default_clock_type
+        for dst in trace.type.data_stream_types:
+            def_clk_type = dst.default_clock_type
 
             if def_clk_type is None:
                 continue

@@ -185,8 +185,8 @@ definitions:
                   $ref: '#/definitions/uint-ft'
                 timestamp:
                   $ref: '#/definitions/uint-ft-ts'
-  stream-type:
-    title: Stream type object
+  dst:
+    title: Data stream type object
     type: object
     properties:
       $default:
@@ -198,19 +198,19 @@ definitions:
       event-context-type:
         $ref: '#/definitions/opt-struct-ft'
       events:
-        title: Event types object
+        title: Event record types object
         type: object
         patternProperties:
           '^[A-Za-z_][A-Za-z0-9_]*$':
-            $ref: '#/definitions/event-type'
+            $ref: '#/definitions/ert'
         additionalProperties: false
         minProperties: 1
     required:
       - packet-context-type
       - events
     additionalProperties: false
-  event-type:
-    title: Event type object
+  ert:
+    title: Event record type object
     type: object
     properties:
       log-level:
@@ -280,11 +280,11 @@ properties:
       $default-stream:
         $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-string
       streams:
-        title: Stream types object
+        title: Data stream types object
         type: object
         patternProperties:
           '^[A-Za-z_][A-Za-z0-9_]*$':
-            $ref: '#/definitions/stream-type'
+            $ref: '#/definitions/dst'
         additionalProperties: false
         minProperties: 1
     required:

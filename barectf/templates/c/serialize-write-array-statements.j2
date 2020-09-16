@@ -31,7 +31,7 @@
 
 	for ({{ var_name }} = 0; {{ var_name }} < (uint32_t) {{ length_src }}; ++{{ var_name }}) {
 {% for subop in op.subops %}
-		{{ subop.serialize_str(stream_type=stream_type, ev_type=ev_type) | indent_tab(2) }}
+		{{ subop.serialize_str(dst=dst, ert=ert) | indent_tab(2) }}
 
 {% endfor %}
 	}

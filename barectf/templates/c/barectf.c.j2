@@ -146,13 +146,13 @@ void _write_c_str(struct {{ ctx_struct_name }} * const ctx, const char * const s
 }
 
 static
-int _reserve_ev_space(void * const vctx, const uint32_t ev_size)
+int _reserve_er_space(void * const vctx, const uint32_t er_size)
 {
 	int ret;
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 
 	/* Event _cannot_ fit? */
-	if (ev_size > (ctx->packet_size - ctx->off_content)) {
+	if (er_size > (ctx->packet_size - ctx->off_content)) {
 		goto no_space;
 	}
 
@@ -160,7 +160,7 @@ int _reserve_ev_space(void * const vctx, const uint32_t ev_size)
 	if ({{ prefix }}packet_is_full(ctx)) {
 		/* Yes: is the back-end full? */
 		if (ctx->cbs.is_backend_full(ctx->data)) {
-			/* Yes: discard event */
+			/* Yes: discard event record */
 			goto no_space;
 		}
 
@@ -171,7 +171,7 @@ int _reserve_ev_space(void * const vctx, const uint32_t ev_size)
 	}
 
 	/* Event fits the current packet? */
-	if (ev_size > (ctx->packet_size - ctx->at)) {
+	if (er_size > (ctx->packet_size - ctx->at)) {
 		/* No: close packet now */
 		ctx->use_cur_last_event_ts = 1;
 		ctx->cbs.close_packet(ctx->data);
@@ -179,7 +179,7 @@ int _reserve_ev_space(void * const vctx, const uint32_t ev_size)
 
 		/* Is the back-end full? */
 		if (ctx->cbs.is_backend_full(ctx->data)) {
-			/* Yes: discard event */
+			/* Yes: discard event record */
 			goto no_space;
 		}
 
@@ -187,7 +187,7 @@ int _reserve_ev_space(void * const vctx, const uint32_t ev_size)
 		ctx->use_cur_last_event_ts = 1;
 		ctx->cbs.open_packet(ctx->data);
 		ctx->use_cur_last_event_ts = 0;
-		assert(ev_size <= (ctx->packet_size - ctx->at));
+		assert(er_size <= (ctx->packet_size - ctx->at));
 	}
 
 	ret = 1;
@@ -202,7 +202,7 @@ end:
 }
 
 static
-void _commit_ev(void * const vctx)
+void _commit_er(void * const vctx)
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 
@@ -229,14 +229,14 @@ void _commit_ev(void * const vctx)
 	ctx->use_cur_last_event_ts = 0;
 }
 
-{% for stream_type in cfg.trace.type.stream_types | sort %}
-	{% set def_clk_type = stream_type.default_clock_type %}
-	{% set sctx_name %}{{ prefix }}{{ stream_type.name }}{% endset %}
-	{% set this_stream_ops = stream_ops[stream_type] %}
+{% for dst in cfg.trace.type.data_stream_types | sort %}
+	{% set def_clk_type = dst.default_clock_type %}
+	{% set sctx_name %}{{ prefix }}{{ dst.name }}{% endset %}
+	{% set this_ds_ops = ds_ops[dst] %}
 	{% include 'c/open-func-proto.j2' %}
 
 {
-	{{ macros.open_close_func_preamble(stream_type) | indent_tab }}
+	{{ macros.open_close_func_preamble(dst) | indent_tab }}
 
 	/*
 	 * This function is either called by a tracing function, or
@@ -268,13 +268,13 @@ void _commit_ev(void * const vctx)
 	}
 
 	ctx->at = 0;
-	{% set pkt_header_op = this_stream_ops.pkt_header_op %}
+	{% set pkt_header_op = this_ds_ops.pkt_header_op %}
 	{% if pkt_header_op %}
 
-	{{ pkt_header_op.serialize_str(stream_type=stream_type) | indent_tab }}
+	{{ pkt_header_op.serialize_str(dst=dst) | indent_tab }}
 	{% endif %}
 
-	{{ this_stream_ops.pkt_ctx_op.serialize_str(stream_type=stream_type) | indent_tab }}
+	{{ this_ds_ops.pkt_ctx_op.serialize_str(dst=dst) | indent_tab }}
 
 	/* Save content beginning's offset */
 	ctx->off_content = ctx->at;
@@ -292,7 +292,7 @@ end:
 	{% include 'c/close-func-proto.j2' %}
 
 {
-	{{ macros.open_close_func_preamble(stream_type) | indent_tab }}
+	{{ macros.open_close_func_preamble(dst) | indent_tab }}
 
 	/*
 	 * This function is either called by a tracing function, or
@@ -326,8 +326,8 @@ end:
 	/* Save content size */
 	ctx->content_size = ctx->at;
 	{% set name = 'timestamp_end' %}
-	{% if name in stream_type._pkt_ctx_ft.members %}
-		{% set op = stream_op_pkt_ctx_op(stream_type, name) %}
+	{% if name in dst._pkt_ctx_ft.members %}
+		{% set op = ds_op_pkt_ctx_op(dst, name) %}
 
 	/* Go back to `timestamp_end` field offset */
 	ctx->at = sctx->off_{{ op | op_src_var_name }};
@@ -339,8 +339,8 @@ end:
 		{% endfilter %}
 	{% endif %}
 	{% set name = 'content_size' %}
-	{% if name in stream_type._pkt_ctx_ft.members %}
-		{% set op = stream_op_pkt_ctx_op(stream_type, name) %}
+	{% if name in dst._pkt_ctx_ft.members %}
+		{% set op = ds_op_pkt_ctx_op(dst, name) %}
 
 	/* Go back to `content_size` field offset */
 	ctx->at = sctx->off_{{ op | op_src_var_name }};
@@ -352,8 +352,8 @@ end:
 		{% endfilter %}
 	{% endif %}
 	{% set name = 'events_discarded' %}
-	{% if name in stream_type._pkt_ctx_ft.members %}
-		{% set op = stream_op_pkt_ctx_op(stream_type, name) %}
+	{% if name in dst._pkt_ctx_ft.members %}
+		{% set op = ds_op_pkt_ctx_op(dst, name) %}
 
 	/* Go back to `events_discarded` field offset */
 	ctx->at = sctx->off_{{ op | op_src_var_name }};
@@ -377,10 +377,10 @@ end:
 end:
 	return;
 }
-	{% if stream_type._ev_header_ft %}
+	{% if dst._er_header_ft %}
 
-static void _serialize_ev_header_{{ stream_type.name }}(void * const vctx,
-	const uint32_t ev_type_id)
+static void _serialize_er_header_{{ dst.name }}(void * const vctx,
+	const uint32_t ert_id)
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 		{% if def_clk_type %}
@@ -388,82 +388,82 @@ static void _serialize_ev_header_{{ stream_type.name }}(void * const vctx,
 	const {{ cg_opts.clock_type_c_types[def_clk_type] }} ts = sctx->cur_last_event_ts;
 		{% endif %}
 
-	{{ this_stream_ops.ev_header_op.serialize_str(stream_type=stream_type) | indent_tab }}
+	{{ this_ds_ops.er_header_op.serialize_str(dst=dst) | indent_tab }}
 }
 	{% endif %}
-	{% if stream_type.event_common_context_field_type %}
+	{% if dst.event_record_common_context_field_type %}
 
-static void _serialize_ev_common_ctx_{{ stream_type.name }}(void * const vctx{{ stream_type | serialize_ev_common_ctx_func_params_str(const_params) }})
+static void _serialize_er_common_ctx_{{ dst.name }}(void * const vctx{{ dst | serialize_er_common_ctx_func_params_str(const_params) }})
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 
-	{{ this_stream_ops.ev_common_ctx_op.serialize_str(stream_type=stream_type) | indent_tab }}
+	{{ this_ds_ops.er_common_ctx_op.serialize_str(dst=dst) | indent_tab }}
 }
 	{% endif %}
 	{# internal serialization functions #}
-	{% for ev_type in stream_type.event_types | sort %}
+	{% for ert in dst.event_record_types | sort %}
 
-static void _serialize_ev_{{ stream_type.name }}_{{ ev_type.name }}(void * const vctx{{ (stream_type, ev_type) | trace_func_params_str(const_params) }})
+static void _serialize_er_{{ dst.name }}_{{ ert.name }}(void * const vctx{{ (dst, ert) | trace_func_params_str(const_params) }})
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
-		{% if stream_type._ev_header_ft %}
+		{% if dst._er_header_ft %}
 
 	/* Serialize header */
-	_serialize_ev_header_{{ stream_type.name }}(ctx, {{ ev_type.id }});
+	_serialize_er_header_{{ dst.name }}(ctx, {{ ert.id }});
 		{% endif %}
-		{% if stream_type.event_common_context_field_type %}
+		{% if dst.event_record_common_context_field_type %}
 
 	/* Serialize common context */
-			{% set params = macros.ft_call_params(root_ft_prefixes.ECC, stream_type.event_common_context_field_type) %}
-	_serialize_ev_common_ctx_{{ stream_type.name }}(ctx{{ params }});
+			{% set params = macros.ft_call_params(root_ft_prefixes.ERCC, dst.event_record_common_context_field_type) %}
+	_serialize_er_common_ctx_{{ dst.name }}(ctx{{ params }});
 		{% endif %}
-		{% set this_ev_ops = this_stream_ops.ev_ops[ev_type] %}
-		{% if this_ev_ops.spec_ctx_op %}
+		{% set this_er_ops = this_ds_ops.er_ops[ert] %}
+		{% if this_er_ops.spec_ctx_op %}
 
-	{{ this_ev_ops.spec_ctx_op.serialize_str(stream_type=stream_type, ev_type=ev_type) | indent_tab }}
+	{{ this_er_ops.spec_ctx_op.serialize_str(dst=dst, ert=ert) | indent_tab }}
 		{% endif %}
-		{% if this_ev_ops.payload_op %}
+		{% if this_er_ops.payload_op %}
 
-	{{ this_ev_ops.payload_op.serialize_str(stream_type=stream_type, ev_type=ev_type) | indent_tab }}
+	{{ this_er_ops.payload_op.serialize_str(dst=dst, ert=ert) | indent_tab }}
 		{% endif %}
 }
 	{% endfor %}
 	{# internal size functions #}
-	{% for ev_type in stream_type.event_types | sort %}
-		{% set this_ev_ops = this_stream_ops.ev_ops[ev_type] %}
+	{% for ert in dst.event_record_types | sort %}
+		{% set this_er_ops = this_ds_ops.er_ops[ert] %}
 
-static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void * const vctx{{ (stream_type, ev_type) | trace_func_params_str(const_params, only_dyn=true) }})
+static uint32_t _er_size_{{ dst.name }}_{{ ert.name }}(void * const vctx{{ (dst, ert) | trace_func_params_str(const_params, only_dyn=true) }})
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 	uint32_t at = ctx->at;
-		{% if this_stream_ops.ev_header_op %}
+		{% if this_ds_ops.er_header_op %}
 
-	{{ this_stream_ops.ev_header_op.size_str(stream_type=stream_type) | indent_tab }}
+	{{ this_ds_ops.er_header_op.size_str(dst=dst) | indent_tab }}
 		{% endif %}
-		{% if this_stream_ops.ev_common_ctx_op %}
+		{% if this_ds_ops.er_common_ctx_op %}
 
-	{{ this_stream_ops.ev_common_ctx_op.size_str(stream_type=stream_type) | indent_tab }}
+	{{ this_ds_ops.er_common_ctx_op.size_str(dst=dst) | indent_tab }}
 		{% endif %}
-		{% if this_ev_ops.spec_ctx_op %}
+		{% if this_er_ops.spec_ctx_op %}
 
-	{{ this_ev_ops.spec_ctx_op.size_str(stream_type=stream_type, ev_type=ev_type) | indent_tab }}
+	{{ this_er_ops.spec_ctx_op.size_str(dst=dst, ert=ert) | indent_tab }}
 		{% endif %}
-		{% if this_ev_ops.payload_op %}
+		{% if this_er_ops.payload_op %}
 
-	{{ this_ev_ops.payload_op.size_str(stream_type=stream_type, ev_type=ev_type) | indent_tab }}
+	{{ this_er_ops.payload_op.size_str(dst=dst, ert=ert) | indent_tab }}
 		{% endif %}
 
 	return at - ctx->at;
 }
 	{% endfor %}
 	{# public tracing functions #}
-	{% for ev_type in stream_type.event_types | sort %}
+	{% for ert in dst.event_record_types | sort %}
 
 		{% include 'c/trace-func-proto.j2' %}
 
 {
 	struct {{ ctx_struct_name }} * const ctx = &sctx->parent;
-	uint32_t ev_size;
+	uint32_t er_size;
 
 		{% if def_clk_type %}
 	/* Save time */
@@ -477,29 +477,29 @@ static uint32_t _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(void * const 
 	/* We can alter the packet */
 	ctx->in_tracing_section = 1;
 
-	/* Compute event size */
-		{% set ev_common_ctx_params = macros.ft_call_params(root_ft_prefixes.ECC, stream_type.event_common_context_field_type, true) %}
-		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.SC, ev_type.specific_context_field_type, true) %}
-		{% set payload_params = macros.ft_call_params(root_ft_prefixes.P, ev_type.payload_field_type, true) %}
-		{% set params %}{{ ev_common_ctx_params }}{{ spec_ctx_params }}{{ payload_params }}{% endset %}
-	ev_size = _ev_size_{{ stream_type.name }}_{{ ev_type.name }}(_TO_VOID_PTR(ctx){{ params }});
+	/* Compute event record size */
+		{% set er_common_ctx_params = macros.ft_call_params(root_ft_prefixes.ERCC, dst.event_record_common_context_field_type, true) %}
+		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.SC, ert.specific_context_field_type, true) %}
+		{% set payload_params = macros.ft_call_params(root_ft_prefixes.P, ert.payload_field_type, true) %}
+		{% set params %}{{ er_common_ctx_params }}{{ spec_ctx_params }}{{ payload_params }}{% endset %}
+	er_size = _er_size_{{ dst.name }}_{{ ert.name }}(_TO_VOID_PTR(ctx){{ params }});
 
 	/* Is there enough space to serialize? */
-	if (!_reserve_ev_space(_TO_VOID_PTR(ctx), ev_size)) {
+	if (!_reserve_er_space(_TO_VOID_PTR(ctx), er_size)) {
 		/* no: forget this */
 		ctx->in_tracing_section = 0;
 		goto end;
 	}
 
-	/* Serialize event */
-		{% set ev_common_ctx_params = macros.ft_call_params(root_ft_prefixes.ECC, stream_type.event_common_context_field_type) %}
-		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.SC, ev_type.specific_context_field_type) %}
-		{% set payload_params = macros.ft_call_params(root_ft_prefixes.P, ev_type.payload_field_type) %}
-		{% set params %}{{ ev_common_ctx_params }}{{ spec_ctx_params }}{{ payload_params }}{% endset %}
-	_serialize_ev_{{ stream_type.name }}_{{ ev_type.name }}(_TO_VOID_PTR(ctx){{ params }});
+	/* Serialize event record */
+		{% set er_common_ctx_params = macros.ft_call_params(root_ft_prefixes.ERCC, dst.event_record_common_context_field_type) %}
+		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.SC, ert.specific_context_field_type) %}
+		{% set payload_params = macros.ft_call_params(root_ft_prefixes.P, ert.payload_field_type) %}
+		{% set params %}{{ er_common_ctx_params }}{{ spec_ctx_params }}{{ payload_params }}{% endset %}
+	_serialize_er_{{ dst.name }}_{{ ert.name }}(_TO_VOID_PTR(ctx){{ params }});
 
-	/* Commit event */
-	_commit_ev(_TO_VOID_PTR(ctx));
+	/* Commit event record */
+	_commit_er(_TO_VOID_PTR(ctx));
 
 	/* Not tracing anymore */
 	ctx->in_tracing_section = 0;

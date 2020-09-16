@@ -28,7 +28,7 @@
 {% set ucprefix = common.ucprefix %}
 {% set trace_type = cfg.trace.type %}
 {% set cg_opts = cfg.options.code_generation_options %}
-{% set def_stream_type = cg_opts.default_stream_type %}
+{% set def_dst = cg_opts.default_data_stream_type %}
 {% set header_opts = cg_opts.header_options %}
 {% set const_params = false %}
 #ifndef _{{ ucprefix }}H
@@ -46,13 +46,13 @@ extern "C" {
 {% if header_opts.identifier_prefix_definition %}
 #define _BARECTF_PREFIX {{ prefix }}
 {% endif %}
-{% if def_stream_type and header_opts.default_stream_type_name_definition %}
-#define _BARECTF_DEFAULT_STREAM {{ def_stream_type.name }}
+{% if def_dst and header_opts.default_data_stream_type_name_definition %}
+#define _BARECTF_DEFAULT_STREAM {{ def_dst.name }}
 {% endif %}
-{% if def_stream_type %}
+{% if def_dst %}
 
-	{% for ev_type in def_stream_type.event_types | sort %}
-#define {{ prefix }}trace_{{ ev_type.name }} {{ c_common.trace_func_name(def_stream_type, ev_type) }}
+	{% for ert in def_dst.event_record_types | sort %}
+#define {{ prefix }}trace_{{ ert.name }} {{ c_common.trace_func_name(def_dst, ert) }}
 	{% endfor %}
 {% endif %}
 
@@ -114,7 +114,7 @@ struct {{ prefix }}ctx {
 	/* Size of packet header + context fields (content offset) */
 	uint32_t off_content;
 
-	/* Discarded event counter */
+	/* Discarded event records counter snapshot */
 	uint32_t events_discarded;
 
 	/* Current packet is open? */
@@ -126,13 +126,13 @@ struct {{ prefix }}ctx {
 	/* Tracing is enabled? */
 	volatile int is_tracing_enabled;
 
-	/* Use current/last event time when opening/closing packets */
+	/* Use current/last event record time when opening/closing packets */
 	int use_cur_last_event_ts;
 };
 
-{% for stream_type in trace_type.stream_types | sort %}
-/* Context for stream type `{{ stream_type.name }}` */
-struct {{ prefix }}{{ stream_type.name }}_ctx {
+{% for dst in trace_type.data_stream_types | sort %}
+/* Context for data stream type `{{ dst.name }}` */
+struct {{ prefix }}{{ dst.name }}_ctx {
 	/* Parent */
 	struct {{ prefix }}ctx parent;
 
@@ -142,22 +142,22 @@ struct {{ prefix }}{{ stream_type.name }}_ctx {
 	uint32_t off_ph_{{ member_name }};
 		{% endfor %}
 	{% endif %}
-	{% for member_name in stream_type._pkt_ctx_ft.members %}
+	{% for member_name in dst._pkt_ctx_ft.members %}
 	uint32_t off_pc_{{ member_name }};
 	{% endfor %}
-	{% if stream_type.default_clock_type %}
-	{{ cg_opts.clock_type_c_types[stream_type.default_clock_type] }} cur_last_event_ts;
+	{% if dst.default_clock_type %}
+	{{ cg_opts.clock_type_c_types[dst.default_clock_type] }} cur_last_event_ts;
 	{% endif %}
 };
 
 {% endfor %}
 {% include 'c/ctx-init-func-proto.j2' %};
 
-{% for stream_type in trace_type.stream_types | sort %}
+{% for dst in trace_type.data_stream_types | sort %}
 	{% include 'c/open-func-proto.j2' %};
 
 	{% include 'c/close-func-proto.j2' %};
-	{% for ev_type in stream_type.event_types | sort %}
+	{% for ert in dst.event_record_types | sort %}
 
 		{% include 'c/trace-func-proto.j2' %};
 	{% endfor %}

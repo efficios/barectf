@@ -286,28 +286,28 @@ class _Parser(config_parse_common._Parser):
 
         return v3_clk_type_node
 
-    # Converts a v2 event type node to a v3 event type node and returns
-    # it.
-    def _conv_ev_type_node(self, v2_ev_type_node: _MapNode) -> _MapNode:
-        # create empty v3 event type node
-        v3_ev_type_node: _MapNode = collections.OrderedDict()
+    # Converts a v2 event record type node to a v3 event record type
+    # node and returns it.
+    def _conv_ert_node(self, v2_ert_node: _MapNode) -> _MapNode:
+        # create empty v3 event record type node
+        v3_ert_node: _MapNode = collections.OrderedDict()
 
         # copy `log-level` property
-        _copy_prop_if_exists(v3_ev_type_node, v2_ev_type_node, 'log-level')
+        _copy_prop_if_exists(v3_ert_node, v2_ert_node, 'log-level')
 
         # convert specific context field type node
-        v2_ft_node = v2_ev_type_node.get('context-type')
+        v2_ft_node = v2_ert_node.get('context-type')
 
         if v2_ft_node is not None:
-            v3_ev_type_node['specific-context-field-type'] = self._conv_ft_node(v2_ft_node)
+            v3_ert_node['specific-context-field-type'] = self._conv_ft_node(v2_ft_node)
 
         # convert payload field type node
-        v2_ft_node = v2_ev_type_node.get('payload-type')
+        v2_ft_node = v2_ert_node.get('payload-type')
 
         if v2_ft_node is not None:
-            v3_ev_type_node['payload-field-type'] = self._conv_ft_node(v2_ft_node)
+            v3_ert_node['payload-field-type'] = self._conv_ft_node(v2_ft_node)
 
-        return v3_ev_type_node
+        return v3_ert_node
 
     @staticmethod
     def _set_v3_feature_ft_if_exists(v3_features_node: _MapNode, key: str,
@@ -319,16 +319,16 @@ class _Parser(config_parse_common._Parser):
 
         v3_features_node[key] = val
 
-    # Converts a v2 stream type node to a v3 stream type node and
-    # returns it.
-    def _conv_stream_type_node(self, v2_stream_type_node: _MapNode) -> _MapNode:
-        # This function creates a v3 stream type features node from the
-        # packet context and event header field type nodes of a
-        # v2 stream type node.
+    # Converts a v2 data stream type node to a v3 data stream type node
+    # and returns it.
+    def _conv_dst_node(self, v2_dst_node: _MapNode) -> _MapNode:
+        # This function creates a v3 data stream type features node from
+        # the packet context and event record header field type nodes of
+        # a v2 data stream type node.
         def v3_features_node_from_v2_ft_nodes(v2_pkt_ctx_ft_fields_node: _MapNode,
-                                              v2_ev_header_ft_fields_node: Optional[_MapNode]) -> _MapNode:
-            if v2_ev_header_ft_fields_node is None:
-                v2_ev_header_ft_fields_node = collections.OrderedDict()
+                                              v2_er_header_ft_fields_node: Optional[_MapNode]) -> _MapNode:
+            if v2_er_header_ft_fields_node is None:
+                v2_er_header_ft_fields_node = collections.OrderedDict()
 
             v3_pkt_total_size_ft_node = self._conv_ft_node(v2_pkt_ctx_ft_fields_node['packet_size'])
             v3_pkt_content_size_ft_node = self._conv_ft_node(v2_pkt_ctx_ft_fields_node['content_size'])
@@ -336,27 +336,27 @@ class _Parser(config_parse_common._Parser):
                                                                    'timestamp_begin')
             v3_pkt_end_time_ft_node = self._conv_ft_node_if_exists(v2_pkt_ctx_ft_fields_node,
                                                                    'timestamp_end')
-            v3_pkt_disc_ev_counter_ft_node = self._conv_ft_node_if_exists(v2_pkt_ctx_ft_fields_node,
-                                                                          'events_discarded')
-            v3_ev_type_id_ft_node = self._conv_ft_node_if_exists(v2_ev_header_ft_fields_node, 'id')
-            v3_ev_time_ft_node = self._conv_ft_node_if_exists(v2_ev_header_ft_fields_node,
+            v3_pkt_disc_er_counter_snap_ft_node = self._conv_ft_node_if_exists(v2_pkt_ctx_ft_fields_node,
+                                                                               'events_discarded')
+            v3_ert_id_ft_node = self._conv_ft_node_if_exists(v2_er_header_ft_fields_node, 'id')
+            v3_er_time_ft_node = self._conv_ft_node_if_exists(v2_er_header_ft_fields_node,
                                                               'timestamp')
             v3_features_node: _MapNode = collections.OrderedDict()
             v3_pkt_node: _MapNode = collections.OrderedDict()
-            v3_ev_node: _MapNode = collections.OrderedDict()
+            v3_er_node: _MapNode = collections.OrderedDict()
             v3_pkt_node['total-size-field-type'] = v3_pkt_total_size_ft_node
             v3_pkt_node['content-size-field-type'] = v3_pkt_content_size_ft_node
             self._set_v3_feature_ft_if_exists(v3_pkt_node, 'beginning-time-field-type',
                                               v3_pkt_beg_time_ft_node)
             self._set_v3_feature_ft_if_exists(v3_pkt_node, 'end-time-field-type',
                                               v3_pkt_end_time_ft_node)
-            self._set_v3_feature_ft_if_exists(v3_pkt_node, 'discarded-events-counter-field-type',
-                                              v3_pkt_disc_ev_counter_ft_node)
-            self._set_v3_feature_ft_if_exists(v3_ev_node, 'type-id-field-type',
-                                              v3_ev_type_id_ft_node)
-            self._set_v3_feature_ft_if_exists(v3_ev_node, 'time-field-type', v3_ev_time_ft_node)
+            self._set_v3_feature_ft_if_exists(v3_pkt_node,
+                                              'discarded-event-records-counter-snapshot-field-type',
+                                              v3_pkt_disc_er_counter_snap_ft_node)
+            self._set_v3_feature_ft_if_exists(v3_er_node, 'type-id-field-type', v3_ert_id_ft_node)
+            self._set_v3_feature_ft_if_exists(v3_er_node, 'time-field-type', v3_er_time_ft_node)
             v3_features_node['packet'] = v3_pkt_node
-            v3_features_node['event'] = v3_ev_node
+            v3_features_node['event-record'] = v3_er_node
             return v3_features_node
 
         def clk_type_name_from_v2_int_ft_node(v2_int_ft_node: Optional[_MapNode]) -> _OptStr:
@@ -371,21 +371,21 @@ class _Parser(config_parse_common._Parser):
 
             return None
 
-        # create empty v3 stream type node
-        v3_stream_type_node: _MapNode = collections.OrderedDict()
+        # create empty v3 data stream type node
+        v3_dst_node: _MapNode = collections.OrderedDict()
 
         # rename `$default` property to `$is-default`
-        _copy_prop_if_exists(v3_stream_type_node, v2_stream_type_node, '$default', '$is-default')
+        _copy_prop_if_exists(v3_dst_node, v2_dst_node, '$default', '$is-default')
 
         # set default clock type node
         pct_prop_name = 'packet-context-type'
-        v2_pkt_ctx_ft_fields_node = v2_stream_type_node[pct_prop_name]['fields']
+        v2_pkt_ctx_ft_fields_node = v2_dst_node[pct_prop_name]['fields']
         eht_prop_name = 'event-header-type'
-        v2_ev_header_ft_fields_node = None
-        v2_ev_header_ft_node = v2_stream_type_node.get(eht_prop_name)
+        v2_er_header_ft_fields_node = None
+        v2_er_header_ft_node = v2_dst_node.get(eht_prop_name)
 
-        if v2_ev_header_ft_node is not None:
-            v2_ev_header_ft_fields_node = v2_ev_header_ft_node['fields']
+        if v2_er_header_ft_node is not None:
+            v2_er_header_ft_fields_node = v2_er_header_ft_node['fields']
 
         def_clk_type_name = None
 
@@ -403,8 +403,8 @@ class _Parser(config_parse_common._Parser):
             _append_error_ctx(exc, f'`{pct_prop_name}` property')
 
         try:
-            if def_clk_type_name is None and v2_ev_header_ft_fields_node is not None:
-                def_clk_type_name = clk_type_name_from_v2_int_ft_node(v2_ev_header_ft_fields_node.get('timestamp'))
+            if def_clk_type_name is None and v2_er_header_ft_fields_node is not None:
+                def_clk_type_name = clk_type_name_from_v2_int_ft_node(v2_er_header_ft_fields_node.get('timestamp'))
 
             if def_clk_type_name is None and ts_begin_clk_type_name is not None:
                 def_clk_type_name = ts_begin_clk_type_name
@@ -415,11 +415,11 @@ class _Parser(config_parse_common._Parser):
             _append_error_ctx(exc, f'`{eht_prop_name}` property')
 
         if def_clk_type_name is not None:
-            v3_stream_type_node['$default-clock-type-name'] = def_clk_type_name
+            v3_dst_node['$default-clock-type-name'] = def_clk_type_name
 
         # set features node
-        v3_stream_type_node['$features'] = v3_features_node_from_v2_ft_nodes(v2_pkt_ctx_ft_fields_node,
-                                                                             v2_ev_header_ft_fields_node)
+        v3_dst_node['$features'] = v3_features_node_from_v2_ft_nodes(v2_pkt_ctx_ft_fields_node,
+                                                                     v2_er_header_ft_fields_node)
 
         # set extra packet context field type members node
         pkt_ctx_ft_extra_members = []
@@ -443,26 +443,26 @@ class _Parser(config_parse_common._Parser):
             }))
 
         if len(pkt_ctx_ft_extra_members) > 0:
-            v3_stream_type_node['packet-context-field-type-extra-members'] = pkt_ctx_ft_extra_members
+            v3_dst_node['packet-context-field-type-extra-members'] = pkt_ctx_ft_extra_members
 
-        # convert event common context field type node
-        v2_ft_node = v2_stream_type_node.get('event-context-type')
+        # convert event record common context field type node
+        v2_ft_node = v2_dst_node.get('event-context-type')
 
         if v2_ft_node is not None:
-            v3_stream_type_node['event-common-context-field-type'] = self._conv_ft_node(v2_ft_node)
+            v3_dst_node['event-record-common-context-field-type'] = self._conv_ft_node(v2_ft_node)
 
-        # convert event type nodes
-        v3_event_types_node = collections.OrderedDict()
+        # convert event record type nodes
+        v3_erts_node = collections.OrderedDict()
 
-        for ev_type_name, v2_ev_type_node in v2_stream_type_node['events'].items():
+        for ert_name, v2_ert_node in v2_dst_node['events'].items():
             try:
-                v3_event_types_node[ev_type_name] = self._conv_ev_type_node(v2_ev_type_node)
+                v3_erts_node[ert_name] = self._conv_ert_node(v2_ert_node)
             except _ConfigurationParseError as exc:
-                _append_error_ctx(exc, f'Event type `{ev_type_name}`')
+                _append_error_ctx(exc, f'Event record type `{ert_name}`')
 
-        v3_stream_type_node['event-types'] = v3_event_types_node
+        v3_dst_node['event-record-types'] = v3_erts_node
 
-        return v3_stream_type_node
+        return v3_dst_node
 
     # Converts a v2 metadata node to a v3 trace node and returns it.
     def _conv_meta_node(self, v2_meta_node: _MapNode) -> _MapNode:
@@ -477,12 +477,12 @@ class _Parser(config_parse_common._Parser):
 
             v3_magic_ft_node = self._conv_ft_node_if_exists(v2_pkt_header_ft_fields_node, 'magic')
             v3_uuid_ft_node = self._conv_ft_node_if_exists(v2_pkt_header_ft_fields_node, 'uuid')
-            v3_stream_type_id_ft_node = self._conv_ft_node_if_exists(v2_pkt_header_ft_fields_node,
-                                                                     'stream_id')
+            v3_dst_id_ft_node = self._conv_ft_node_if_exists(v2_pkt_header_ft_fields_node,
+                                                             'stream_id')
             v3_features_node: _MapNode = collections.OrderedDict()
             set_if_exists('magic-field-type', v3_magic_ft_node)
             set_if_exists('uuid-field-type', v3_uuid_ft_node)
-            set_if_exists('stream-type-id-field-type', v3_stream_type_id_ft_node)
+            set_if_exists('data-stream-type-id-field-type', v3_dst_id_ft_node)
             return v3_features_node
 
         v3_trace_node: _MapNode = collections.OrderedDict()
@@ -516,35 +516,35 @@ class _Parser(config_parse_common._Parser):
         v2_pkt_header_ft_node = v2_trace_node.get('packet-header-type')
         v3_trace_type_node['$features'] = v3_features_node_from_v2_ft_node(v2_pkt_header_ft_node)
 
-        # convert stream type nodes
-        v3_stream_types_node = collections.OrderedDict()
+        # convert data stream type nodes
+        v3_dsts_node = collections.OrderedDict()
 
-        for stream_type_name, v2_stream_type_node in v2_meta_node['streams'].items():
+        for dst_name, v2_dst_node in v2_meta_node['streams'].items():
             try:
-                v3_stream_types_node[stream_type_name] = self._conv_stream_type_node(v2_stream_type_node)
+                v3_dsts_node[dst_name] = self._conv_dst_node(v2_dst_node)
             except _ConfigurationParseError as exc:
-                _append_error_ctx(exc, f'Stream type `{stream_type_name}`')
+                _append_error_ctx(exc, f'Data stream type `{dst_name}`')
 
-        v3_trace_type_node['stream-types'] = v3_stream_types_node
+        v3_trace_type_node['data-stream-types'] = v3_dsts_node
 
         # If `v2_meta_node` has a `$default-stream` property, find the
-        # corresponding v3 stream type node and set its `$is-default`
-        # property to `True`.
+        # corresponding v3 data stream type node and set its
+        # `$is-default` property to `True`.
         prop_name = '$default-stream'
-        v2_def_stream_type_node = v2_meta_node.get(prop_name)
+        v2_def_dst_node = v2_meta_node.get(prop_name)
 
-        if v2_def_stream_type_node is not None:
+        if v2_def_dst_node is not None:
             found = False
 
-            for stream_type_name, v3_stream_type_node in v3_stream_types_node.items():
-                if stream_type_name == v2_def_stream_type_node:
-                    v3_stream_type_node['$is-default'] = True
+            for dst_name, v3_dst_node in v3_dsts_node.items():
+                if dst_name == v2_def_dst_node:
+                    v3_dst_node['$is-default'] = True
                     found = True
                     break
 
             if not found:
                 raise _ConfigurationParseError(f'`{prop_name}` property',
-                                               f'Stream type `{v2_def_stream_type_node}` does not exist')
+                                               f'Data stream type `{v2_def_dst_node}` does not exist')
 
         # set environment node
         v2_env_node = v2_meta_node.get('env')
@@ -583,7 +583,7 @@ class _Parser(config_parse_common._Parser):
             _copy_prop_if_exists(header_node, v2_options_node, 'gen-prefix-def',
                                  'identifier-prefix-definition')
             _copy_prop_if_exists(header_node, v2_options_node, 'gen-default-stream-def',
-                                 'default-stream-type-name-definition')
+                                 'default-data-stream-type-name-definition')
             code_gen_node['header'] = header_node
 
         self._root_node[opt_prop_name] = collections.OrderedDict({
@@ -612,29 +612,27 @@ class _Parser(config_parse_common._Parser):
         meta_node = self._root_node['metadata']
         ft_aliases_node = meta_node['type-aliases']
 
-        # Expand field type aliases within trace, stream, and event
-        # types now.
+        # Expand field type aliases within trace, data stream, and event
+        # record types now.
         try:
             self._resolve_ft_alias_from(ft_aliases_node, meta_node['trace'], 'packet-header-type')
         except _ConfigurationParseError as exc:
             _append_error_ctx(exc, 'Trace type')
 
-        for stream_type_name, stream_type_node in meta_node['streams'].items():
+        for dst_name, dst_node in meta_node['streams'].items():
             try:
-                self._resolve_ft_alias_from(ft_aliases_node, stream_type_node,
-                                            'packet-context-type')
-                self._resolve_ft_alias_from(ft_aliases_node, stream_type_node, 'event-header-type')
-                self._resolve_ft_alias_from(ft_aliases_node, stream_type_node,
-                                            'event-context-type')
+                self._resolve_ft_alias_from(ft_aliases_node, dst_node, 'packet-context-type')
+                self._resolve_ft_alias_from(ft_aliases_node, dst_node, 'event-header-type')
+                self._resolve_ft_alias_from(ft_aliases_node, dst_node, 'event-context-type')
 
-                for ev_type_name, ev_type_node in stream_type_node['events'].items():
+                for ert_name, ert_node in dst_node['events'].items():
                     try:
-                        self._resolve_ft_alias_from(ft_aliases_node, ev_type_node, 'context-type')
-                        self._resolve_ft_alias_from(ft_aliases_node, ev_type_node, 'payload-type')
+                        self._resolve_ft_alias_from(ft_aliases_node, ert_node, 'context-type')
+                        self._resolve_ft_alias_from(ft_aliases_node, ert_node, 'payload-type')
                     except _ConfigurationParseError as exc:
-                        _append_error_ctx(exc, f'Event type `{ev_type_name}`')
+                        _append_error_ctx(exc, f'Event record type `{ert_name}`')
             except _ConfigurationParseError as exc:
-                _append_error_ctx(exc, f'Stream type `{stream_type_name}`')
+                _append_error_ctx(exc, f'Data stream type `{dst_name}`')
 
         # remove the (now unneeded) `type-aliases` node
         del meta_node['type-aliases']
@@ -650,14 +648,14 @@ class _Parser(config_parse_common._Parser):
         meta_node = self._root_node['metadata']
         self._apply_ft_inheritance(meta_node['trace'], 'packet-header-type')
 
-        for stream_type_node in meta_node['streams'].values():
-            self._apply_ft_inheritance(stream_type_node, 'packet-context-type')
-            self._apply_ft_inheritance(stream_type_node, 'event-header-type')
-            self._apply_ft_inheritance(stream_type_node, 'event-context-type')
+        for dst_node in meta_node['streams'].values():
+            self._apply_ft_inheritance(dst_node, 'packet-context-type')
+            self._apply_ft_inheritance(dst_node, 'event-header-type')
+            self._apply_ft_inheritance(dst_node, 'event-context-type')
 
-            for ev_type_node in stream_type_node['events'].values():
-                self._apply_ft_inheritance(ev_type_node, 'context-type')
-                self._apply_ft_inheritance(ev_type_node, 'payload-type')
+            for ert_node in dst_node['events'].values():
+                self._apply_ft_inheritance(ert_node, 'context-type')
+                self._apply_ft_inheritance(ert_node, 'payload-type')
 
     # Calls _expand_ft_aliases() and _apply_fts_inheritance() if the
     # metadata node has a `type-aliases` property.
@@ -681,34 +679,34 @@ class _Parser(config_parse_common._Parser):
         # next, apply inheritance to create effective field types
         self._apply_fts_inheritance()
 
-    # Processes the inclusions of the event type node `ev_type_node`,
+    # Processes the inclusions of the event record type node `ert_node`,
     # returning the effective node.
-    def _process_ev_type_node_include(self, ev_type_node: _MapNode) -> _MapNode:
-        # Make sure the event type node is valid for the inclusion
-        # processing stage.
-        self._schema_validator.validate(ev_type_node, 'config/2/event-type-pre-include')
+    def _process_ert_node_include(self, ert_node: _MapNode) -> _MapNode:
+        # Make sure the event record type node is valid for the
+        # inclusion processing stage.
+        self._schema_validator.validate(ert_node, 'config/2/ert-pre-include')
 
         # process inclusions
-        return self._process_node_include(ev_type_node, self._process_ev_type_node_include)
+        return self._process_node_include(ert_node, self._process_ert_node_include)
 
-    # Processes the inclusions of the stream type node
-    # `stream_type_node`, returning the effective node.
-    def _process_stream_type_node_include(self, stream_type_node: _MapNode) -> _MapNode:
-        def process_children_include(stream_type_node):
+    # Processes the inclusions of the data stream type node `dst_node`,
+    # returning the effective node.
+    def _process_dst_node_include(self, dst_node: _MapNode) -> _MapNode:
+        def process_children_include(dst_node):
             prop_name = 'events'
 
-            if prop_name in stream_type_node:
-                ev_types_node = stream_type_node[prop_name]
+            if prop_name in dst_node:
+                erts_node = dst_node[prop_name]
 
-                for key in list(ev_types_node):
-                    ev_types_node[key] = self._process_ev_type_node_include(ev_types_node[key])
+                for key in list(erts_node):
+                    erts_node[key] = self._process_ert_node_include(erts_node[key])
 
-        # Make sure the stream type node is valid for the inclusion
+        # Make sure the data stream type node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(stream_type_node, 'config/2/stream-type-pre-include')
+        self._schema_validator.validate(dst_node, 'config/2/dst-pre-include')
 
         # process inclusions
-        return self._process_node_include(stream_type_node, self._process_stream_type_node_include,
+        return self._process_node_include(dst_node, self._process_dst_node_include,
                                           process_children_include)
 
     # Processes the inclusions of the trace type node `trace_type_node`,
@@ -751,10 +749,10 @@ class _Parser(config_parse_common._Parser):
             prop_name = 'streams'
 
             if prop_name in meta_node:
-                stream_types_node = meta_node[prop_name]
+                dsts_node = meta_node[prop_name]
 
-                for key in list(stream_types_node):
-                    stream_types_node[key] = self._process_stream_type_node_include(stream_types_node[key])
+                for key in list(dsts_node):
+                    dsts_node[key] = self._process_dst_node_include(dsts_node[key])
 
         # Make sure the metadata node is valid for the inclusion
         # processing stage.
@@ -769,19 +767,20 @@ class _Parser(config_parse_common._Parser):
     def _process_config_includes(self):
         # Process inclusions in this order:
         #
-        # 1. Clock type node, event type nodes, and trace type nodes
-        #    (the order between those is not important).
+        # 1. Clock type node, event record type nodes, and trace type
+        #    nodes (the order between those is not important).
         #
-        # 2. Stream type nodes.
+        # 2. Data stream type nodes.
         #
         # 3. Metadata node.
         #
         # This is because:
         #
         # * A metadata node can include clock type nodes, a trace type
-        #   node, stream type nodes, and event type nodes (indirectly).
+        #   node, data stream type nodes, and event record type nodes
+        #   (indirectly).
         #
-        # * A stream type node can include event type nodes.
+        # * A data stream type node can include event record type nodes.
         #
         # First, make sure the configuration node itself is valid for
         # the inclusion processing stage.
@@ -836,15 +835,15 @@ class _Parser(config_parse_common._Parser):
         # packet header and packet context field type member nodes (for
         # example, `stream_id`, `packet_size`, or `timestamp_end`) to
         # set the `$features` properties of barectf 3 trace type and
-        # stream type nodes. Those field type nodes can be aliases,
+        # data stream type nodes. Those field type nodes can be aliases,
         # contain aliases, or inherit from other nodes.
         self._expand_fts()
 
         # Validate the whole, (almost) effective configuration node.
         #
         # It's almost effective because the `log-level` property of
-        # event type nodes can be log level aliases. Log level aliases
-        # are also a feature of a barectf 3 configuration node,
+        # event record type nodes can be log level aliases. Log level
+        # aliases are also a feature of a barectf 3 configuration node,
         # therefore this is compatible.
         self._schema_validator.validate(self._root_node, 'config/2/config')
 

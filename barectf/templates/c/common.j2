@@ -33,15 +33,15 @@
 {% set ctx_struct_name %}{{ common.prefix }}ctx{% endset %}
 
 {#
- # Generates the name of a tracing function for the stream type
- # `stream_type` and the event type `ev_type`.
+ # Generates the name of a tracing function for the data stream type
+ # `dst` and the event record type `ert`.
  #
  # Example:
  #
  #     barectf_my_stream_trace_my_event
  #}
-{% macro trace_func_name(stream_type, ev_type) %}
-{{ common.prefix }}{{ stream_type.name }}_trace_{{ ev_type.name }}
+{% macro trace_func_name(dst, ert) %}
+{{ common.prefix }}{{ dst.name }}_trace_{{ ert.name }}
 {%- endmacro %}
 
 {#

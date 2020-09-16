@@ -36,28 +36,28 @@ properties:
         properties:
           $log-level-aliases:
             $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-log-level-aliases-prop
-          stream-types:
-            title: Stream types object before log level alias substitutions
+          data-stream-types:
+            title: Data stream types object before log level alias substitutions
             type: object
             patternProperties:
               '.*':
-                title: Stream type object before log level alias substitutions
+                title: Data stream type object before log level alias substitutions
                 type: object
                 properties:
-                  event-types:
-                    title: Event types object before log level alias substitutions
+                  event-record-types:
+                    title: Event record types object before log level alias substitutions
                     type: object
                     patternProperties:
                       '.*':
-                        title: Event type object before log level alias substitutions
+                        title: Event record type object before log level alias substitutions
                         type: object
                         properties:
                           log-level:
                             $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-log-level-or-alias-prop
                 required:
-                  - event-types
+                  - event-record-types
           required:
-            - stream-types
+            - data-stream-types
     required:
       - type
 required:

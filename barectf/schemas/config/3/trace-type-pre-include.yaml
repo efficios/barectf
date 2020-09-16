@@ -34,9 +34,9 @@ properties:
     patternProperties:
       '.*':
         $ref: https://barectf.org/schemas/config/3/clock-type-pre-include.json
-  stream-types:
-    title: Stream types object before inclusions
+  data-stream-types:
+    title: Data stream types object before inclusions
     type: object
     patternProperties:
       '.*':
-        $ref: https://barectf.org/schemas/config/3/stream-type-pre-include.json
+        $ref: https://barectf.org/schemas/config/3/dst-pre-include.json

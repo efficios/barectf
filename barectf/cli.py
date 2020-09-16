@@ -508,7 +508,7 @@ class _GenCmd(_Cmd):
             cg_opts = config.options.code_generation_options
             cg_opts = barectf.ConfigurationCodeGenerationOptions(v3_prefixes.identifier,
                                                                  v3_prefixes.file_name,
-                                                                 cg_opts.default_stream_type,
+                                                                 cg_opts.default_data_stream_type,
                                                                  cg_opts.header_options,
                                                                  cg_opts.clock_type_c_types)
             config = barectf.Configuration(config.trace, barectf.ConfigurationOptions(cg_opts))

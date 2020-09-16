@@ -31,7 +31,7 @@
 {% endif %}
 {
 {% for subop in op.subops %}
-	{{ subop.serialize_str(stream_type=stream_type, ev_type=ev_type) | indent_tab }}
+	{{ subop.serialize_str(dst=dst, ert=ert) | indent_tab }}
 
 {% endfor %}
 }

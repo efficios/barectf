@@ -100,16 +100,16 @@ properties:
                   $ref: '#/definitions/partial-ft'
                 uuid-field-type:
                   $ref: '#/definitions/partial-ft'
-                stream-type-id-field-type:
+                data-stream-type-id-field-type:
                   $ref: '#/definitions/partial-ft'
             else:
               type: 'null'
-          stream-types:
-            title: Stream types object before field type expansions
+          data-stream-types:
+            title: Data stream types object before field type expansions
             type: object
             patternProperties:
               '.*':
-                title: Stream type object before field type expansions
+                title: Data stream type object before field type expansions
                 type: object
                 properties:
                   $features:
@@ -130,11 +130,11 @@ properties:
                                 $ref: '#/definitions/partial-ft'
                               end-time-field-type:
                                 $ref: '#/definitions/partial-ft'
-                              discarded-events-counter-field-type:
+                              discarded-event-records-counter-snapshot-field-type:
                                 $ref: '#/definitions/partial-ft'
                           else:
                             type: 'null'
-                        event:
+                        event-record:
                           if:
                             type: object
                           then:
@@ -158,14 +158,14 @@ properties:
                             $ref: '#/definitions/partial-ft'
                     else:
                       type: 'null'
-                  event-common-context-field-type:
+                  event-record-common-context-field-type:
                     $ref: '#/definitions/partial-ft'
-                  event-types:
-                    title: Event types object before field type expansions
+                  event-record-types:
+                    title: Event record types object before field type expansions
                     type: object
                     patternProperties:
                       '.*':
-                        title: Event type object before field type expansions
+                        title: Event record type object before field type expansions
                         type: object
                         properties:
                           specific-context-field-type:
@@ -173,9 +173,9 @@ properties:
                           payload-field-type:
                             $ref: '#/definitions/partial-ft'
                 required:
-                  - event-types
+                  - event-record-types
           required:
-            - stream-types
+            - data-stream-types
   required:
     - type
 required:

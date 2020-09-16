@@ -87,11 +87,11 @@ properties:
           packet-header-type:
             $ref: '#/definitions/partial-ft'
       streams:
-        title: Stream types object before field type expansions
+        title: Data stream types object before field type expansions
         type: object
         patternProperties:
           '.*':
-            title: Stream type object before field type expansions
+            title: Data stream type object before field type expansions
             type: object
             properties:
               packet-context-type:

@@ -279,8 +279,8 @@ class _OpBuilder:
                     # suboperation.
                     #
                     # This is not strictly needed (could be appended to
-                    # `ops`), but the properties of `_StreamOps` and
-                    # `_EvOps` offer a single (structure field type)
+                    # `ops`), but the properties of `_DsOps` and
+                    # `_ErOps` offer a single (structure field type)
                     # operation.
                     subops.append(init_align_op)
 
@@ -335,13 +335,13 @@ class _OpBuilder:
 _OptCompoundOp = Optional[_CompoundOp]
 
 
-# The operations for an event.
+# The operations for an event record.
 #
 # The available operations are:
 #
 # * Specific context operation.
 # * Payload operation.
-class _EvOps:
+class _ErOps:
     def __init__(self, spec_ctx_op: _OptCompoundOp, payload_op: _OptCompoundOp):
         self._spec_ctx_op = spec_ctx_op
         self._payload_op = payload_op
@@ -355,26 +355,26 @@ class _EvOps:
         return self._payload_op
 
 
-_EvOpsMap = Mapping[barectf_config.EventType, _EvOps]
+_ErOpsMap = Mapping[barectf_config.EventRecordType, _ErOps]
 
 
-# The operations for a stream.
+# The operations for a data stream.
 #
 # The available operations are:
 #
 # * Packet header operation.
 # * Packet context operation.
-# * Event header operation.
-# * Event common context operation.
-# * Event operations (`_EvOps`).
-class _StreamOps:
+# * Event record header operation.
+# * Event record common context operation.
+# * Event record operations (`_ErOps`).
+class _DsOps:
     def __init__(self, pkt_header_op: _OptCompoundOp, pkt_ctx_op: _CompoundOp,
-                 ev_header_op: _OptCompoundOp, ev_common_ctx_op: _OptCompoundOp, ev_ops: _EvOpsMap):
+                 er_header_op: _OptCompoundOp, er_common_ctx_op: _OptCompoundOp, er_ops: _ErOpsMap):
         self._pkt_header_op = pkt_header_op
         self._pkt_ctx_op = pkt_ctx_op
-        self._ev_header_op = ev_header_op
-        self._ev_common_ctx_op = ev_common_ctx_op
-        self._ev_ops = ev_ops
+        self._er_header_op = er_header_op
+        self._er_common_ctx_op = er_common_ctx_op
+        self._er_ops = er_ops
 
     @property
     def pkt_header_op(self) -> _OptCompoundOp:
@@ -385,24 +385,24 @@ class _StreamOps:
         return self._pkt_ctx_op
 
     @property
-    def ev_header_op(self) -> _OptCompoundOp:
-        return self._ev_header_op
+    def er_header_op(self) -> _OptCompoundOp:
+        return self._er_header_op
 
     @property
-    def ev_common_ctx_op(self) -> _OptCompoundOp:
-        return self._ev_common_ctx_op
+    def er_common_ctx_op(self) -> _OptCompoundOp:
+        return self._er_common_ctx_op
 
     @property
-    def ev_ops(self) -> _EvOpsMap:
-        return self._ev_ops
+    def er_ops(self) -> _ErOpsMap:
+        return self._er_ops
 
 
 # The C variable name prefixes for the six kinds of root field types.
 class _RootFtPrefixes:
     PH = 'ph'
     PC = 'pc'
-    EH = 'eh'
-    ECC = 'ecc'
+    ERH = 'erh'
+    ERCC = 'ercc'
     SC = 'sc'
     P = 'p'
 
@@ -411,8 +411,8 @@ class _RootFtPrefixes:
 _ROOT_FT_PREFIX_NAMES = {
     _RootFtPrefixes.PH: 'packet header',
     _RootFtPrefixes.PC: 'packet context',
-    _RootFtPrefixes.EH: 'event header',
-    _RootFtPrefixes.ECC: 'event common context',
+    _RootFtPrefixes.ERH: 'event record header',
+    _RootFtPrefixes.ERCC: 'event record common context',
     _RootFtPrefixes.SC: 'specific context',
     _RootFtPrefixes.P: 'payload',
 }
@@ -493,7 +493,7 @@ class _CodeGen:
             'ft_c_type': self._ft_c_type,
             'open_func_params_str': self._open_func_params_str,
             'trace_func_params_str': self._trace_func_params_str,
-            'serialize_ev_common_ctx_func_params_str': self._serialize_ev_common_ctx_func_params_str,
+            'serialize_er_common_ctx_func_params_str': self._serialize_er_common_ctx_func_params_str,
             'loop_var_name': _loop_var_name,
             'op_src_var_name': self._op_src_var_name,
         }
@@ -507,11 +507,11 @@ class _CodeGen:
         self._serialize_write_dynamic_array_statements_templ = self._create_template('serialize-write-dynamic-array-statements.j2')
         self._serialize_write_magic_statements_templ = self._create_template('serialize-write-magic-statements.j2')
         self._serialize_write_uuid_statements_templ = self._create_template('serialize-write-uuid-statements.j2')
-        self._serialize_write_stream_type_id_statements_templ = self._create_template('serialize-write-stream-type-id-statements.j2')
+        self._serialize_write_dst_id_statements_templ = self._create_template('serialize-write-dst-id-statements.j2')
         self._serialize_write_time_statements_templ = self._create_template('serialize-write-time-statements.j2')
         self._serialize_write_packet_size_statements_templ = self._create_template('serialize-write-packet-size-statements.j2')
         self._serialize_write_skip_save_statements_templ = self._create_template('serialize-write-skip-save-statements.j2')
-        self._serialize_write_ev_type_id_statements_templ = self._create_template('serialize-write-ev-type-id-statements.j2')
+        self._serialize_write_ert_id_statements_templ = self._create_template('serialize-write-ert-id-statements.j2')
         self._size_align_statements_templ = self._create_template('size-align-statements.j2')
         self._size_write_bit_array_statements_templ = self._create_template('size-write-bit-array-statements.j2')
         self._size_write_string_statements_templ = self._create_template('size-write-string-statements.j2')
@@ -633,9 +633,8 @@ class _CodeGen:
                                                     const_params=const_params)
 
     # Returns the packet opening function prototype parameters for the
-    # stream type `stream_type`.
-    def _open_func_params_str(self, stream_type: barectf_config.StreamType,
-                              const_params: bool) -> str:
+    # data stream type `dst`.
+    def _open_func_params_str(self, dst: barectf_config.DataStreamType, const_params: bool) -> str:
         parts = []
         parts.append(self._proto_params_str(self._trace_type._pkt_header_ft, _RootFtPrefixes.PH,
                                             const_params, {'magic', 'stream_id', 'uuid'}))
@@ -647,46 +646,46 @@ class _CodeGen:
             'content_size',
             'events_discarded',
         }
-        parts.append(self._proto_params_str(stream_type._pkt_ctx_ft, _RootFtPrefixes.PC,
-                                            const_params, exclude_set))
+        parts.append(self._proto_params_str(dst._pkt_ctx_ft, _RootFtPrefixes.PC, const_params,
+                                            exclude_set))
         return ''.join(parts)
 
-    # Returns the tracing function prototype parameters for the stream
-    # and event types `stream_ev_types`.
-    def _trace_func_params_str(self, stream_ev_types: Tuple[barectf_config.StreamType,
-                                                            barectf_config.EventType],
+    # Returns the tracing function prototype parameters for the data
+    # stream and event record types `ds_er_types`.
+    def _trace_func_params_str(self, ds_er_types: Tuple[barectf_config.DataStreamType,
+                                                        barectf_config.EventRecordType],
                                const_params: bool, only_dyn: bool = False):
-        stream_type = stream_ev_types[0]
-        ev_type = stream_ev_types[1]
+        dst = ds_er_types[0]
+        ert = ds_er_types[1]
         parts = []
 
-        if stream_type._ev_header_ft is not None:
-            parts.append(self._proto_params_str(stream_type._ev_header_ft, _RootFtPrefixes.EH,
+        if dst._er_header_ft is not None:
+            parts.append(self._proto_params_str(dst._er_header_ft, _RootFtPrefixes.ERH,
                                                 const_params, {'id', 'timestamp'},
                                                 only_dyn=only_dyn))
 
-        if stream_type.event_common_context_field_type is not None:
-            parts.append(self._proto_params_str(stream_type.event_common_context_field_type,
-                                                _RootFtPrefixes.ECC, const_params,
+        if dst.event_record_common_context_field_type is not None:
+            parts.append(self._proto_params_str(dst.event_record_common_context_field_type,
+                                                _RootFtPrefixes.ERCC, const_params,
                                                 only_dyn=only_dyn))
 
-        if ev_type.specific_context_field_type is not None:
-            parts.append(self._proto_params_str(ev_type.specific_context_field_type,
+        if ert.specific_context_field_type is not None:
+            parts.append(self._proto_params_str(ert.specific_context_field_type,
                                                 _RootFtPrefixes.SC, const_params,
                                                 only_dyn=only_dyn))
 
-        if ev_type.payload_field_type is not None:
-            parts.append(self._proto_params_str(ev_type.payload_field_type, _RootFtPrefixes.P,
+        if ert.payload_field_type is not None:
+            parts.append(self._proto_params_str(ert.payload_field_type, _RootFtPrefixes.P,
                                                 const_params, only_dyn=only_dyn))
 
         return ''.join(parts)
 
-    # Returns the event header serialization function prototype
-    # parameters for the stream type `stream_type`.
-    def _serialize_ev_common_ctx_func_params_str(self, stream_type: barectf_config.StreamType,
+    # Returns the event record common context serialization function
+    # prototype parameters for the data stream type `dst`.
+    def _serialize_er_common_ctx_func_params_str(self, dst: barectf_config.DataStreamType,
                                                  const_params: bool) -> str:
-        return self._proto_params_str(stream_type.event_common_context_field_type,
-                                      _RootFtPrefixes.ECC, const_params)
+        return self._proto_params_str(dst.event_record_common_context_field_type,
+                                      _RootFtPrefixes.ERCC, const_params)
 
     # Generates the bitfield header file contents.
     def gen_bitfield_header(self) -> str:
@@ -698,13 +697,13 @@ class _CodeGen:
 
     # Generates the source code file contents.
     def gen_src(self, header_file_name: str, bitfield_header_file_name: str) -> str:
-        # Creates and returns the operations for all the stream and for
-        # all their events.
-        def create_stream_ops() -> Mapping[barectf_config.StreamType, _StreamOps]:
-            stream_ser_ops = {}
+        # Creates and returns the operations for all the data stream and
+        # for all their event records.
+        def create_ds_ops() -> Mapping[barectf_config.DataStreamType, _DsOps]:
+            ds_ops = {}
 
-            for stream_type in self._trace_type.stream_types:
-                pkt_header_ser_op = None
+            for dst in self._trace_type.data_stream_types:
+                pkt_header_op = None
                 builder = _OpBuilder(self)
                 pkt_header_ft = self._trace_type._pkt_header_ft
 
@@ -713,13 +712,13 @@ class _CodeGen:
                     spec_serialize_write_templates = {
                         'magic': self._serialize_write_magic_statements_templ,
                         'uuid': self._serialize_write_uuid_statements_templ,
-                        'stream_id': self._serialize_write_stream_type_id_statements_templ,
+                        'stream_id': self._serialize_write_dst_id_statements_templ,
                     }
-                    pkt_header_ser_op = builder.build_for_root_ft(pkt_header_ft,
+                    pkt_header_op = builder.build_for_root_ft(pkt_header_ft,
                                                                   _RootFtPrefixes.PH,
                                                                   spec_serialize_write_templates)
 
-                # packet context operations
+                # packet context operation
                 spec_serialize_write_templates = {
                     'timestamp_begin': self._serialize_write_time_statements_templ,
                     'packet_size': self._serialize_write_packet_size_statements_templ,
@@ -727,64 +726,61 @@ class _CodeGen:
                     'events_discarded': self._serialize_write_skip_save_statements_templ,
                     'content_size': self._serialize_write_skip_save_statements_templ,
                 }
-                pkt_ctx_ser_op = builder.build_for_root_ft(stream_type._pkt_ctx_ft,
-                                                           _RootFtPrefixes.PC,
-                                                           spec_serialize_write_templates)
+                pkt_ctx_op = builder.build_for_root_ft(dst._pkt_ctx_ft, _RootFtPrefixes.PC,
+                                                       spec_serialize_write_templates)
 
-                # event header operationss
+                # event record header operation
                 builder = _OpBuilder(self)
-                ev_header_ser_op = None
+                er_header_op = None
 
-                if stream_type._ev_header_ft is not None:
+                if dst._er_header_ft is not None:
                     spec_serialize_write_templates = {
                         'timestamp': self._serialize_write_time_statements_templ,
-                        'id': self._serialize_write_ev_type_id_statements_templ,
+                        'id': self._serialize_write_ert_id_statements_templ,
                     }
-                    ev_header_ser_op = builder.build_for_root_ft(stream_type._ev_header_ft,
-                                                                 _RootFtPrefixes.EH,
-                                                                 spec_serialize_write_templates)
+                    er_header_op = builder.build_for_root_ft(dst._er_header_ft, _RootFtPrefixes.ERH,
+                                                             spec_serialize_write_templates)
 
-                # event common context operations
-                ev_common_ctx_ser_op = None
+                # event record common context operation
+                er_common_ctx_op = None
 
-                if stream_type.event_common_context_field_type is not None:
-                    ev_common_ctx_ser_op = builder.build_for_root_ft(stream_type.event_common_context_field_type,
-                                                                     _RootFtPrefixes.ECC)
+                if dst.event_record_common_context_field_type is not None:
+                    er_common_ctx_op = builder.build_for_root_ft(dst.event_record_common_context_field_type,
+                                                                 _RootFtPrefixes.ERCC)
 
-                # operations specific to each event type
-                ev_ser_ops = {}
+                # operations specific to each event record type
+                er_ops = {}
 
-                for ev_type in stream_type.event_types:
+                for ert in dst.event_record_types:
                     ev_builder = copy.copy(builder)
 
-                    # specific context operations
-                    spec_ctx_ser_op = None
+                    # specific context operation
+                    spec_ctx_op = None
 
-                    if ev_type.specific_context_field_type is not None:
-                        spec_ctx_ser_op = ev_builder.build_for_root_ft(ev_type.specific_context_field_type,
-                                                                       _RootFtPrefixes.SC)
+                    if ert.specific_context_field_type is not None:
+                        spec_ctx_op = ev_builder.build_for_root_ft(ert.specific_context_field_type,
+                                                                   _RootFtPrefixes.SC)
 
-                    # payload operations
-                    payload_ser_op = None
+                    # payload operation
+                    payload_op = None
 
-                    if ev_type.payload_field_type is not None:
-                        payload_ser_op = ev_builder.build_for_root_ft(ev_type.payload_field_type,
-                                                                      _RootFtPrefixes.P)
+                    if ert.payload_field_type is not None:
+                        payload_op = ev_builder.build_for_root_ft(ert.payload_field_type,
+                                                                  _RootFtPrefixes.P)
 
-                    ev_ser_ops[ev_type] = _EvOps(spec_ctx_ser_op, payload_ser_op)
+                    er_ops[ert] = _ErOps(spec_ctx_op, payload_op)
 
-                stream_ser_ops[stream_type] = _StreamOps(pkt_header_ser_op, pkt_ctx_ser_op,
-                                                         ev_header_ser_op, ev_common_ctx_ser_op,
-                                                         ev_ser_ops)
+                ds_ops[dst] = _DsOps(pkt_header_op, pkt_ctx_op, er_header_op, er_common_ctx_op,
+                                     er_ops)
 
-            return stream_ser_ops
+            return ds_ops
 
         # Returns the "write" operation for the packet context member
-        # named `member_name` within the stream type `stream_type`.
-        def stream_op_pkt_ctx_op(stream_type: barectf_config.StreamType, member_name: str) -> _Op:
+        # named `member_name` within the data stream type `dst`.
+        def ds_op_pkt_ctx_op(dst: barectf_config.DataStreamType, member_name: str) -> _Op:
             ret_op = None
 
-            for op in stream_ops[stream_type].pkt_ctx_op.subops:
+            for op in ds_ops[dst].pkt_ctx_op.subops:
                 if op.top_name == member_name and type(op) is _WriteOp:
                     ret_op = op
                     break
@@ -792,13 +788,13 @@ class _CodeGen:
             assert ret_op is not None
             return typing.cast(_Op, ret_op)
 
-        stream_ops = create_stream_ops()
+        ds_ops = create_ds_ops()
         c_src = self._create_file_template('barectf.c.j2').render(header_file_name=header_file_name,
                                                                   bitfield_header_file_name=bitfield_header_file_name,
                                                                   root_ft_prefixes=_RootFtPrefixes,
                                                                   root_ft_prefix_names=_ROOT_FT_PREFIX_NAMES,
-                                                                  stream_ops=stream_ops,
-                                                                  stream_op_pkt_ctx_op=stream_op_pkt_ctx_op)
+                                                                  ds_ops=ds_ops,
+                                                                  ds_op_pkt_ctx_op=ds_op_pkt_ctx_op)
 
         # Jinja 2 makes it hard to have multiple contiguous blocks
         # delimited with empty lines when using a for loop, while not

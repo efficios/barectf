@@ -23,6 +23,6 @@
  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #}
 {% set c_type = op.ft | ft_c_type %}
-{% set src = stream_type.id %}
-/* Write stream type ID field */
+{% set src = dst.id %}
+/* Write data stream type ID field */
 {% include 'c/serialize-write-bit-array-statements.j2' %}

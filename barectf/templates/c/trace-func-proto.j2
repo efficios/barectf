@@ -24,5 +24,5 @@
  #}
 {% import 'common.j2' as common %}
 {% import 'c/common.j2' as c_common %}
-/* Trace (stream type `{{ stream_type.name }}`, event type `{{ ev_type.name }}`) */
-void {{ common.prefix }}{{ stream_type.name }}_trace_{{ ev_type.name }}(struct {{ common.prefix }}{{ stream_type.name }}_ctx *{{ c_common.const_ptr_str(const_params) }}sctx{{ (stream_type, ev_type) | trace_func_params_str(const_params) }})
+/* Trace (data stream type `{{ dst.name }}`, event record type `{{ ert.name }}`) */
+void {{ common.prefix }}{{ dst.name }}_trace_{{ ert.name }}(struct {{ common.prefix }}{{ dst.name }}_ctx *{{ c_common.const_ptr_str(const_params) }}sctx{{ (dst, ert) | trace_func_params_str(const_params) }})

@@ -344,35 +344,37 @@ class _Parser(barectf_config_parse_common._Parser):
 
         return Count(len(members_node))
 
-    # Creates an event type from the event type node `ev_type_node`
-    # named `name`.
+    # Creates an event record type from the event record type node
+    # `ert_node` named `name`.
     #
-    # `ev_member_count` is the total number of structure field type
-    # members within the event type so far (from the common part in its
-    # stream type). For example, if the stream type has a event header
-    # field type with `id` and `timestamp` members, then
-    # `ev_member_count` is 2.
-    def _create_ev_type(self, name: str, ev_type_node: _MapNode, ev_member_count: Count) -> barectf_config.EventType:
+    # `ert_member_count` is the total number of structure field type
+    # members within the event record type so far (from the common part
+    # in its data stream type). For example, if the data stream type has
+    # an event record header field type with `id` and `timestamp`
+    # members, then `ert_member_count` is 2.
+    def _create_ert(self, name: str, ert_node: _MapNode,
+                        ert_member_count: Count) -> barectf_config.EventRecordType:
         try:
-            self._validate_iden(name, '`name` property', 'event type name')
+            self._validate_iden(name, '`name` property', 'event record type name')
 
-            # make sure the event type is not empty
+            # make sure the event record type is not empty
             spec_ctx_ft_prop_name = 'specific-context-field-type'
             payload_ft_prop_name = 'payload-field-type'
-            ev_member_count = Count(ev_member_count + self._total_struct_ft_node_members(ev_type_node.get(spec_ctx_ft_prop_name)))
-            ev_member_count = Count(ev_member_count + self._total_struct_ft_node_members(ev_type_node.get(payload_ft_prop_name)))
+            ert_member_count = Count(ert_member_count + self._total_struct_ft_node_members(ert_node.get(spec_ctx_ft_prop_name)))
+            ert_member_count = Count(ert_member_count + self._total_struct_ft_node_members(ert_node.get(payload_ft_prop_name)))
 
-            if ev_member_count == 0:
-                raise _ConfigurationParseError('Event type', 'Event type is empty (no members).')
+            if ert_member_count == 0:
+                raise _ConfigurationParseError('Event record type',
+                                               'Event record type is empty (no members).')
 
-            # create event type
-            return barectf_config.EventType(name, ev_type_node.get('log-level'),
-                                            self._try_create_struct_ft(ev_type_node,
+            # create event record type
+            return barectf_config.EventRecordType(name, ert_node.get('log-level'),
+                                                  self._try_create_struct_ft(ert_node,
                                                                        spec_ctx_ft_prop_name),
-                                            self._try_create_struct_ft(ev_type_node,
+                                                  self._try_create_struct_ft(ert_node,
                                                                        payload_ft_prop_name))
         except _ConfigurationParseError as exc:
-            _append_error_ctx(exc, f'Event type `{name}`')
+            _append_error_ctx(exc, f'Event record type `{name}`')
 
             # satisfy static type checker (never reached)
             raise
@@ -412,15 +414,15 @@ class _Parser(barectf_config_parse_common._Parser):
         assert type(ft_node) is collections.OrderedDict
         return self._create_fts(ft_node)[0]
 
-    def _create_stream_type(self, name: str, stream_type_node: _MapNode) -> barectf_config.StreamType:
+    def _create_dst(self, name: str, dst_node: _MapNode) -> barectf_config.DataStreamType:
         try:
-            # validate stream type's name
-            self._validate_iden(name, '`name` property', 'stream type name')
+            # validate data stream type's name
+            self._validate_iden(name, '`name` property', 'data stream type name')
 
             # get default clock type, if any
             def_clk_type = None
             prop_name = '$default-clock-type-name'
-            def_clk_type_name = stream_type_node.get(prop_name)
+            def_clk_type_name = dst_node.get(prop_name)
 
             if def_clk_type_name is not None:
                 try:
@@ -433,24 +435,25 @@ class _Parser(barectf_config_parse_common._Parser):
             pkt_content_size_ft = barectf_config.DEFAULT_FIELD_TYPE
             pkt_beginning_time_ft = None
             pkt_end_time_ft = None
-            pkt_discarded_events_counter_ft = None
-            ev_type_id_ft = barectf_config.DEFAULT_FIELD_TYPE
-            ev_time_ft = None
+            pkt_discarded_er_counter_snap_ft = None
+            ert_id_ft = barectf_config.DEFAULT_FIELD_TYPE
+            ert_time_ft = None
 
             if def_clk_type is not None:
-                # The stream type has a default clock type. Initialize
-                # the packet beginning time, packet end time, and event
-                # time field types to default field types.
+                # The data stream type has a default clock type.
+                # Initialize the packet beginning time, packet end time,
+                # and event record time field types to default field
+                # types.
                 #
-                # This means your stream type node only needs a default
-                # clock type name to enable those features
+                # This means your data stream type node only needs a
+                # default clock type name to enable those features
                 # automatically. Those features do not add any parameter
-                # to the tracing event functions.
+                # to the event tracing functions.
                 pkt_beginning_time_ft = barectf_config.DEFAULT_FIELD_TYPE
                 pkt_end_time_ft = barectf_config.DEFAULT_FIELD_TYPE
-                ev_time_ft = barectf_config.DEFAULT_FIELD_TYPE
+                ert_time_ft = barectf_config.DEFAULT_FIELD_TYPE
 
-            features_node = stream_type_node.get('$features')
+            features_node = dst_node.get('$features')
 
             if features_node is not None:
                 # create packet feature field types
@@ -465,48 +468,48 @@ class _Parser(barectf_config_parse_common._Parser):
                                                              pkt_beginning_time_ft)
                     pkt_end_time_ft = self._feature_ft(pkt_node, 'end-time-field-type',
                                                        pkt_end_time_ft)
-                    pkt_discarded_events_counter_ft = self._feature_ft(pkt_node,
-                                                                       'discarded-events-counter-field-type',
-                                                                       pkt_discarded_events_counter_ft)
+                    pkt_discarded_er_counter_snap_ft = self._feature_ft(pkt_node,
+                                                                   'discarded-event-records-counter-snapshot-field-type',
+                                                                   pkt_discarded_er_counter_snap_ft)
 
-                # create event feature field types
-                ev_node = features_node.get('event')
+                # create event record feature field types
+                er_node = features_node.get('event-record')
                 type_id_ft_prop_name = 'type-id-field-type'
 
-                if ev_node is not None:
-                    ev_type_id_ft = self._feature_ft(ev_node, type_id_ft_prop_name, ev_type_id_ft)
-                    ev_time_ft = self._feature_ft(ev_node, 'time-field-type', ev_time_ft)
+                if er_node is not None:
+                    ert_id_ft = self._feature_ft(er_node, type_id_ft_prop_name, ert_id_ft)
+                    ert_time_ft = self._feature_ft(er_node, 'time-field-type', ert_time_ft)
 
-            ev_types_prop_name = 'event-types'
-            ev_type_count = len(stream_type_node[ev_types_prop_name])
+            erts_prop_name = 'event-record-types'
+            ert_count = len(dst_node[erts_prop_name])
 
             try:
-                if ev_type_id_ft is None and ev_type_count > 1:
+                if ert_id_ft is None and ert_count > 1:
                     raise _ConfigurationParseError(f'`{type_id_ft_prop_name}` property',
-                                                   'Event type ID field type feature is required because stream type has more than one event type')
+                                                   'Event record type ID field type feature is required because data stream type has more than one event record type')
 
-                if isinstance(ev_type_id_ft, barectf_config._IntegerFieldType):
-                    ev_type_id_int_ft = typing.cast(barectf_config._IntegerFieldType, ev_type_id_ft)
+                if isinstance(ert_id_ft, barectf_config._IntegerFieldType):
+                    ert_id_int_ft = typing.cast(barectf_config._IntegerFieldType, ert_id_ft)
 
-                    if ev_type_count > (1 << ev_type_id_int_ft.size):
+                    if ert_count > (1 << ert_id_int_ft.size):
                         raise _ConfigurationParseError(f'`{type_id_ft_prop_name}` property',
-                                                       f'Field type\'s size ({ev_type_id_int_ft.size} bits) is too small to accomodate {ev_type_count} event types')
+                                                       f'Field type\'s size ({ert_id_int_ft.size} bits) is too small to accomodate {ert_count} event record types')
             except _ConfigurationParseError as exc:
-                exc._append_ctx('`event` property')
+                exc._append_ctx('`event-record` property')
                 _append_error_ctx(exc, '`$features` property')
 
-            pkt_features = barectf_config.StreamTypePacketFeatures(pkt_total_size_ft,
-                                                                   pkt_content_size_ft,
-                                                                   pkt_beginning_time_ft,
-                                                                   pkt_end_time_ft,
-                                                                   pkt_discarded_events_counter_ft)
-            ev_features = barectf_config.StreamTypeEventFeatures(ev_type_id_ft, ev_time_ft)
-            features = barectf_config.StreamTypeFeatures(pkt_features, ev_features)
+            pkt_features = barectf_config.DataStreamTypePacketFeatures(pkt_total_size_ft,
+                                                                       pkt_content_size_ft,
+                                                                       pkt_beginning_time_ft,
+                                                                       pkt_end_time_ft,
+                                                                       pkt_discarded_er_counter_snap_ft)
+            er_features = barectf_config.DataStreamTypeEventRecordFeatures(ert_id_ft, ert_time_ft)
+            features = barectf_config.DataStreamTypeFeatures(pkt_features, er_features)
 
             # create packet context (structure) field type extra members
             pkt_ctx_ft_extra_members = None
             prop_name = 'packet-context-field-type-extra-members'
-            pkt_ctx_ft_extra_members_node = stream_type_node.get(prop_name)
+            pkt_ctx_ft_extra_members_node = dst_node.get(prop_name)
 
             if pkt_ctx_ft_extra_members_node is not None:
                 pkt_ctx_ft_extra_members = self._create_struct_ft_members(pkt_ctx_ft_extra_members_node,
@@ -527,30 +530,30 @@ class _Parser(barectf_config_parse_common._Parser):
                         raise _ConfigurationParseError(f'`{prop_name}` property',
                                                        f'Packet context field type member name `{member_name}` is reserved.')
 
-            # create event types
-            ev_header_common_ctx_member_count = Count(0)
+            # create event record types
+            er_header_common_ctx_member_count = Count(0)
 
-            if ev_features.type_id_field_type is not None:
-                ev_header_common_ctx_member_count = Count(ev_header_common_ctx_member_count + 1)
+            if er_features.type_id_field_type is not None:
+                er_header_common_ctx_member_count = Count(er_header_common_ctx_member_count + 1)
 
-            if ev_features.time_field_type is not None:
-                ev_header_common_ctx_member_count = Count(ev_header_common_ctx_member_count + 1)
+            if er_features.time_field_type is not None:
+                er_header_common_ctx_member_count = Count(er_header_common_ctx_member_count + 1)
 
-            ev_common_ctx_ft_prop_name = 'event-common-context-field-type'
-            ev_common_ctx_ft_node = stream_type_node.get(ev_common_ctx_ft_prop_name)
-            ev_header_common_ctx_member_count = Count(ev_header_common_ctx_member_count + self._total_struct_ft_node_members(ev_common_ctx_ft_node))
-            ev_types = set()
+            er_common_ctx_ft_prop_name = 'event-record-common-context-field-type'
+            er_common_ctx_ft_node = dst_node.get(er_common_ctx_ft_prop_name)
+            er_header_common_ctx_member_count = Count(er_header_common_ctx_member_count + self._total_struct_ft_node_members(er_common_ctx_ft_node))
+            erts = set()
 
-            for ev_name, ev_type_node in stream_type_node[ev_types_prop_name].items():
-                ev_types.add(self._create_ev_type(ev_name, ev_type_node, ev_header_common_ctx_member_count))
+            for ert_name, ert_node in dst_node[erts_prop_name].items():
+                erts.add(self._create_ert(ert_name, ert_node, er_header_common_ctx_member_count))
 
-            # create stream type
-            return barectf_config.StreamType(name, ev_types, def_clk_type, features,
-                                             pkt_ctx_ft_extra_members,
-                                             self._try_create_struct_ft(stream_type_node,
-                                                                        ev_common_ctx_ft_prop_name))
+            # create data stream type
+            return barectf_config.DataStreamType(name, erts, def_clk_type, features,
+                                                 pkt_ctx_ft_extra_members,
+                                                 self._try_create_struct_ft(dst_node,
+                                                                            er_common_ctx_ft_prop_name))
         except _ConfigurationParseError as exc:
-            _append_error_ctx(exc, f'Stream type `{name}`')
+            _append_error_ctx(exc, f'Data data stream type `{name}`')
 
             # satisfy static type checker (never reached)
             raise
@@ -594,7 +597,7 @@ class _Parser(barectf_config_parse_common._Parser):
 
     def _create_trace_type(self):
         try:
-            # create clock types (_create_stream_type() needs them)
+            # create clock types (_create_dst() needs them)
             self._create_clk_types()
 
             # get UUID
@@ -610,7 +613,7 @@ class _Parser(barectf_config_parse_common._Parser):
             # create feature field types
             magic_ft = barectf_config.DEFAULT_FIELD_TYPE
             uuid_ft = None
-            stream_type_id_ft = barectf_config.DEFAULT_FIELD_TYPE
+            dst_id_ft = barectf_config.DEFAULT_FIELD_TYPE
 
             if trace_type_uuid is not None:
                 # Trace type has a UUID: initialize UUID field type to
@@ -618,39 +621,38 @@ class _Parser(barectf_config_parse_common._Parser):
                 uuid_ft = barectf_config.DEFAULT_FIELD_TYPE
 
             features_node = self._trace_type_node.get('$features')
-            stream_type_id_ft_prop_name = 'stream-type-id-field-type'
+            dst_id_ft_prop_name = 'data-stream-type-id-field-type'
 
             if features_node is not None:
                 magic_ft = self._feature_ft(features_node, 'magic-field-type',
                                             magic_ft)
                 uuid_ft = self._feature_ft(features_node, 'uuid-field-type', uuid_ft)
-                stream_type_id_ft = self._feature_ft(features_node, stream_type_id_ft_prop_name,
-                                                     stream_type_id_ft)
+                dst_id_ft = self._feature_ft(features_node, dst_id_ft_prop_name, dst_id_ft)
 
-            stream_types_prop_name = 'stream-types'
-            stream_type_count = len(self._trace_type_node[stream_types_prop_name])
+            dsts_prop_name = 'data-stream-types'
+            dst_count = len(self._trace_type_node[dsts_prop_name])
 
             try:
-                if stream_type_id_ft is None and stream_type_count > 1:
-                    raise _ConfigurationParseError(f'`{stream_type_id_ft_prop_name}` property',
-                                                   'Stream type ID field type feature is required because trace type has more than one stream type')
+                if dst_id_ft is None and dst_count > 1:
+                    raise _ConfigurationParseError(f'`{dst_id_ft_prop_name}` property',
+                                                   'Data stream type ID field type feature is required because trace type has more than one data stream type')
 
-                if isinstance(stream_type_id_ft, barectf_config._FieldType) and stream_type_count > (1 << stream_type_id_ft.size):
-                    raise _ConfigurationParseError(f'`{stream_type_id_ft_prop_name}` property',
-                                                   f'Field type\'s size ({stream_type_id_ft.size} bits) is too small to accomodate {stream_type_count} stream types')
+                if isinstance(dst_id_ft, barectf_config._FieldType) and dst_count > (1 << dst_id_ft.size):
+                    raise _ConfigurationParseError(f'`{dst_id_ft_prop_name}` property',
+                                                   f'Field type\'s size ({dst_id_ft.size} bits) is too small to accomodate {dst_count} data stream types')
             except _ConfigurationParseError as exc:
                 _append_error_ctx(exc, '`$features` property')
 
-            features = barectf_config.TraceTypeFeatures(magic_ft, uuid_ft, stream_type_id_ft)
+            features = barectf_config.TraceTypeFeatures(magic_ft, uuid_ft, dst_id_ft)
 
-            # create stream types
-            stream_types = set()
+            # create data stream types
+            dsts = set()
 
-            for stream_name, stream_type_node in self._trace_type_node[stream_types_prop_name].items():
-                stream_types.add(self._create_stream_type(stream_name, stream_type_node))
+            for dst_name, dst_node in self._trace_type_node[dsts_prop_name].items():
+                dsts.add(self._create_dst(dst_name, dst_node))
 
             # create trace type
-            return barectf_config.TraceType(stream_types, trace_type_uuid, features)
+            return barectf_config.TraceType(dsts, trace_type_uuid, features)
         except _ConfigurationParseError as exc:
             _append_error_ctx(exc, 'Trace type')
 
@@ -679,21 +681,21 @@ class _Parser(barectf_config_parse_common._Parser):
         # create trace first
         trace = self._create_trace()
 
-        # find default stream type, if any
-        def_stream_type = None
+        # find default data stream type, if any
+        def_dst = None
 
-        for stream_type_name, stream_type_node in self._trace_type_node['stream-types'].items():
+        for dst_name, dst_node in self._trace_type_node['data-stream-types'].items():
             prop_name = '$is-default'
-            is_default = stream_type_node.get(prop_name)
+            is_default = dst_node.get(prop_name)
 
             if is_default is True:
-                if def_stream_type is not None:
+                if def_dst is not None:
                     exc = _ConfigurationParseError(f'`{prop_name}` property',
-                                                   f'Duplicate default stream type (`{def_stream_type.name}`)')
-                    exc._append_ctx(f'Stream type `{stream_type_name}`')
+                                                   f'Duplicate default data stream type (`{def_dst.name}`)')
+                    exc._append_ctx(f'Data stream type `{dst_name}`')
                     _append_error_ctx(exc, 'Trace type')
 
-                def_stream_type = trace.type.stream_type(stream_type_name)
+                def_dst = trace.type.data_stream_type(dst_name)
 
         # create clock type C type mapping
         clk_types_node = self._trace_type_node.get('clock-types')
@@ -702,19 +704,19 @@ class _Parser(barectf_config_parse_common._Parser):
         if clk_types_node is not None:
             clk_type_c_types = collections.OrderedDict()
 
-            for stream_type in trace.type.stream_types:
-                if stream_type.default_clock_type is None:
+            for dst in trace.type.data_stream_types:
+                if dst.default_clock_type is None:
                     continue
 
-                clk_type_node = clk_types_node[stream_type.default_clock_type.name]
+                clk_type_node = clk_types_node[dst.default_clock_type.name]
                 c_type = clk_type_node.get('$c-type')
 
                 if c_type is not None:
-                    clk_type_c_types[stream_type.default_clock_type] = c_type
+                    clk_type_c_types[dst.default_clock_type] = c_type
 
         # create options
         iden_prefix_def = False
-        def_stream_type_name_def = False
+        def_dst_name_def = False
         opts_node = self.config_node.get('options')
         iden_prefix = 'barectf_'
         file_name_prefix = 'barectf'
@@ -737,13 +739,13 @@ class _Parser(barectf_config_parse_common._Parser):
 
                 if header_opts is not None:
                     iden_prefix_def = header_opts.get('identifier-prefix-definition', False)
-                    def_stream_type_name_def = header_opts.get('default-stream-type-name-definition',
-                                                               False)
+                    def_dst_name_def = header_opts.get('default-data-stream-type-name-definition',
+                                                       False)
 
         header_opts = barectf_config.ConfigurationCodeGenerationHeaderOptions(iden_prefix_def,
-                                                                              def_stream_type_name_def)
+                                                                              def_dst_name_def)
         cg_opts = barectf_config.ConfigurationCodeGenerationOptions(iden_prefix, file_name_prefix,
-                                                                    def_stream_type, header_opts,
+                                                                    def_dst, header_opts,
                                                                     clk_type_c_types)
         opts = barectf_config.ConfigurationOptions(cg_opts)
 
@@ -773,8 +775,8 @@ class _Parser(barectf_config_parse_common._Parser):
 
         ft_aliases_node = self._trace_type_node['$field-type-aliases']
 
-        # Expand field type aliases within trace, stream, and event type
-        # nodes.
+        # Expand field type aliases within trace, data stream, and event
+        # record type nodes.
         features_prop_name = '$features'
 
         try:
@@ -784,15 +786,15 @@ class _Parser(barectf_config_parse_common._Parser):
                 try:
                     resolve_ft_alias_from(features_node, 'magic-field-type')
                     resolve_ft_alias_from(features_node, 'uuid-field-type')
-                    resolve_ft_alias_from(features_node, 'stream-type-id-field-type')
+                    resolve_ft_alias_from(features_node, 'data-stream-type-id-field-type')
                 except _ConfigurationParseError as exc:
                     _append_error_ctx(exc, f'`{features_prop_name}` property')
         except _ConfigurationParseError as exc:
             _append_error_ctx(exc, 'Trace type')
 
-        for stream_type_name, stream_type_node in self._trace_type_node['stream-types'].items():
+        for dst_name, dst_node in self._trace_type_node['data-stream-types'].items():
             try:
-                features_node = stream_type_node.get(features_prop_name)
+                features_node = dst_node.get(features_prop_name)
 
                 if features_node is not None:
                     try:
@@ -806,24 +808,24 @@ class _Parser(barectf_config_parse_common._Parser):
                                 resolve_ft_alias_from(pkt_node, 'beginning-time-field-type')
                                 resolve_ft_alias_from(pkt_node, 'end-time-field-type')
                                 resolve_ft_alias_from(pkt_node,
-                                                      'discarded-events-counter-field-type')
+                                                      'discarded-event-records-counter-snapshot-field-type')
                             except _ConfigurationParseError as exc:
                                 _append_error_ctx(exc, f'`{pkt_prop_name}` property')
 
-                        ev_prop_name = 'event'
-                        ev_node = features_node.get(ev_prop_name)
+                        er_prop_name = 'event-record'
+                        er_node = features_node.get(er_prop_name)
 
-                        if ev_node is not None:
+                        if er_node is not None:
                             try:
-                                resolve_ft_alias_from(ev_node, 'type-id-field-type')
-                                resolve_ft_alias_from(ev_node, 'time-field-type')
+                                resolve_ft_alias_from(er_node, 'type-id-field-type')
+                                resolve_ft_alias_from(er_node, 'time-field-type')
                             except _ConfigurationParseError as exc:
-                                _append_error_ctx(exc, f'`{ev_prop_name}` property')
+                                _append_error_ctx(exc, f'`{er_prop_name}` property')
                     except _ConfigurationParseError as exc:
                         _append_error_ctx(exc, f'`{features_prop_name}` property')
 
                 pkt_ctx_ft_extra_members_prop_name = 'packet-context-field-type-extra-members'
-                pkt_ctx_ft_extra_members_node = stream_type_node.get(pkt_ctx_ft_extra_members_prop_name)
+                pkt_ctx_ft_extra_members_node = dst_node.get(pkt_ctx_ft_extra_members_prop_name)
 
                 if pkt_ctx_ft_extra_members_node is not None:
                     try:
@@ -833,16 +835,16 @@ class _Parser(barectf_config_parse_common._Parser):
                     except _ConfigurationParseError as exc:
                         _append_error_ctx(exc, f'`{pkt_ctx_ft_extra_members_prop_name}` property')
 
-                resolve_ft_alias_from(stream_type_node, 'event-common-context-field-type')
+                resolve_ft_alias_from(dst_node, 'event-record-common-context-field-type')
 
-                for ev_type_name, ev_type_node in stream_type_node['event-types'].items():
+                for ert_name, ert_node in dst_node['event-record-types'].items():
                     try:
-                        resolve_ft_alias_from(ev_type_node, 'specific-context-field-type')
-                        resolve_ft_alias_from(ev_type_node, 'payload-field-type')
+                        resolve_ft_alias_from(ert_node, 'specific-context-field-type')
+                        resolve_ft_alias_from(ert_node, 'payload-field-type')
                     except _ConfigurationParseError as exc:
-                        _append_error_ctx(exc, f'Event type `{ev_type_name}`')
+                        _append_error_ctx(exc, f'Event record type `{ert_name}`')
             except _ConfigurationParseError as exc:
-                _append_error_ctx(exc, f'Stream type `{stream_type_name}`')
+                _append_error_ctx(exc, f'Data stream type `{dst_name}`')
 
         # remove the (now unneeded) `$field-type-aliases` property
         del self._trace_type_node['$field-type-aliases']
@@ -870,10 +872,10 @@ class _Parser(barectf_config_parse_common._Parser):
         if features_node is not None:
             apply_ft_inheritance(features_node, 'magic-field-type')
             apply_ft_inheritance(features_node, 'uuid-field-type')
-            apply_ft_inheritance(features_node, 'stream-type-id-field-type')
+            apply_ft_inheritance(features_node, 'data-stream-type-id-field-type')
 
-        for stream_type_node in self._trace_type_node['stream-types'].values():
-            features_node = stream_type_node.get(features_prop_name)
+        for dst_node in self._trace_type_node['data-stream-types'].values():
+            features_node = dst_node.get(features_prop_name)
 
             if features_node is not None:
                 pkt_node = features_node.get('packet')
@@ -883,26 +885,26 @@ class _Parser(barectf_config_parse_common._Parser):
                     apply_ft_inheritance(pkt_node, 'content-size-field-type')
                     apply_ft_inheritance(pkt_node, 'beginning-time-field-type')
                     apply_ft_inheritance(pkt_node, 'end-time-field-type')
-                    apply_ft_inheritance(pkt_node, 'discarded-events-counter-field-type')
+                    apply_ft_inheritance(pkt_node, 'discarded-event-records-counter-snapshot-field-type')
 
-                ev_node = features_node.get('event')
+                er_node = features_node.get('event-record')
 
-                if ev_node is not None:
-                    apply_ft_inheritance(ev_node, 'type-id-field-type')
-                    apply_ft_inheritance(ev_node, 'time-field-type')
+                if er_node is not None:
+                    apply_ft_inheritance(er_node, 'type-id-field-type')
+                    apply_ft_inheritance(er_node, 'time-field-type')
 
-            pkt_ctx_ft_extra_members_node = stream_type_node.get('packet-context-field-type-extra-members')
+            pkt_ctx_ft_extra_members_node = dst_node.get('packet-context-field-type-extra-members')
 
             if pkt_ctx_ft_extra_members_node is not None:
                 for member_node in pkt_ctx_ft_extra_members_node:
                     member_node = list(member_node.values())[0]
                     apply_ft_inheritance(member_node, 'field-type')
 
-            apply_ft_inheritance(stream_type_node, 'event-common-context-field-type')
+            apply_ft_inheritance(dst_node, 'event-record-common-context-field-type')
 
-            for ev_type_node in stream_type_node['event-types'].values():
-                apply_ft_inheritance(ev_type_node, 'specific-context-field-type')
-                apply_ft_inheritance(ev_type_node, 'payload-field-type')
+            for ert_node in dst_node['event-record-types'].values():
+                apply_ft_inheritance(ert_node, 'specific-context-field-type')
+                apply_ft_inheritance(ert_node, 'payload-field-type')
 
     # Normalizes structure field type member nodes.
     #
@@ -958,10 +960,10 @@ class _Parser(barectf_config_parse_common._Parser):
         if features_node is not None:
             normalize_struct_ft_member_nodes(features_node, 'magic-field-type')
             normalize_struct_ft_member_nodes(features_node, 'uuid-field-type')
-            normalize_struct_ft_member_nodes(features_node, 'stream-type-id-field-type')
+            normalize_struct_ft_member_nodes(features_node, 'data-stream-type-id-field-type')
 
-        for stream_type_node in self._trace_type_node['stream-types'].values():
-            features_node = stream_type_node.get(features_prop_name)
+        for dst_node in self._trace_type_node['data-stream-types'].values():
+            features_node = dst_node.get(features_prop_name)
 
             if features_node is not None:
                 pkt_node = features_node.get('packet')
@@ -972,24 +974,24 @@ class _Parser(barectf_config_parse_common._Parser):
                     normalize_struct_ft_member_nodes(pkt_node, 'beginning-time-field-type')
                     normalize_struct_ft_member_nodes(pkt_node, 'end-time-field-type')
                     normalize_struct_ft_member_nodes(pkt_node,
-                                                     'discarded-events-counter-field-type')
+                                                     'discarded-event-records-counter-snapshot-field-type')
 
-                ev_node = features_node.get('event')
+                er_node = features_node.get('event-record')
 
-                if ev_node is not None:
-                    normalize_struct_ft_member_nodes(ev_node, 'type-id-field-type')
-                    normalize_struct_ft_member_nodes(ev_node, 'time-field-type')
+                if er_node is not None:
+                    normalize_struct_ft_member_nodes(er_node, 'type-id-field-type')
+                    normalize_struct_ft_member_nodes(er_node, 'time-field-type')
 
-            pkt_ctx_ft_extra_members_node = stream_type_node.get('packet-context-field-type-extra-members')
+            pkt_ctx_ft_extra_members_node = dst_node.get('packet-context-field-type-extra-members')
 
             if pkt_ctx_ft_extra_members_node is not None:
                 normalize_members_node(pkt_ctx_ft_extra_members_node)
 
-            normalize_struct_ft_member_nodes(stream_type_node, 'event-common-context-field-type')
+            normalize_struct_ft_member_nodes(dst_node, 'event-record-common-context-field-type')
 
-            for ev_type_node in stream_type_node['event-types'].values():
-                normalize_struct_ft_member_nodes(ev_type_node, 'specific-context-field-type')
-                normalize_struct_ft_member_nodes(ev_type_node, 'payload-field-type')
+            for ert_node in dst_node['event-record-types'].values():
+                normalize_struct_ft_member_nodes(ert_node, 'specific-context-field-type')
+                normalize_struct_ft_member_nodes(ert_node, 'payload-field-type')
 
     # Calls _expand_ft_aliases() and _apply_fts_inheritance() if the
     # trace type node has a `$field-type-aliases` property.
@@ -1020,7 +1022,7 @@ class _Parser(barectf_config_parse_common._Parser):
         # next, apply inheritance to create effective field type nodes
         self._apply_fts_inheritance()
 
-    # Substitute the event type node log level aliases with their
+    # Substitute the event record type node log level aliases with their
     # numeric equivalents.
     #
     # Removes the `$log-level-aliases` property of the trace type node.
@@ -1041,12 +1043,12 @@ class _Parser(barectf_config_parse_common._Parser):
             return
 
         # substitute log level aliases
-        for stream_type_name, stream_type_node in self._trace_type_node['stream-types'].items():
+        for dst_name, dst_node in self._trace_type_node['data-stream-types'].items():
             try:
-                for ev_type_name, ev_type_node in stream_type_node['event-types'].items():
+                for ert_name, ert_node in dst_node['event-record-types'].items():
                     try:
                         prop_name = 'log-level'
-                        ll_node = ev_type_node.get(prop_name)
+                        ll_node = ert_node.get(prop_name)
 
                         if ll_node is None:
                             continue
@@ -1056,11 +1058,11 @@ class _Parser(barectf_config_parse_common._Parser):
                                 raise _ConfigurationParseError(f'`{prop_name}` property',
                                                                f'Log level alias `{ll_node}` does not exist')
 
-                            ev_type_node[prop_name] = log_level_aliases_node[ll_node]
+                            ert_node[prop_name] = log_level_aliases_node[ll_node]
                     except _ConfigurationParseError as exc:
-                        _append_error_ctx(exc, f'Event type `{ev_type_name}`')
+                        _append_error_ctx(exc, f'Event record type `{ert_name}`')
             except _ConfigurationParseError as exc:
-                _append_error_ctx(exc, f'Stream type `{stream_type_name}`')
+                _append_error_ctx(exc, f'Data stream type `{dst_name}`')
 
     # Generator of parent node and key pairs for all the nodes,
     # recursively, of `node`.
@@ -1152,34 +1154,34 @@ class _Parser(barectf_config_parse_common._Parser):
         self._target_byte_order_node = self.config_node['target-byte-order']
         self._target_byte_order = self._byte_order_from_node(self._target_byte_order_node)
 
-    # Processes the inclusions of the event type node `ev_type_node`,
+    # Processes the inclusions of the event record type node
+    # `ert_node`, returning the effective node.
+    def _process_ert_node_include(self, ert_node: _MapNode) -> _MapNode:
+        # Make sure the event record type node is valid for the
+        # inclusion processing stage.
+        self._schema_validator.validate(ert_node, 'config/3/ert-pre-include')
+
+        # process inclusions
+        return self._process_node_include(ert_node, self._process_ert_node_include)
+
+    # Processes the inclusions of the data stream type node `dst_node`,
     # returning the effective node.
-    def _process_ev_type_node_include(self, ev_type_node: _MapNode) -> _MapNode:
-        # Make sure the event type node is valid for the inclusion
+    def _process_dst_node_include(self, dst_node: _MapNode) -> _MapNode:
+        def process_children_include(dst_node: _MapNode):
+            prop_name = 'event-record-types'
+
+            if prop_name in dst_node:
+                erts_node = dst_node[prop_name]
+
+                for key in list(erts_node):
+                    erts_node[key] = self._process_ert_node_include(erts_node[key])
+
+        # Make sure the data stream type node is valid for the inclusion
         # processing stage.
-        self._schema_validator.validate(ev_type_node, 'config/3/event-type-pre-include')
+        self._schema_validator.validate(dst_node, 'config/3/dst-pre-include')
 
         # process inclusions
-        return self._process_node_include(ev_type_node, self._process_ev_type_node_include)
-
-    # Processes the inclusions of the stream type node
-    # `stream_type_node`, returning the effective node.
-    def _process_stream_type_node_include(self, stream_type_node: _MapNode) -> _MapNode:
-        def process_children_include(stream_type_node: _MapNode):
-            prop_name = 'event-types'
-
-            if prop_name in stream_type_node:
-                ev_types_node = stream_type_node[prop_name]
-
-                for key in list(ev_types_node):
-                    ev_types_node[key] = self._process_ev_type_node_include(ev_types_node[key])
-
-        # Make sure the stream type node is valid for the inclusion
-        # processing stage.
-        self._schema_validator.validate(stream_type_node, 'config/3/stream-type-pre-include')
-
-        # process inclusions
-        return self._process_node_include(stream_type_node, self._process_stream_type_node_include,
+        return self._process_node_include(dst_node, self._process_dst_node_include,
                                           process_children_include)
 
     # Processes the inclusions of the clock type node `clk_type_node`,
@@ -1204,13 +1206,13 @@ class _Parser(barectf_config_parse_common._Parser):
                 for key in list(clk_types_node):
                     clk_types_node[key] = self._process_clk_type_node_include(clk_types_node[key])
 
-            prop_name = 'stream-types'
+            prop_name = 'data-stream-types'
 
             if prop_name in trace_type_node:
-                stream_types_node = trace_type_node[prop_name]
+                dsts_node = trace_type_node[prop_name]
 
-                for key in list(stream_types_node):
-                    stream_types_node[key] = self._process_stream_type_node_include(stream_types_node[key])
+                for key in list(dsts_node):
+                    dsts_node[key] = self._process_dst_node_include(dsts_node[key])
 
         # Make sure the trace type node is valid for the inclusion
         # processing stage.
@@ -1240,10 +1242,10 @@ class _Parser(barectf_config_parse_common._Parser):
     def _process_config_includes(self):
         # Process inclusions in this order:
         #
-        # 1. Clock type node and event type nodes (the order between
-        #    those is not important).
+        # 1. Clock type node and event record type nodes (the order
+        #    between those is not important).
         #
-        # 2. Stream type nodes.
+        # 2. Data stream type nodes.
         #
         # 3. Trace type node.
         #
@@ -1252,12 +1254,12 @@ class _Parser(barectf_config_parse_common._Parser):
         # This is because:
         #
         # * A trace node can include a trace type node, clock type
-        #   nodes, stream type nodes, and event type nodes.
+        #   nodes, data stream type nodes, and event record type nodes.
         #
-        # * A trace type node can include clock type nodes, stream type
-        #   nodes, and event type nodes.
+        # * A trace type node can include clock type nodes, data stream
+        #   type nodes, and event record type nodes.
         #
-        # * A stream type node can include event type nodes.
+        # * A data stream type node can include event record type nodes.
         #
         # First, make sure the configuration node itself is valid for
         # the inclusion processing stage.
@@ -1296,9 +1298,9 @@ class _Parser(barectf_config_parse_common._Parser):
         #
         # This process:
         #
-        # 1. Replaces log level aliases in event type nodes with their
-        #    numeric equivalents as found in the `$log-level-aliases`
-        #    property of the trace type node.
+        # 1. Replaces log level aliases in event record type nodes with
+        #    their numeric equivalents as found in the
+        #    `$log-level-aliases` property of the trace type node.
         #
         # 2. Removes the `$log-level-aliases` property from the trace
         #    type node.

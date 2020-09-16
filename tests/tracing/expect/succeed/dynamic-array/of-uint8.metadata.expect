@@ -57,7 +57,7 @@ env {
 	tracer_name = "barectf";
 };
 
-/* Stream type `default` */
+/* Data stream type `default` */
 stream {
 	id = 0;
 	packet.context := struct {

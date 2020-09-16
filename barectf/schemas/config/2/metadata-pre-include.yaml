@@ -37,8 +37,8 @@ properties:
   trace:
     $ref: https://barectf.org/schemas/config/2/trace-type-pre-include.json
   streams:
-    title: Stream types object before inclusions
+    title: Data stream types object before inclusions
     type: object
     patternProperties:
       '.*':
-        $ref: https://barectf.org/schemas/config/2/stream-type-pre-include.json
+        $ref: https://barectf.org/schemas/config/2/dst-pre-include.json
