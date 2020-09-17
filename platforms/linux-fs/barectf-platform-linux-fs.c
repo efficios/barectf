@@ -53,7 +53,7 @@ static uint64_t get_clock(void* data)
 {
 	struct timespec ts;
 
-	clock_gettime(CLOCK_MONOTONIC, &ts);
+	clock_gettime(CLOCK_REALTIME, &ts);
 
 	return ts.tv_sec * 1000000000ULL + ts.tv_nsec;
 }
