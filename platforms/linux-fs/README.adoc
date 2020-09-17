@@ -1,0 +1,242 @@
+// Render with Asciidoctor
+
+= barectf Linux FS platform
+Philippe Proulx
+16 September 2020
+:toc: left
+
+The barectf Linux FS platform is a very simple platform used to
+demonstrate barectf.
+
+The platform writes the CTF packets to a data stream file on the file
+system.
+
+This platform can also simulate a full back-end randomly with a
+configurable ratio.
+
+== barectf configuration requirements
+
+* The default `barectf` file name prefix.
+
+* The default `barectf_` identifier prefix.
+
+* A single data stream type named `default`:
+
+** No extra packet context field type members.
+** A default clock type named `default`:
+Frequency:::: 1000000000 (default)
+Offsets:::: 0 (default)
+Origin is Unix epoch?:::: Yes (default)
+C{nbsp}type:::: `uint64_t`
+
+.Compatible YAML configuration
+====
+[source,yaml]
+----
+--- !<tag:barectf.org,2020/3/config>
+target-byte-order: le
+trace:
+  type:
+    $include:
+      - stdint.yaml
+    clock-types:
+      default:
+        $c-type: uint64_t
+    data-stream-types:
+      default:
+        $is-default: yes
+        $default-clock-type-name: default
+        event-record-types:
+          my_event:
+            payload-field-type:
+              class: struct
+              members:
+                - number: uint32
+----
+====
+
+== C API
+
+=== Initialization
+
+==== Prototype
+
+[source,c]
+----
+struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(
+    unsigned int buf_size, const char *trace_dir, int simulate_full_backend,
+    unsigned int full_backend_rand_max, unsigned int full_backend_rand_lt);
+----
+
+==== Parameters
+
+[cols="d,a"]
+|====
+|Name |Description
+
+|`buf_size`
+|Size of the packet buffer to allocate (bytes).
+
+|`trace_dir`
+|Path of the directory to which to write the single data stream file
+ named `stream`.
+
+|`simulate_full_backend`
+|
+0::
+    Disable full back-end simulation.
+
+1::
+    Enable full back-end simulation.
+
+|`full_backend_rand_max`
+|If `simulate_full_backend` is 1, maximum random value.
+
+|`full_backend_rand_lt`
+|If `simulate_full_backend` is 1, the back-end is considered full
+if the random value is less than `full_backend_rand_lt`.
+|====
+
+When `simulate_full_backend` is 1, `full_backend_rand_lt` and
+`full_backend_rand_max` form a ratio. For example, if
+`full_backend_rand_max` is 5 and `full_backend_rand_lt` is 3, then the
+probability of having a full back-end is 3/5.
+
+==== Return
+
+Success::
+    An allocated Linux FS platform context.
++
+Call <<api-fini,`+barectf_platform_linux_fs_fini()+`>> to finalize and
+free it.
+
+Failure::
+    `NULL`.
+
+[[api-fini]]
+=== Finalization
+
+==== Prototype
+
+[source,c]
+----
+void barectf_platform_linux_fs_fini(struct barectf_platform_linux_fs_ctx *ctx);
+----
+
+==== Parameter
+
+|====
+|Name |Description
+
+|`ctx`
+|Linux FS platform context to finalize and free.
+|====
+
+=== barectf context access
+
+==== Prototype
+
+[source,c]
+----
+struct barectf_default_ctx *barectf_platform_linux_fs_get_barectf_ctx(
+    struct barectf_platform_linux_fs_ctx *ctx);
+----
+
+==== Parameter
+
+|====
+|Name |Description
+
+|`ctx`
+|Linux FS platform context.
+|====
+
+==== Return
+
+The barectf context to pass to your tracing functions
+(`+barectf_default_trace_*()+`).
+
+== Usage example
+
+.`config.yaml`
+[source,yaml]
+----
+--- !<tag:barectf.org,2020/3/config>
+target-byte-order: le
+trace:
+  type:
+    $include:
+      - stdint.yaml
+    clock-types:
+      default:
+        $c-type: uint64_t
+    data-stream-types:
+      default:
+        $is-default: yes
+        $default-clock-type-name: default
+        event-record-types:
+          my_event:
+            payload-field-type:
+              class: struct
+              members:
+                - number: uint32
+----
+
+.`example.c`
+[source,c]
+----
+#include <assert.h>
+
+#include "barectf-platform-linux-fs.h"
+#include "barectf.h"
+
+int main(void)
+{
+    struct barectf_platform_linux_fs_ctx *platform_ctx;
+    struct barectf_default_ctx *barectf_ctx;
+    unsigned int i;
+
+    platform_ctx = barectf_platform_linux_fs_init(256, "trace", 0, 0, 0);
+    assert(platform_ctx);
+    barectf_ctx = barectf_platform_linux_fs_get_barectf_ctx(platform_ctx);
+
+    for (i = 0; i < 50; ++i) {
+        barectf_trace_my_event(barectf_ctx, i);
+    }
+
+    barectf_platform_linux_fs_fini(platform_ctx);
+    return 0;
+}
+----
+
+.Command lines to build and execute the example
+----
+$ mkdir trace
+$ barectf --metadata-dir=trace config.yaml
+$ gcc -o example -I. example.c barectf.c barectf-platform-linux-fs.c
+$ ./example
+----
+
+The complete CTF trace is the `trace` directory.
+
+Read it with https://babeltrace.org/[Babeltrace{nbsp}2], for example:
+
+----
+$ babeltrace2 trace
+----
+
+----
+[20:55:29.539931489] (+?.?????????) my_event: { number = 0 }
+[20:55:29.539932347] (+0.000000858) my_event: { number = 1 }
+[20:55:29.539932698] (+0.000000351) my_event: { number = 2 }
+[20:55:29.539932985] (+0.000000287) my_event: { number = 3 }
+[20:55:29.539933379] (+0.000000394) my_event: { number = 4 }
+[20:55:29.539933684] (+0.000000305) my_event: { number = 5 }
+...
+[20:55:29.539965071] (+0.000000277) my_event: { number = 44 }
+[20:55:29.539965356] (+0.000000285) my_event: { number = 45 }
+[20:55:29.539965622] (+0.000000266) my_event: { number = 46 }
+[20:55:29.539965903] (+0.000000281) my_event: { number = 47 }
+[20:55:29.539966181] (+0.000000278) my_event: { number = 48 }
+[20:55:29.539966518] (+0.000000337) my_event: { number = 49 }
+----
