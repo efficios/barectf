@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Philippe Proulx <pproulx@efficios.com>
+# Copyright (c) 2016-2020 Philippe Proulx <pproulx@efficios.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,141 +20,111 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-version: '2.2'
-options:
-  gen-prefix-def: true
-  gen-default-stream-def: true
-metadata:
-  $include:
-    - stdint.yaml
-    - stdfloat.yaml
-    - stdmisc.yaml
-    - lttng-ust-log-levels.yaml
-  type-aliases:
-    clock-int:
-      $inherit: uint64
-      property-mappings:
-        - type: clock
-          name: default
-          property: value
-    state:
-      class: enum
-      value-type: uint8
-      members:
-        - NEW
-        - TERMINATED
-        - READY
-        - RUNNING
-        - WAITING
-  clocks:
-    default:
-      freq: 1000000000
-      offset:
-        seconds: 1434072888
-      $return-ctype: uint64_t
-  trace:
-    $include: trace-basic.yaml
-    byte-order: le
-  streams:
-    default:
-      $default: true
-      packet-context-type:
-        class: struct
-        fields:
-          timestamp_begin: clock-int
-          timestamp_end: clock-int
-          packet_size: uint32
-          content_size: uint32
-          events_discarded: uint32
-      event-header-type:
-        class: struct
-        fields:
-          timestamp: clock-int
-          id: uint16
-      events:
-        simple_uint32:
-          log-level: CRIT
-          payload-type:
-            class: struct
-            fields:
-              value: uint32
-        simple_int16:
-          payload-type:
-            class: struct
-            fields:
-              value: int16
-        simple_float:
-          payload-type:
-            class: struct
-            fields:
-              value: float
-        simple_string:
-          log-level: WARNING
-          payload-type:
-            class: struct
-            fields:
-              value:
-                class: string
-        simple_enum:
-          payload-type:
-            class: struct
-            fields:
-              value: state
-        context_no_payload:
-          context-type:
-            class: struct
-            fields:
-              a: uint32
-              b: string
-        no_context_no_payload: {}
-        a_few_fields:
-          payload-type:
-            class: struct
-            fields:
-              int32: int32
-              uint16: uint16
-              dbl: double
-              str:
-                class: string
-              state: state
-        bit_packed_integers:
-          log-level: 513
-          payload-type:
-            class: struct
-            min-align: 8
-            fields:
-              uint1:
-                $inherit: uint8
-                size: 1
-                align: 1
-              int1:
-                $inherit: int8
-                size: 1
-                align: 1
-              uint2:
-                $inherit: uint8
-                size: 2
-                align: 1
-              int3:
-                $inherit: int8
-                size: 3
-                align: 1
-              uint4:
-                $inherit: uint8
-                size: 4
-                align: 1
-              int5:
-                $inherit: int8
-                size: 5
-                align: 1
-              uint6:
-                $inherit: uint8
-                size: 6
-                align: 1
-              int7:
-                $inherit: int8
-                size: 7
-                align: 1
-              uint8:
-                $inherit: uint8
-                align: 1
+--- !<tag:barectf.org,2020/3/config>
+target-byte-order: little-endian
+trace:
+  type:
+    $include:
+      - stdint.yaml
+      - stdreal.yaml
+      - stdmisc.yaml
+      - lttng-ust-log-levels.yaml
+    $field-type-aliases:
+      state:
+        class: unsigned-enumeration
+        size: 8
+        mappings:
+          NEW: [0]
+          TERMINATED: [1]
+          READY: [2]
+          RUNNING: [3]
+          WAITING: [4]
+    clock-types:
+      default:
+        $c-type: uint64_t
+    data-stream-types:
+      default:
+        $is-default: true
+        $default-clock-type-name: default
+        event-record-types:
+          simple_uint32:
+            log-level: CRIT
+            payload-field-type:
+              class: structure
+              members:
+                - value: uint32
+          simple_int16:
+            payload-field-type:
+              class: structure
+              members:
+                - value: int16
+          simple_float:
+            payload-field-type:
+              class: structure
+              members:
+                - value: float
+          simple_string:
+            log-level: WARNING
+            payload-field-type:
+              class: structure
+              members:
+                - value: string
+          simple_enum:
+            payload-field-type:
+              class: structure
+              members:
+                - value: state
+          context_no_payload:
+            specific-context-field-type:
+              class: structure
+              members:
+                - a: uint32
+                - b: string
+          no_context_no_payload: {}
+          a_few_fields:
+            payload-field-type:
+              class: structure
+              members:
+                - int32: int32
+                - uint16: uint16
+                - dbl: double
+                - str: string
+                - state: state
+          bit_packed_integers:
+            log-level: 513
+            payload-field-type:
+              class: structure
+              members:
+                - uint1:
+                    field-type:
+                      $inherit: bit-packed-uint8
+                      size: 1
+                - int1:
+                    field-type:
+                      $inherit: bit-packed-int8
+                      size: 1
+                - uint2:
+                    field-type:
+                      $inherit: bit-packed-uint8
+                      size: 2
+                - int3:
+                    field-type:
+                      $inherit: bit-packed-int8
+                      size: 3
+                - uint4:
+                    field-type:
+                      $inherit: bit-packed-uint8
+                      size: 4
+                - int5:
+                    field-type:
+                      $inherit: bit-packed-int8
+                      size: 5
+                - uint6:
+                    field-type:
+                      $inherit: bit-packed-uint8
+                      size: 6
+                - int7:
+                    field-type:
+                      $inherit: bit-packed-int8
+                      size: 7
+                - uint8: bit-packed-uint8
