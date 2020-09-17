@@ -1,0 +1,50 @@
+// Render with Asciidoctor
+
+= Linux FS simple example
+Philippe Proulx
+16 September 2020
+:toc: left
+
+This simple example shows how to use the barectf
+link:../../../platforms/linux-fs[Linux FS platform].
+
+== Build
+
+Make sure barectf is installed.
+
+Build this example:
+
+----
+$ make
+----
+
+== Run
+
+Run this example:
+
+----
+$ ./linux-fs-simple
+----
+
+The complete CTF trace is the `ctf` directory.
+
+[NOTE]
+====
+You can run the example with arguments; they will be recorded as string
+fields in the event records of the `ctf/stream` data stream.
+
+For example:
+
+----
+$ ./linux-fs-simple dolore excepteur eiusmod commodo incididunt
+----
+====
+
+== Read
+
+Read the resulting trace with
+https://babeltrace.org/[Babeltrace{nbsp}2]:
+
+----
+$ babeltrace2 ctf
+----
