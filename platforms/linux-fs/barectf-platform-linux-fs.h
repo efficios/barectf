@@ -29,12 +29,12 @@
  */
 
 #include <stdint.h>
-#include <barectf.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+struct barectf_default_ctx;
 struct barectf_platform_linux_fs_ctx;
 
 struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(

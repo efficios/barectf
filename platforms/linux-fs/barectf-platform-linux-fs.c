@@ -30,10 +30,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
-#include <barectf.h>
 #include <time.h>
 
 #include "barectf-platform-linux-fs.h"
+#include "barectf.h"
 
 #ifdef __cplusplus
 # define TO_VOID_PTR(_value)		static_cast<void *>(_value)

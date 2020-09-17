@@ -26,8 +26,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
-#include <barectf-platform-linux-fs.h>
-#include <barectf.h>
+
+#include "barectf-platform-linux-fs.h"
+#include "barectf.h"
 
 enum state_t {
 	NEW,
