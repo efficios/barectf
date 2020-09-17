@@ -21,19 +21,23 @@
 # THE SOFTWARE.
 
 BARECTF ?= barectf
+ARCH = arm-none-eabi
+
 RM = rm -rf
 MKDIR = mkdir -p
+CC = $(ARCH)-gcc
 
-PLATFORM_DIR = ../../../platforms/linux-fs
-EXTRA_DIR = ../../../extra
-CFLAGS = -O2 -Wall -pedantic -I$(PLATFORM_DIR) -I$(EXTRA_DIR) -I.
+VERSION = qemu-arm-uart
+CPU=arm926ej-s
+EXTRA_DIR = ../../extra
+CFLAGS = -DWITH_QEMU_ARM_UART=1 -ffunction-sections -mcpu=$(CPU) -O2 -Wall -pedantic -I$(EXTRA_DIR) -I.
+LDFLAGS= -T barectf-platform-$(VERSION).ld -lc -lnosys
 
-VERSION = linux-fs
 TARGET = barectf-tracepoint-barectf-$(VERSION)
-OBJS = $(TARGET).o barectf-$(VERSION).o barectf-platform-linux-fs.o
+OBJS = $(TARGET).o barectf-$(VERSION).o barectf-platform-$(VERSION).o
 TRACEDIR = ctf-$(VERSION)
 
-.PHONY: all clean
+.PHONY: all clean sim
 
 all: $(TARGET)
 
@@ -41,7 +45,7 @@ $(TRACEDIR):
 	$(MKDIR) $@
 
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 $(TRACEDIR)/metadata barectf-bitfield.h barectf.h barectf.c: config.yaml $(TRACEDIR)
 	$(BARECTF) $< -m $(TRACEDIR)
@@ -49,7 +53,7 @@ $(TRACEDIR)/metadata barectf-bitfield.h barectf.h barectf.c: config.yaml $(TRACE
 barectf-$(VERSION).o: barectf.c
 	$(CC) -o $@ $(CFLAGS) -c $<
 
-barectf-platform-linux-fs.o: $(PLATFORM_DIR)/barectf-platform-linux-fs.c
+barectf-platform-$(VERSION).o: barectf-platform-$(VERSION).c
 	$(CC) $(CFLAGS) -c $<
 
 $(TARGET).o: barectf-tracepoint.c barectf-tracepoint-$(VERSION).h barectf.h barectf-bitfield.h
@@ -58,3 +62,6 @@ $(TARGET).o: barectf-tracepoint.c barectf-tracepoint-$(VERSION).h barectf.h bare
 clean:
 	$(RM) $(TARGET) $(OBJS) $(TRACEDIR)
 	$(RM) barectf.h barectf-bitfield.h barectf.c
+
+sim: $(TARGET)
+	./barectf-tracepoint-barectf-qemu-arm-uart.sh
