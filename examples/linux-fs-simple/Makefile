@@ -30,7 +30,7 @@ CFLAGS = -O2 -Wall -pedantic -I$(PLATFORM_DIR) -I.
 TARGET = linux-fs-simple
 OBJS = $(TARGET).o barectf.o barectf-platform-linux-fs.o
 
-.PHONY: all view
+.PHONY: all
 
 all: $(TARGET)
 
