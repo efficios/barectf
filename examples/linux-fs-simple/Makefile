@@ -27,6 +27,7 @@ MKDIR = mkdir
 PLATFORM_DIR = ../../platforms/linux-fs
 CFLAGS = -O2 -Wall -pedantic -I$(PLATFORM_DIR) -I.
 
+TRACE_DIR = trace
 TARGET = linux-fs-simple
 OBJS = $(TARGET).o barectf.o barectf-platform-linux-fs.o
 
@@ -34,14 +35,14 @@ OBJS = $(TARGET).o barectf.o barectf-platform-linux-fs.o
 
 all: $(TARGET)
 
-ctf:
-	$(MKDIR) ctf
+$(TRACE_DIR):
+	$(MKDIR) $(TRACE_DIR)
 
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $^
 
-ctf/metadata barectf-bitfield.h barectf.h barectf.c: config.yaml ctf
-	$(BARECTF) $< -m ctf
+$(TRACE_DIR)/metadata barectf-bitfield.h barectf.h barectf.c: config.yaml $(TRACE_DIR)
+	$(BARECTF) $< -m $(TRACE_DIR)
 
 barectf.o: barectf.c
 	$(CC) $(CFLAGS) -ansi -c $<
@@ -53,5 +54,5 @@ $(TARGET).o: $(TARGET).c barectf.h barectf-bitfield.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	$(RM) $(TARGET) $(OBJS) ctf
+	$(RM) $(TARGET) $(OBJS) $(TRACE_DIR)
 	$(RM) barectf.h barectf-bitfield.h barectf.c

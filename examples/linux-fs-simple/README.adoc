@@ -6,7 +6,7 @@ Philippe Proulx
 :toc: left
 
 This simple example shows how to use the barectf
-link:../../../platforms/linux-fs[Linux FS platform].
+link:../../platforms/linux-fs[Linux FS platform].
 
 == Build
 
@@ -26,12 +26,12 @@ Run this example:
 $ ./linux-fs-simple
 ----
 
-The complete CTF trace is the `ctf` directory.
+The complete CTF trace is the `trace` directory.
 
 [NOTE]
 ====
 You can run the example with arguments; they will be recorded as string
-fields in the event records of the `ctf/stream` data stream.
+fields in the event records of the `trace/stream` data stream.
 
 For example:
 
@@ -46,5 +46,5 @@ Read the resulting trace with
 https://babeltrace.org/[Babeltrace{nbsp}2]:
 
 ----
-$ babeltrace2 ctf
+$ babeltrace2 trace
 ----
