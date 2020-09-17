@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 Philippe Proulx <pproulx@efficios.com>
+ * Copyright (c) 2016-2020 Philippe Proulx <pproulx@efficios.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,13 +38,13 @@ enum state_t {
 	WAITING,
 };
 
-static void trace_stuff(struct barectf_default_ctx *ctx, int argc,
-			char *argv[])
+static void trace_stuff(struct barectf_default_ctx * const ctx, const int argc,
+	const char * const argv[])
 {
 	int i;
 	const char *str;
 
-	/* record 40000 events */
+	/* Record 40,000 events */
 	for (i = 0; i < 5000; ++i) {
 		barectf_trace_simple_uint32(ctx, i * 1500);
 		barectf_trace_simple_int16(ctx, -i * 2);
@@ -59,34 +59,36 @@ static void trace_stuff(struct barectf_default_ctx *ctx, int argc,
 		barectf_trace_simple_string(ctx, str);
 		barectf_trace_context_no_payload(ctx, i, "ctx");
 		barectf_trace_simple_enum(ctx, RUNNING);
-		barectf_trace_a_few_fields(ctx, -1, 301, -3.14159,
-						     str, NEW);
-		barectf_trace_bit_packed_integers(ctx, 1, -1, 3,
-							    -2, 2, 7, 23,
-							    -55, 232);
+		barectf_trace_a_few_fields(ctx, -1, 301, -3.14159, str, NEW);
+		barectf_trace_bit_packed_integers(ctx, 1, -1, 3, -2, 2, 7, 23,
+			-55, 232);
 		barectf_trace_no_context_no_payload(ctx);
 		barectf_trace_simple_enum(ctx, TERMINATED);
 	}
 }
 
-int main(int argc, char *argv[])
+int main(const int argc, const char * const argv[])
 {
 	struct barectf_platform_linux_fs_ctx *platform_ctx;
+	int exit_status = 0;
 
-	/* initialize platform */
+	/* Initialize platform */
 	platform_ctx = barectf_platform_linux_fs_init(512, "ctf", 1, 2, 7);
 
 	if (!platform_ctx) {
-		fprintf(stderr, "Error: could not initialize platform\n");
-		return 1;
+		fprintf(stderr,
+			"Error: failed to initialize Linux FS platform.\n");
+		exit_status = 1;
+		goto end;
 	}
 
-	/* trace stuff (will create/write packets as it runs) */
+	/* Trace stuff (will create/write packets as it executes) */
 	trace_stuff(barectf_platform_linux_fs_get_barectf_ctx(platform_ctx),
 		argc, argv);
 
-	/* finalize platform */
+	/* Finalize platform */
 	barectf_platform_linux_fs_fini(platform_ctx);
 
-	return 0;
+end:
+	return exit_status;
 }
