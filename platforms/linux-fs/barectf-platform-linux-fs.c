@@ -1,6 +1,4 @@
 /*
- * barectf linux-fs platform
- *
  * Copyright (c) 2015 EfficiOS Inc. and Linux Foundation
  * Copyright (c) 2015-2020 Philippe Proulx <pproulx@efficios.com>
  *
