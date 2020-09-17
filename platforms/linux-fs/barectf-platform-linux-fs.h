@@ -35,39 +35,12 @@ extern "C" {
 
 struct barectf_platform_linux_fs_ctx;
 
-/**
- * Initializes the platform.
- *
- * @param buf_size			Packet size (bytes)
- * @param trace_dir			Trace directory
- * @param simulate_full_backend		1 to simulate a full back-end sometimes
- * @param full_backend_rand_lt		Back-end will be "full" when a random
- *					value is lower than this parameter
- *					if \p simulate_full_backend is 1
- * @param full_backend_rand_max		Maximum random value for full back-end
- *					simulation when \p simulate_full_backend
- *					is 1
- * @returns				Platform context
- */
 struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(
 	unsigned int buf_size, const char *trace_dir, int simulate_full_backend,
 	unsigned int full_backend_rand_max, unsigned int full_backend_rand_lt);
 
-/**
- * Finalizes the platform.
- *
- * @param ctx	Platform context
- */
 void barectf_platform_linux_fs_fini(struct barectf_platform_linux_fs_ctx *ctx);
 
-/**
- * Returns the barectf stream-specific context of a given platform context.
- *
- * This context is what barectf tracing functions need.
- *
- * @param ctx	Platform context
- * @returns	barectf stream-specific context
- */
 struct barectf_default_ctx *barectf_platform_linux_fs_get_barectf_ctx(
 	struct barectf_platform_linux_fs_ctx *ctx);
 
