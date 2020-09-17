@@ -44,10 +44,16 @@ extern "C" {
 #endif
 
 {% if header_opts.identifier_prefix_definition %}
+/* Backward compatibility */
 #define _BARECTF_PREFIX {{ prefix }}
+
+#define _BARECTF_IDENTIFIER_PREFIX {{ prefix }}
 {% endif %}
 {% if def_dst and header_opts.default_data_stream_type_name_definition %}
+/* Backward compatibility */
 #define _BARECTF_DEFAULT_STREAM {{ def_dst.name }}
+
+#define _BARECTF_DEFAULT_DATA_STREAM_TYPE_NAME {{ def_dst.name }}
 {% endif %}
 {% if def_dst %}
 
