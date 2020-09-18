@@ -25,7 +25,7 @@
 --- !<tag:barectf.org,2020/3/config>
 trace:
   type:
-    target-byte-order: little-endian
+    native-byte-order: little-endian
     $include:
       - stdint.yaml
       - stdreal.yaml

@@ -33,7 +33,7 @@
 	{{ incr_at }};
 }
 {%- else %}
-	{% set bo = 'le' if cfg.trace.type.target_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN else 'be' %}
+	{% set bo = 'le' if cfg.trace.type.native_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN else 'be' %}
 	{% set c_type_non_const = c_type | replace('const ', '') %}
 	{% set offset_in_byte = 'ctx->at % 8' if op.offset_in_byte == none else op.offset_in_byte %}
 bt_bitfield_write_{{ bo }}(&ctx->buf[_BITS_TO_BYTES(ctx->at)], {{ offset_in_byte }}, {{ op.ft.size }},

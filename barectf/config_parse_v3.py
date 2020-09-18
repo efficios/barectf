@@ -652,7 +652,7 @@ class _Parser(barectf_config_parse_common._Parser):
                 dsts.add(self._create_dst(dst_name, dst_node))
 
             # create trace type
-            return barectf_config.TraceType(self._target_byte_order, dsts, trace_type_uuid,
+            return barectf_config.TraceType(self._native_byte_order, dsts, trace_type_uuid,
                                             features)
         except _ConfigurationParseError as exc:
             _append_error_ctx(exc, 'Trace type')
@@ -1090,7 +1090,7 @@ class _Parser(barectf_config_parse_common._Parser):
     #
     # 2. Chooses a specific `class` property value.
     #
-    # 3. Chooses a specific `byte-order`/`target-byte-order` property
+    # 3. Chooses a specific `byte-order`/`native-byte-order` property
     #    value.
     #
     # 4. Chooses a specific `preferred-display-base` property value.
@@ -1107,7 +1107,7 @@ class _Parser(barectf_config_parse_common._Parser):
                 parent_node[key] = 'little-endian'
 
         trace_node = self.config_node['trace']
-        normalize_byte_order_prop(self._trace_type_node, 'target-byte-order')
+        normalize_byte_order_prop(self._trace_type_node, 'native-byte-order')
 
         for parent_node, key in self._trace_type_props():
             node = parent_node[key]
@@ -1150,10 +1150,10 @@ class _Parser(barectf_config_parse_common._Parser):
             if node is None:
                 del trace_node[prop_name]
 
-    # Sets the parser's target byte order.
-    def _set_target_byte_order(self):
-        self._target_byte_order_node = self._trace_type_node['target-byte-order']
-        self._target_byte_order = self._byte_order_from_node(self._target_byte_order_node)
+    # Sets the parser's native byte order.
+    def _set_native_byte_order(self):
+        self._native_byte_order_node = self._trace_type_node['native-byte-order']
+        self._native_byte_order = self._byte_order_from_node(self._native_byte_order_node)
 
     # Processes the inclusions of the event record type node
     # `ert_node`, returning the effective node.
@@ -1325,8 +1325,8 @@ class _Parser(barectf_config_parse_common._Parser):
         # doesn't need to check for `None` nodes or enumerator aliases.
         self._normalize_props()
 
-        # Set the target byte order.
-        self._set_target_byte_order()
+        # Set the native byte order.
+        self._set_native_byte_order()
 
         # Create a barectf configuration object from the configuration
         # node.

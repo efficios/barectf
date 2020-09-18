@@ -28,7 +28,7 @@ trace:
     $include:
       - stdint.yaml
       - stdmisc.yaml
-    target-byte-order: le
+    native-byte-order: le
     data-stream-types:
       default:
         $is-default: true
