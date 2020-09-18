@@ -30,4 +30,4 @@ metadata:
         my_event:
           payload-type:
             class: struct
-            min-align: yes
+            min-align: true

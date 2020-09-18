@@ -44,7 +44,7 @@ trace:
         $c-type: uint64_t
     data-stream-types:
       default:
-        $is-default: yes
+        $is-default: true
         $default-clock-type-name: default
         event-record-types:
           my_event:
@@ -172,7 +172,7 @@ trace:
         $c-type: uint64_t
     data-stream-types:
       default:
-        $is-default: yes
+        $is-default: true
         $default-clock-type-name: default
         event-record-types:
           my_event:

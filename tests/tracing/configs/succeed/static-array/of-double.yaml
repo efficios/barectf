@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+%YAML 1.2
+
 --- !<tag:barectf.org,2020/3/config>
 target-byte-order: le
 trace:
@@ -28,7 +30,7 @@ trace:
       - stdreal.yaml
     data-stream-types:
       default:
-        $is-default: yes
+        $is-default: true
         event-record-types:
           ev:
             payload-field-type:
