@@ -98,7 +98,7 @@ do {									\
  * Also, consecutive bitfields are placed from higher to lower bits.
  */
 
-{% if cfg.target_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN %}
+{% if cfg.trace.type.target_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN %}
 /* Target byte order: little-endian */
 
 #define _bt_bitfield_write_le(_ptr, type, _start, _length, _vtype, _v)	\

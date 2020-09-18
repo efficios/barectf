@@ -23,9 +23,9 @@
 %YAML 1.2
 
 --- !<tag:barectf.org,2020/3/config>
-target-byte-order: little-endian
 trace:
   type:
+    target-byte-order: little-endian
     $include:
       - stdint.yaml
       - stdreal.yaml

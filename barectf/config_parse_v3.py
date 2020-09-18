@@ -652,7 +652,8 @@ class _Parser(barectf_config_parse_common._Parser):
                 dsts.add(self._create_dst(dst_name, dst_node))
 
             # create trace type
-            return barectf_config.TraceType(dsts, trace_type_uuid, features)
+            return barectf_config.TraceType(self._target_byte_order, dsts, trace_type_uuid,
+                                            features)
         except _ConfigurationParseError as exc:
             _append_error_ctx(exc, 'Trace type')
 
@@ -750,7 +751,7 @@ class _Parser(barectf_config_parse_common._Parser):
         opts = barectf_config.ConfigurationOptions(cg_opts)
 
         # create configuration
-        self._config = barectf_config.Configuration(trace, self._target_byte_order, opts)
+        self._config = barectf_config.Configuration(trace, opts)
 
     # Expands the field type aliases found in the trace type node.
     #
@@ -1106,7 +1107,7 @@ class _Parser(barectf_config_parse_common._Parser):
                 parent_node[key] = 'little-endian'
 
         trace_node = self.config_node['trace']
-        normalize_byte_order_prop(self.config_node, 'target-byte-order')
+        normalize_byte_order_prop(self._trace_type_node, 'target-byte-order')
 
         for parent_node, key in self._trace_type_props():
             node = parent_node[key]
@@ -1151,7 +1152,7 @@ class _Parser(barectf_config_parse_common._Parser):
 
     # Sets the parser's target byte order.
     def _set_target_byte_order(self):
-        self._target_byte_order_node = self.config_node['target-byte-order']
+        self._target_byte_order_node = self._trace_type_node['target-byte-order']
         self._target_byte_order = self._byte_order_from_node(self._target_byte_order_node)
 
     # Processes the inclusions of the event record type node

@@ -34,11 +34,11 @@ C{nbsp}type:::: `uint64_t`
 [source,yaml]
 ----
 --- !<tag:barectf.org,2020/3/config>
-target-byte-order: le
 trace:
   type:
     $include:
       - stdint.yaml
+    target-byte-order: le
     clock-types:
       default:
         $c-type: uint64_t
@@ -162,11 +162,11 @@ The barectf context to pass to your tracing functions
 [source,yaml]
 ----
 --- !<tag:barectf.org,2020/3/config>
-target-byte-order: le
 trace:
   type:
     $include:
       - stdint.yaml
+    target-byte-order: le
     clock-types:
       default:
         $c-type: uint64_t

@@ -91,6 +91,8 @@ definitions:
     title: Trace type object
     type: object
     properties:
+      target-byte-order:
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/byte-order-prop
       uuid:
         $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-trace-type-uuid-prop
       $features:
@@ -155,6 +157,7 @@ definitions:
         additionalProperties: false
         minProperties: 1
     required:
+      - target-byte-order
       - data-stream-types
     additionalProperties: false
   clock-type:
@@ -295,11 +298,8 @@ properties:
             additionalProperties: false
         additionalProperties: false
     additionalProperties: false
-  target-byte-order:
-    $ref: https://barectf.org/schemas/config/common/common.json#/definitions/byte-order-prop
   trace:
     $ref: '#/definitions/trace'
 required:
   - trace
-  - target-byte-order
 additionalProperties: false

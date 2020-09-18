@@ -23,12 +23,12 @@
 %YAML 1.2
 
 --- !<tag:barectf.org,2020/3/config>
-target-byte-order: le
 trace:
   type:
     $include:
       - stdint.yaml
       - stdmisc.yaml
+    target-byte-order: le
     data-stream-types:
       default:
         $is-default: true

@@ -696,8 +696,9 @@ class TraceTypeFeatures:
 
 
 class TraceType:
-    def __init__(self, data_stream_types: Set[DataStreamType], uuid: _OptUuid = None,
-                 features: Optional[TraceTypeFeatures] = None):
+    def __init__(self, target_byte_order: ByteOrder, data_stream_types: Set[DataStreamType],
+                 uuid: _OptUuid = None, features: Optional[TraceTypeFeatures] = None):
+        self._target_byte_order = target_byte_order
         self._data_stream_types = frozenset(data_stream_types)
 
         # assign unique IDs
@@ -731,6 +732,10 @@ class TraceType:
         add_member_if_exists('uuid', self._features.uuid_field_type)
         add_member_if_exists('stream_id', self._features.data_stream_type_id_field_type)
         self._pkt_header_ft = StructureFieldType(8, members)
+
+    @property
+    def target_byte_order(self) -> ByteOrder:
+        return self._target_byte_order
 
     @property
     def uuid(self) -> _OptUuid:
@@ -896,11 +901,9 @@ class ConfigurationOptions:
 
 
 class Configuration:
-    def __init__(self, trace: Trace, target_byte_order: ByteOrder,
-                 options: Optional[ConfigurationOptions] = None):
+    def __init__(self, trace: Trace, options: Optional[ConfigurationOptions] = None):
         self._trace = trace
         self._options = ConfigurationOptions()
-        self._target_byte_order = target_byte_order
 
         if options is not None:
             self._options = options
@@ -919,10 +922,6 @@ class Configuration:
     @property
     def trace(self) -> Trace:
         return self._trace
-
-    @property
-    def target_byte_order(self):
-        return self._target_byte_order
 
     @property
     def options(self) -> ConfigurationOptions:
