@@ -332,29 +332,29 @@ class _Parser(config_parse_common._Parser):
 
             v3_pkt_total_size_ft_node = self._conv_ft_node(v2_pkt_ctx_ft_fields_node['packet_size'])
             v3_pkt_content_size_ft_node = self._conv_ft_node(v2_pkt_ctx_ft_fields_node['content_size'])
-            v3_pkt_beg_time_ft_node = self._conv_ft_node_if_exists(v2_pkt_ctx_ft_fields_node,
-                                                                   'timestamp_begin')
-            v3_pkt_end_time_ft_node = self._conv_ft_node_if_exists(v2_pkt_ctx_ft_fields_node,
-                                                                   'timestamp_end')
+            v3_pkt_beg_ts_ft_node = self._conv_ft_node_if_exists(v2_pkt_ctx_ft_fields_node,
+                                                                 'timestamp_begin')
+            v3_pkt_end_ts_ft_node = self._conv_ft_node_if_exists(v2_pkt_ctx_ft_fields_node,
+                                                                 'timestamp_end')
             v3_pkt_disc_er_counter_snap_ft_node = self._conv_ft_node_if_exists(v2_pkt_ctx_ft_fields_node,
                                                                                'events_discarded')
             v3_ert_id_ft_node = self._conv_ft_node_if_exists(v2_er_header_ft_fields_node, 'id')
-            v3_er_time_ft_node = self._conv_ft_node_if_exists(v2_er_header_ft_fields_node,
-                                                              'timestamp')
+            v3_er_ts_ft_node = self._conv_ft_node_if_exists(v2_er_header_ft_fields_node,
+                                                            'timestamp')
             v3_features_node: _MapNode = collections.OrderedDict()
             v3_pkt_node: _MapNode = collections.OrderedDict()
             v3_er_node: _MapNode = collections.OrderedDict()
             v3_pkt_node['total-size-field-type'] = v3_pkt_total_size_ft_node
             v3_pkt_node['content-size-field-type'] = v3_pkt_content_size_ft_node
-            self._set_v3_feature_ft_if_exists(v3_pkt_node, 'beginning-time-field-type',
-                                              v3_pkt_beg_time_ft_node)
-            self._set_v3_feature_ft_if_exists(v3_pkt_node, 'end-time-field-type',
-                                              v3_pkt_end_time_ft_node)
+            self._set_v3_feature_ft_if_exists(v3_pkt_node, 'beginning-timestamp-field-type',
+                                              v3_pkt_beg_ts_ft_node)
+            self._set_v3_feature_ft_if_exists(v3_pkt_node, 'end-timestamp-field-type',
+                                              v3_pkt_end_ts_ft_node)
             self._set_v3_feature_ft_if_exists(v3_pkt_node,
                                               'discarded-event-records-counter-snapshot-field-type',
                                               v3_pkt_disc_er_counter_snap_ft_node)
             self._set_v3_feature_ft_if_exists(v3_er_node, 'type-id-field-type', v3_ert_id_ft_node)
-            self._set_v3_feature_ft_if_exists(v3_er_node, 'time-field-type', v3_er_time_ft_node)
+            self._set_v3_feature_ft_if_exists(v3_er_node, 'timestamp-field-type', v3_er_ts_ft_node)
             v3_features_node['packet'] = v3_pkt_node
             v3_features_node['event-record'] = v3_er_node
             return v3_features_node

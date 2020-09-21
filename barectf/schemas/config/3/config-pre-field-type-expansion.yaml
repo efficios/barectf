@@ -126,9 +126,9 @@ properties:
                                 $ref: '#/definitions/partial-ft'
                               content-size-field-type:
                                 $ref: '#/definitions/partial-ft'
-                              beginning-time-field-type:
+                              beginning-timestamp-field-type:
                                 $ref: '#/definitions/partial-ft'
-                              end-time-field-type:
+                              end-timestamp-field-type:
                                 $ref: '#/definitions/partial-ft'
                               discarded-event-records-counter-snapshot-field-type:
                                 $ref: '#/definitions/partial-ft'
@@ -141,7 +141,7 @@ properties:
                             properties:
                               type-id-field-type:
                                 $ref: '#/definitions/partial-ft'
-                              time-field-type:
+                              timestamp-field-type:
                                 $ref: '#/definitions/partial-ft'
                           else:
                             type: 'null'

@@ -433,25 +433,25 @@ class _Parser(barectf_config_parse_common._Parser):
             # create feature field types
             pkt_total_size_ft = barectf_config.DEFAULT_FIELD_TYPE
             pkt_content_size_ft = barectf_config.DEFAULT_FIELD_TYPE
-            pkt_beginning_time_ft = None
-            pkt_end_time_ft = None
+            pkt_beginning_ts_ft = None
+            pkt_end_ts_ft = None
             pkt_discarded_er_counter_snap_ft = None
             ert_id_ft = barectf_config.DEFAULT_FIELD_TYPE
-            ert_time_ft = None
+            ert_ts_ft = None
 
             if def_clk_type is not None:
                 # The data stream type has a default clock type.
-                # Initialize the packet beginning time, packet end time,
-                # and event record time field types to default field
-                # types.
+                # Initialize the packet beginning timestamp, packet end
+                # timestamp, and event record timestamp field types to
+                # default field types.
                 #
                 # This means your data stream type node only needs a
                 # default clock type name to enable those features
                 # automatically. Those features do not add any parameter
                 # to the event tracing functions.
-                pkt_beginning_time_ft = barectf_config.DEFAULT_FIELD_TYPE
-                pkt_end_time_ft = barectf_config.DEFAULT_FIELD_TYPE
-                ert_time_ft = barectf_config.DEFAULT_FIELD_TYPE
+                pkt_beginning_ts_ft = barectf_config.DEFAULT_FIELD_TYPE
+                pkt_end_ts_ft = barectf_config.DEFAULT_FIELD_TYPE
+                ert_ts_ft = barectf_config.DEFAULT_FIELD_TYPE
 
             features_node = dst_node.get('$features')
 
@@ -464,10 +464,11 @@ class _Parser(barectf_config_parse_common._Parser):
                                                          pkt_total_size_ft)
                     pkt_content_size_ft = self._feature_ft(pkt_node, 'content-size-field-type',
                                                            pkt_content_size_ft)
-                    pkt_beginning_time_ft = self._feature_ft(pkt_node, 'beginning-time-field-type',
-                                                             pkt_beginning_time_ft)
-                    pkt_end_time_ft = self._feature_ft(pkt_node, 'end-time-field-type',
-                                                       pkt_end_time_ft)
+                    pkt_beginning_ts_ft = self._feature_ft(pkt_node,
+                                                           'beginning-timestamp-field-type',
+                                                           pkt_beginning_ts_ft)
+                    pkt_end_ts_ft = self._feature_ft(pkt_node, 'end-timestamp-field-type',
+                                                     pkt_end_ts_ft)
                     pkt_discarded_er_counter_snap_ft = self._feature_ft(pkt_node,
                                                                    'discarded-event-records-counter-snapshot-field-type',
                                                                    pkt_discarded_er_counter_snap_ft)
@@ -478,7 +479,7 @@ class _Parser(barectf_config_parse_common._Parser):
 
                 if er_node is not None:
                     ert_id_ft = self._feature_ft(er_node, type_id_ft_prop_name, ert_id_ft)
-                    ert_time_ft = self._feature_ft(er_node, 'time-field-type', ert_time_ft)
+                    ert_ts_ft = self._feature_ft(er_node, 'timestamp-field-type', ert_ts_ft)
 
             erts_prop_name = 'event-record-types'
             ert_count = len(dst_node[erts_prop_name])
@@ -500,10 +501,10 @@ class _Parser(barectf_config_parse_common._Parser):
 
             pkt_features = barectf_config.DataStreamTypePacketFeatures(pkt_total_size_ft,
                                                                        pkt_content_size_ft,
-                                                                       pkt_beginning_time_ft,
-                                                                       pkt_end_time_ft,
+                                                                       pkt_beginning_ts_ft,
+                                                                       pkt_end_ts_ft,
                                                                        pkt_discarded_er_counter_snap_ft)
-            er_features = barectf_config.DataStreamTypeEventRecordFeatures(ert_id_ft, ert_time_ft)
+            er_features = barectf_config.DataStreamTypeEventRecordFeatures(ert_id_ft, ert_ts_ft)
             features = barectf_config.DataStreamTypeFeatures(pkt_features, er_features)
 
             # create packet context (structure) field type extra members
@@ -536,7 +537,7 @@ class _Parser(barectf_config_parse_common._Parser):
             if er_features.type_id_field_type is not None:
                 er_header_common_ctx_member_count = Count(er_header_common_ctx_member_count + 1)
 
-            if er_features.time_field_type is not None:
+            if er_features.timestamp_field_type is not None:
                 er_header_common_ctx_member_count = Count(er_header_common_ctx_member_count + 1)
 
             er_common_ctx_ft_prop_name = 'event-record-common-context-field-type'
@@ -806,8 +807,8 @@ class _Parser(barectf_config_parse_common._Parser):
                             try:
                                 resolve_ft_alias_from(pkt_node, 'total-size-field-type')
                                 resolve_ft_alias_from(pkt_node, 'content-size-field-type')
-                                resolve_ft_alias_from(pkt_node, 'beginning-time-field-type')
-                                resolve_ft_alias_from(pkt_node, 'end-time-field-type')
+                                resolve_ft_alias_from(pkt_node, 'beginning-timestamp-field-type')
+                                resolve_ft_alias_from(pkt_node, 'end-timestamp-field-type')
                                 resolve_ft_alias_from(pkt_node,
                                                       'discarded-event-records-counter-snapshot-field-type')
                             except _ConfigurationParseError as exc:
@@ -819,7 +820,7 @@ class _Parser(barectf_config_parse_common._Parser):
                         if er_node is not None:
                             try:
                                 resolve_ft_alias_from(er_node, 'type-id-field-type')
-                                resolve_ft_alias_from(er_node, 'time-field-type')
+                                resolve_ft_alias_from(er_node, 'timestamp-field-type')
                             except _ConfigurationParseError as exc:
                                 _append_error_ctx(exc, f'`{er_prop_name}` property')
                     except _ConfigurationParseError as exc:
@@ -884,15 +885,16 @@ class _Parser(barectf_config_parse_common._Parser):
                 if pkt_node is not None:
                     apply_ft_inheritance(pkt_node, 'total-size-field-type')
                     apply_ft_inheritance(pkt_node, 'content-size-field-type')
-                    apply_ft_inheritance(pkt_node, 'beginning-time-field-type')
-                    apply_ft_inheritance(pkt_node, 'end-time-field-type')
-                    apply_ft_inheritance(pkt_node, 'discarded-event-records-counter-snapshot-field-type')
+                    apply_ft_inheritance(pkt_node, 'beginning-timestamp-field-type')
+                    apply_ft_inheritance(pkt_node, 'end-timestamp-field-type')
+                    apply_ft_inheritance(pkt_node,
+                                         'discarded-event-records-counter-snapshot-field-type')
 
                 er_node = features_node.get('event-record')
 
                 if er_node is not None:
                     apply_ft_inheritance(er_node, 'type-id-field-type')
-                    apply_ft_inheritance(er_node, 'time-field-type')
+                    apply_ft_inheritance(er_node, 'timestamp-field-type')
 
             pkt_ctx_ft_extra_members_node = dst_node.get('packet-context-field-type-extra-members')
 
@@ -972,8 +974,8 @@ class _Parser(barectf_config_parse_common._Parser):
                 if pkt_node is not None:
                     normalize_struct_ft_member_nodes(pkt_node, 'total-size-field-type')
                     normalize_struct_ft_member_nodes(pkt_node, 'content-size-field-type')
-                    normalize_struct_ft_member_nodes(pkt_node, 'beginning-time-field-type')
-                    normalize_struct_ft_member_nodes(pkt_node, 'end-time-field-type')
+                    normalize_struct_ft_member_nodes(pkt_node, 'beginning-timestamp-field-type')
+                    normalize_struct_ft_member_nodes(pkt_node, 'end-timestamp-field-type')
                     normalize_struct_ft_member_nodes(pkt_node,
                                                      'discarded-event-records-counter-snapshot-field-type')
 
@@ -981,7 +983,7 @@ class _Parser(barectf_config_parse_common._Parser):
 
                 if er_node is not None:
                     normalize_struct_ft_member_nodes(er_node, 'type-id-field-type')
-                    normalize_struct_ft_member_nodes(er_node, 'time-field-type')
+                    normalize_struct_ft_member_nodes(er_node, 'timestamp-field-type')
 
             pkt_ctx_ft_extra_members_node = dst_node.get('packet-context-field-type-extra-members')
 

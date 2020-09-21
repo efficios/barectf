@@ -466,7 +466,7 @@ static uint32_t _er_size_{{ dst.name }}_{{ ert.name }}(void * const vctx{{ (dst,
 	uint32_t er_size;
 
 		{% if def_clk_type %}
-	/* Save time */
+	/* Save timestamp */
 	sctx->cur_last_event_ts = ctx->cbs.{{ def_clk_type.name }}_clock_get_value(ctx->data);
 
 		{% endif %}

@@ -508,7 +508,7 @@ class _CodeGen:
         self._serialize_write_magic_statements_templ = self._create_template('serialize-write-magic-statements.j2')
         self._serialize_write_uuid_statements_templ = self._create_template('serialize-write-uuid-statements.j2')
         self._serialize_write_dst_id_statements_templ = self._create_template('serialize-write-dst-id-statements.j2')
-        self._serialize_write_time_statements_templ = self._create_template('serialize-write-time-statements.j2')
+        self._serialize_write_timestamp_statements_templ = self._create_template('serialize-write-timestamp-statements.j2')
         self._serialize_write_packet_size_statements_templ = self._create_template('serialize-write-packet-size-statements.j2')
         self._serialize_write_skip_save_statements_templ = self._create_template('serialize-write-skip-save-statements.j2')
         self._serialize_write_ert_id_statements_templ = self._create_template('serialize-write-ert-id-statements.j2')
@@ -720,7 +720,7 @@ class _CodeGen:
 
                 # packet context operation
                 spec_serialize_write_templates = {
-                    'timestamp_begin': self._serialize_write_time_statements_templ,
+                    'timestamp_begin': self._serialize_write_timestamp_statements_templ,
                     'packet_size': self._serialize_write_packet_size_statements_templ,
                     'timestamp_end': self._serialize_write_skip_save_statements_templ,
                     'events_discarded': self._serialize_write_skip_save_statements_templ,
@@ -735,7 +735,7 @@ class _CodeGen:
 
                 if dst._er_header_ft is not None:
                     spec_serialize_write_templates = {
-                        'timestamp': self._serialize_write_time_statements_templ,
+                        'timestamp': self._serialize_write_timestamp_statements_templ,
                         'id': self._serialize_write_ert_id_statements_templ,
                     }
                     er_header_op = builder.build_for_root_ft(dst._er_header_ft, _RootFtPrefixes.ERH,

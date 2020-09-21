@@ -440,8 +440,8 @@ _OptUIntFt = Optional[UnsignedIntegerFieldType]
 class DataStreamTypePacketFeatures:
     def __init__(self, total_size_field_type: _DefaultableUIntFt = DEFAULT_FIELD_TYPE,
                  content_size_field_type: _DefaultableUIntFt = DEFAULT_FIELD_TYPE,
-                 beginning_time_field_type: _OptDefaultableUIntFt = None,
-                 end_time_field_type: _OptDefaultableUIntFt = None,
+                 beginning_timestamp_field_type: _OptDefaultableUIntFt = None,
+                 end_timestamp_field_type: _OptDefaultableUIntFt = None,
                  discarded_event_records_snapshot_counter_field_type: _OptDefaultableUIntFt = None):
         def get_ft(user_ft: _OptDefaultableUIntFt) -> _OptUIntFt:
             if user_ft == DEFAULT_FIELD_TYPE:
@@ -451,8 +451,8 @@ class DataStreamTypePacketFeatures:
 
         self._total_size_field_type = get_ft(total_size_field_type)
         self._content_size_field_type = get_ft(content_size_field_type)
-        self._beginning_time_field_type = get_ft(beginning_time_field_type)
-        self._end_time_field_type = get_ft(end_time_field_type)
+        self._beginning_timestamp_field_type = get_ft(beginning_timestamp_field_type)
+        self._end_timestamp_field_type = get_ft(end_timestamp_field_type)
         self._discarded_event_records_snapshot_counter_field_type = get_ft(discarded_event_records_snapshot_counter_field_type)
 
     @property
@@ -464,12 +464,12 @@ class DataStreamTypePacketFeatures:
         return self._content_size_field_type
 
     @property
-    def beginning_time_field_type(self) -> _OptUIntFt:
-        return self._beginning_time_field_type
+    def beginning_timestamp_field_type(self) -> _OptUIntFt:
+        return self._beginning_timestamp_field_type
 
     @property
-    def end_time_field_type(self) -> _OptUIntFt:
-        return self._end_time_field_type
+    def end_timestamp_field_type(self) -> _OptUIntFt:
+        return self._end_timestamp_field_type
 
     @property
     def discarded_event_records_snapshot_counter_field_type(self) -> _OptUIntFt:
@@ -478,7 +478,7 @@ class DataStreamTypePacketFeatures:
 
 class DataStreamTypeEventRecordFeatures:
     def __init__(self, type_id_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE,
-                 time_field_type: _OptDefaultableUIntFt = None):
+                 timestamp_field_type: _OptDefaultableUIntFt = None):
         def get_ft(user_ft: _OptDefaultableUIntFt) -> _OptUIntFt:
             if user_ft == DEFAULT_FIELD_TYPE:
                 return UnsignedIntegerFieldType(64)
@@ -486,15 +486,15 @@ class DataStreamTypeEventRecordFeatures:
             return typing.cast(_OptUIntFt, user_ft)
 
         self._type_id_field_type = get_ft(type_id_field_type)
-        self._time_field_type = get_ft(time_field_type)
+        self._timestamp_field_type = get_ft(timestamp_field_type)
 
     @property
     def type_id_field_type(self) -> _OptUIntFt:
         return self._type_id_field_type
 
     @property
-    def time_field_type(self) -> _OptUIntFt:
-        return self._time_field_type
+    def timestamp_field_type(self) -> _OptUIntFt:
+        return self._timestamp_field_type
 
 
 class DataStreamTypeFeatures:
@@ -550,20 +550,20 @@ class DataStreamType(_UniqueByName):
             self._features = features
             return None
 
-        er_time_ft = None
-        pkt_beginning_time_ft = None
-        pkt_end_time_ft = None
+        er_ts_ft = None
+        pkt_beginning_ts_ft = None
+        pkt_end_ts_ft = None
 
         if self._default_clock_type is not None:
-            # Automatic time field types because the data stream type
-            # has a default clock type.
-            er_time_ft = DEFAULT_FIELD_TYPE
-            pkt_beginning_time_ft = DEFAULT_FIELD_TYPE
-            pkt_end_time_ft = DEFAULT_FIELD_TYPE
+            # Automatic timestamp field types because the data stream
+            # type has a default clock type.
+            er_ts_ft = DEFAULT_FIELD_TYPE
+            pkt_beginning_ts_ft = DEFAULT_FIELD_TYPE
+            pkt_end_ts_ft = DEFAULT_FIELD_TYPE
 
-        self._features = DataStreamTypeFeatures(DataStreamTypePacketFeatures(beginning_time_field_type=pkt_beginning_time_ft,
-                                                                             end_time_field_type=pkt_end_time_ft),
-                                                DataStreamTypeEventRecordFeatures(time_field_type=er_time_ft))
+        self._features = DataStreamTypeFeatures(DataStreamTypePacketFeatures(beginning_timestamp_field_type=pkt_beginning_ts_ft,
+                                                                             end_timestamp_field_type=pkt_end_ts_ft),
+                                                DataStreamTypeEventRecordFeatures(timestamp_field_type=er_ts_ft))
 
     def _set_ft_mapped_clk_type_name(self, ft: Optional[UnsignedIntegerFieldType]):
         if ft is None:
@@ -597,8 +597,8 @@ class DataStreamType(_UniqueByName):
         ])
 
         add_member_if_exists('timestamp_begin',
-                             self._features.packet_features.beginning_time_field_type, True)
-        add_member_if_exists('timestamp_end', self._features.packet_features.end_time_field_type,
+                             self._features.packet_features.beginning_timestamp_field_type, True)
+        add_member_if_exists('timestamp_end', self._features.packet_features.end_timestamp_field_type,
                              True)
         add_member_if_exists('events_discarded',
                              self._features.packet_features.discarded_event_records_snapshot_counter_field_type)
@@ -616,8 +616,8 @@ class DataStreamType(_UniqueByName):
         if self._features.event_record_features.type_id_field_type is not None:
             members['id'] = StructureFieldTypeMember(self._features.event_record_features.type_id_field_type)
 
-        if self._features.event_record_features.time_field_type is not None:
-            ft = self._features.event_record_features.time_field_type
+        if self._features.event_record_features.timestamp_field_type is not None:
+            ft = self._features.event_record_features.timestamp_field_type
             self._set_ft_mapped_clk_type_name(ft)
             members['timestamp'] = StructureFieldTypeMember(ft)
 
