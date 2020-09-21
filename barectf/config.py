@@ -442,7 +442,7 @@ class DataStreamTypePacketFeatures:
                  content_size_field_type: _DefaultableUIntFt = DEFAULT_FIELD_TYPE,
                  beginning_timestamp_field_type: _OptDefaultableUIntFt = None,
                  end_timestamp_field_type: _OptDefaultableUIntFt = None,
-                 discarded_event_records_snapshot_counter_field_type: _OptDefaultableUIntFt = None):
+                 discarded_event_records_snapshot_counter_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE):
         def get_ft(user_ft: _OptDefaultableUIntFt) -> _OptUIntFt:
             if user_ft == DEFAULT_FIELD_TYPE:
                 return UnsignedIntegerFieldType(64)

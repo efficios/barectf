@@ -435,7 +435,7 @@ class _Parser(barectf_config_parse_common._Parser):
             pkt_content_size_ft = barectf_config.DEFAULT_FIELD_TYPE
             pkt_beginning_ts_ft = None
             pkt_end_ts_ft = None
-            pkt_discarded_er_counter_snap_ft = None
+            pkt_disc_er_counter_snap_ft = barectf_config.DEFAULT_FIELD_TYPE
             ert_id_ft = barectf_config.DEFAULT_FIELD_TYPE
             ert_ts_ft = None
 
@@ -469,9 +469,9 @@ class _Parser(barectf_config_parse_common._Parser):
                                                            pkt_beginning_ts_ft)
                     pkt_end_ts_ft = self._feature_ft(pkt_node, 'end-timestamp-field-type',
                                                      pkt_end_ts_ft)
-                    pkt_discarded_er_counter_snap_ft = self._feature_ft(pkt_node,
+                    pkt_disc_er_counter_snap_ft = self._feature_ft(pkt_node,
                                                                    'discarded-event-records-counter-snapshot-field-type',
-                                                                   pkt_discarded_er_counter_snap_ft)
+                                                                   pkt_disc_er_counter_snap_ft)
 
                 # create event record feature field types
                 er_node = features_node.get('event-record')
@@ -503,7 +503,7 @@ class _Parser(barectf_config_parse_common._Parser):
                                                                        pkt_content_size_ft,
                                                                        pkt_beginning_ts_ft,
                                                                        pkt_end_ts_ft,
-                                                                       pkt_discarded_er_counter_snap_ft)
+                                                                       pkt_disc_er_counter_snap_ft)
             er_features = barectf_config.DataStreamTypeEventRecordFeatures(ert_id_ft, ert_ts_ft)
             features = barectf_config.DataStreamTypeFeatures(pkt_features, er_features)
 
