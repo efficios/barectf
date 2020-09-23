@@ -401,20 +401,20 @@ class _DsOps:
 class _RootFtPrefixes:
     PH = 'ph'
     PC = 'pc'
-    ERH = 'erh'
-    ERCC = 'ercc'
-    SC = 'sc'
-    P = 'p'
+    ERH = 'h'
+    ERCC = 'cc'
+    ERSC = 'sc'
+    ERP = 'p'
 
 
 # The human-readable names of the `_RootFtPrefixes` members.
 _ROOT_FT_PREFIX_NAMES = {
     _RootFtPrefixes.PH: 'packet header',
     _RootFtPrefixes.PC: 'packet context',
-    _RootFtPrefixes.ERH: 'event record header',
-    _RootFtPrefixes.ERCC: 'event record common context',
-    _RootFtPrefixes.SC: 'specific context',
-    _RootFtPrefixes.P: 'payload',
+    _RootFtPrefixes.ERH: 'header',
+    _RootFtPrefixes.ERCC: 'common context',
+    _RootFtPrefixes.ERSC: 'specific context',
+    _RootFtPrefixes.ERP: 'payload',
 }
 
 
@@ -671,11 +671,11 @@ class _CodeGen:
 
         if ert.specific_context_field_type is not None:
             parts.append(self._proto_params_str(ert.specific_context_field_type,
-                                                _RootFtPrefixes.SC, const_params,
+                                                _RootFtPrefixes.ERSC, const_params,
                                                 only_dyn=only_dyn))
 
         if ert.payload_field_type is not None:
-            parts.append(self._proto_params_str(ert.payload_field_type, _RootFtPrefixes.P,
+            parts.append(self._proto_params_str(ert.payload_field_type, _RootFtPrefixes.ERP,
                                                 const_params, only_dyn=only_dyn))
 
         return ''.join(parts)
@@ -759,14 +759,14 @@ class _CodeGen:
 
                     if ert.specific_context_field_type is not None:
                         spec_ctx_op = ev_builder.build_for_root_ft(ert.specific_context_field_type,
-                                                                   _RootFtPrefixes.SC)
+                                                                   _RootFtPrefixes.ERSC)
 
                     # payload operation
                     payload_op = None
 
                     if ert.payload_field_type is not None:
                         payload_op = ev_builder.build_for_root_ft(ert.payload_field_type,
-                                                                  _RootFtPrefixes.P)
+                                                                  _RootFtPrefixes.ERP)
 
                     er_ops[ert] = _ErOps(spec_ctx_op, payload_op)
 

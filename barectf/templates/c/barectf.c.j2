@@ -479,8 +479,8 @@ static uint32_t _er_size_{{ dst.name }}_{{ ert.name }}(void * const vctx{{ (dst,
 
 	/* Compute event record size */
 		{% set er_common_ctx_params = macros.ft_call_params(root_ft_prefixes.ERCC, dst.event_record_common_context_field_type, true) %}
-		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.SC, ert.specific_context_field_type, true) %}
-		{% set payload_params = macros.ft_call_params(root_ft_prefixes.P, ert.payload_field_type, true) %}
+		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.ERSC, ert.specific_context_field_type, true) %}
+		{% set payload_params = macros.ft_call_params(root_ft_prefixes.ERP, ert.payload_field_type, true) %}
 		{% set params %}{{ er_common_ctx_params }}{{ spec_ctx_params }}{{ payload_params }}{% endset %}
 	er_size = _er_size_{{ dst.name }}_{{ ert.name }}(_TO_VOID_PTR(ctx){{ params }});
 
@@ -493,8 +493,8 @@ static uint32_t _er_size_{{ dst.name }}_{{ ert.name }}(void * const vctx{{ (dst,
 
 	/* Serialize event record */
 		{% set er_common_ctx_params = macros.ft_call_params(root_ft_prefixes.ERCC, dst.event_record_common_context_field_type) %}
-		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.SC, ert.specific_context_field_type) %}
-		{% set payload_params = macros.ft_call_params(root_ft_prefixes.P, ert.payload_field_type) %}
+		{% set spec_ctx_params = macros.ft_call_params(root_ft_prefixes.ERSC, ert.specific_context_field_type) %}
+		{% set payload_params = macros.ft_call_params(root_ft_prefixes.ERP, ert.payload_field_type) %}
 		{% set params %}{{ er_common_ctx_params }}{{ spec_ctx_params }}{{ payload_params }}{% endset %}
 	_serialize_er_{{ dst.name }}_{{ ert.name }}(_TO_VOID_PTR(ctx){{ params }});
 
