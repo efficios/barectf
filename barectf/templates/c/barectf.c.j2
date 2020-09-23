@@ -100,6 +100,11 @@ uint8_t *{{ prefix }}packet_buf(const void * const vctx)
 	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->buf;
 }
 
+uint8_t *{{ prefix }}packet_buf_addr(const void * const vctx)
+{
+	return {{ prefix }}packet_buf(vctx);
+}
+
 uint32_t {{ prefix }}packet_buf_size(const void * const vctx)
 {
 	const struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx);
