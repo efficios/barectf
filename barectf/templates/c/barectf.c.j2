@@ -66,9 +66,9 @@ union _d2u {
 	uint64_t u;
 };
 
-uint32_t {{ prefix }}packet_size(const void * const ctx)
+uint32_t {{ prefix }}packet_size(const void * const vctx)
 {
-	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, ctx)->packet_size;
+	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->packet_size;
 }
 
 int {{ prefix }}packet_is_full(const void * const vctx)
