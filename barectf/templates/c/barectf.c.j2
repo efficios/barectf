@@ -158,7 +158,7 @@ int _reserve_er_space(void * const vctx, const uint32_t er_size)
 
 	/* Packet is full? */
 	if ({{ prefix }}packet_is_full(ctx)) {
-		/* Yes: is the back-end full? */
+		/* Yes: is the back end full? */
 		if (ctx->cbs.is_backend_full(ctx->data)) {
 			/* Yes: discard event record */
 			goto no_space;
@@ -177,7 +177,7 @@ int _reserve_er_space(void * const vctx, const uint32_t er_size)
 		ctx->cbs.close_packet(ctx->data);
 		ctx->use_cur_last_event_ts = 0;
 
-		/* Is the back-end full? */
+		/* Is the back end full? */
 		if (ctx->cbs.is_backend_full(ctx->data)) {
 			/* Yes: discard event record */
 			goto no_space;
