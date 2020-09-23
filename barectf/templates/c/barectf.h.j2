@@ -81,7 +81,7 @@ void {{ prefix }}enable_tracing(void *ctx, int enable);
 struct {{ prefix }}platform_callbacks {
 {% set clk_types = trace_type.clock_types %}
 {% if clk_types %}
-	/* Clock callbacks */
+	/* Clock source callbacks */
 	{% for clk_type in clk_types | sort %}
 	{{ cg_opts.clock_type_c_types[clk_type] }} (*{{ clk_type.name }}_clock_get_value)(void *);
 	{% endfor %}
