@@ -68,6 +68,7 @@ uint32_t {{ prefix }}packet_size(const void *ctx);
 int {{ prefix }}packet_is_full(const void *ctx);
 int {{ prefix }}packet_is_empty(const void *ctx);
 uint32_t {{ prefix }}packet_events_discarded(const void *ctx);
+uint32_t {{ prefix }}discarded_event_records_count(const void * const ctx);
 uint8_t *{{ prefix }}packet_buf(const void *ctx);
 void {{ prefix }}packet_set_buf(void *ctx, uint8_t *buf, uint32_t buf_size);
 uint32_t {{ prefix }}packet_buf_size(const void *ctx);

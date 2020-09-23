@@ -90,6 +90,11 @@ uint32_t {{ prefix }}packet_events_discarded(const void * const vctx)
 	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->events_discarded;
 }
 
+uint32_t {{ prefix }}discarded_event_records_count(const void * const vctx)
+{
+	return {{ prefix }}packet_events_discarded(vctx);
+}
+
 uint8_t *{{ prefix }}packet_buf(const void * const vctx)
 {
 	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->buf;
