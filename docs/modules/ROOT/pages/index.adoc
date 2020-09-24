@@ -16,13 +16,13 @@ xref:how-barectf-works:ctf-primer.adoc#ds[CTF data streams].
 CTF is a binary trace format designed to be very fast to write without
 compromising great flexibility.
 
-barectf reads a configuration and produces:
+barectf reads a xref:yaml:index.adoc[configuration] and produces:
 
 * A CTF xref:how-barectf-works:ctf-primer.adoc#trace[metadata stream]
   file.
 
-* {ansi-c} source code files which, once compiled, constitute a tracer
-  which writes CTF data streams.
+* {ansi-c} source code files which, once xref:build:index.adoc[compiled],
+  constitute a tracer which writes CTF data streams.
 +
 The generated C{nbsp}source code has no other dependencies than a few
 C{nbsp}standard library headers.
