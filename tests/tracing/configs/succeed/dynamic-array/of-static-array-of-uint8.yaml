@@ -21,7 +21,6 @@
 # THE SOFTWARE.
 
 %YAML 1.2
-
 --- !<tag:barectf.org,2020/3/config>
 trace:
   type:
