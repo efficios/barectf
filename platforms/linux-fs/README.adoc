@@ -2,7 +2,7 @@
 
 = barectf Linux FS platform
 Philippe Proulx
-16 September 2020
+23 September 2020
 :toc: left
 
 The barectf Linux FS platform is a very simple platform used to
@@ -64,8 +64,9 @@ trace:
 [source,c]
 ----
 struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(
-    unsigned int buf_size, const char *trace_dir, int simulate_full_backend,
-    unsigned int full_backend_rand_max, unsigned int full_backend_rand_lt);
+    unsigned int buf_size, const char *data_stream_file_path,
+    int simulate_full_backend, unsigned int full_backend_rand_max,
+    unsigned int full_backend_rand_lt);
 ----
 
 ==== Parameters
@@ -77,9 +78,8 @@ struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(
 |`buf_size`
 |Size of the packet buffer to allocate (bytes).
 
-|`trace_dir`
-|Path of the directory to which to write the single data stream file
- named `stream`.
+|`data_stream_file_path`
+|Path of the data stream file to which to append packets.
 
 |`simulate_full_backend`
 |
@@ -196,7 +196,8 @@ int main(void)
     struct barectf_default_ctx *barectf_ctx;
     unsigned int i;
 
-    platform_ctx = barectf_platform_linux_fs_init(256, "trace", 0, 0, 0);
+    platform_ctx = barectf_platform_linux_fs_init(256, "trace/stream",
+                                                  0, 0, 0);
     assert(platform_ctx);
     barectf_ctx = barectf_platform_linux_fs_get_barectf_ctx(platform_ctx);
 

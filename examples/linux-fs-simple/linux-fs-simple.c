@@ -73,7 +73,8 @@ int main(const int argc, const char * const argv[])
 	int exit_status = 0;
 
 	/* Initialize platform */
-	platform_ctx = barectf_platform_linux_fs_init(512, "trace", 1, 2, 7);
+	platform_ctx = barectf_platform_linux_fs_init(512, "trace/stream",
+		1, 2, 7);
 
 	if (!platform_ctx) {
 		fprintf(stderr,

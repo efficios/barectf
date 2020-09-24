@@ -50,7 +50,8 @@ static void init_tracing(void)
 {
 	/* initialize platform */
 	global_barectf_platform_ctx =
-		barectf_platform_linux_fs_init(512, "ctf-linux-fs", 1, 2, 7);
+		barectf_platform_linux_fs_init(512, "ctf-linux-fs/stream",
+			1, 2, 7);
 
 	if (!global_barectf_platform_ctx) {
 		fprintf(stderr, "Error: could not initialize platform\n");

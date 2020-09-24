@@ -101,12 +101,11 @@ static void close_packet(void * const data)
 }
 
 struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(
-	const unsigned int buf_size, const char * const trace_dir,
+	const unsigned int buf_size, const char * const data_stream_file_path,
 	const int simulate_full_backend,
 	const unsigned int full_backend_rand_lt,
 	const unsigned int full_backend_rand_max)
 {
-	char stream_path[256];
 	uint8_t *buf = NULL;
 	struct barectf_platform_linux_fs_ctx *platform_ctx;
 	struct barectf_platform_callbacks cbs;
@@ -128,8 +127,7 @@ struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(
 		goto error;
 	}
 
-	sprintf(stream_path, "%s/stream", trace_dir);
-	platform_ctx->fh = fopen(stream_path, "wb");
+	platform_ctx->fh = fopen(data_stream_file_path, "wb");
 
 	if (!platform_ctx->fh) {
 		goto error;
