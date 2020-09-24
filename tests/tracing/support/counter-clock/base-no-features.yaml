@@ -1,0 +1,13 @@
+$include: [base.yaml]
+$features:
+  magic-field-type: false
+  uuid-field-type: false
+data-stream-types:
+  default:
+    $features:
+      packet:
+        beginning-timestamp-field-type: false
+        end-timestamp-field-type: false
+        discarded-event-records-counter-snapshot-field-type: false
+      event-record:
+        timestamp-field-type: false

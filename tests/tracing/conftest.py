@@ -57,7 +57,7 @@ def pytest_collect_file(parent, path):
     cat = os.path.basename(cat_dir)
     configs_dir = os.path.dirname(cat_dir)
 
-    if cat not in {'basic'} or os.path.basename(configs_dir) != 'configs':
+    if cat not in {'basic', 'counter-clock'} or os.path.basename(configs_dir) != 'configs':
         # not a YAML configuration test
         return
 
