@@ -130,12 +130,9 @@ definitions:
                                 then:
                                   const: 8
               else:
-                if:
-                  type: boolean
-                then:
-                  const: false
-                else:
-                  type: 'null'
+                oneOf:
+                  - type: boolean
+                  - type: 'null'
             data-stream-type-id-field-type:
               $ref: '#/definitions/opt-or-def-feature-uint-ft'
           additionalProperties: false
