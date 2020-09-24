@@ -1,0 +1,31 @@
+.Generated C{nbsp}types for various element field types.
+====
+[%autowidth.stretch]
+|===
+|Element field type |Generated C{nbsp}type
+
+|8-bit unsigned xref:int-ft-obj.adoc[integer]
+|`const uint8_t *`
+
+|32-bit signed integer
+|`const int32_t *`
+
+|Single-precision xref:real-ft-obj.adoc[real]
+|`const float *`
+
+|xref:str-ft-obj.adoc[String]
+|`const char * const *`
+
+|xref:static-array-ft-obj.adoc[Static array] of 16-bit signed integers
+|`const int16_t * const *`
+
+|Static array of double-precision reals
+|`const double * const *`
+
+|Static array of strings
+|`const char * const * const *`
+
+|Static array of static arrays of 32-bit unsigned integers
+|`const uint32_t * const * const *`
+|===
+====
