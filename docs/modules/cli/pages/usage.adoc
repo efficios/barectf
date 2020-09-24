@@ -1,0 +1,316 @@
+= `barectf` CLI tool usage
+
+barectf ships with the `barectf` command-line interface (CLI) tool.
+
+== General synopses
+
+Run a `barectf` command:
+
+[.cl]
+[verse]
+*barectf* _COMMAND_ _COMMAND-ARGUMENTS_
+
+Print the version of `barectf`:
+
+[.cl]
+[verse]
+*barectf* pass:[[]xref:#version-option[--version]pass:[\]]
+
+Print brief general help:
+
+[.cl]
+[verse]
+*barectf* pass:[[]xref:#help-option[--help]pass:[\]]
+
+== General description
+
+The `barectf` tool has a Git-like user interface with the following
+available commands:
+
+<<generate-command,`generate`>>::
+    Generate the C source and CTF metadata stream files of a tracer
+    from a xref:yaml:index.adoc[YAML configuration file].
+
+<<show-effective-configuration-command,`show-effective-configuration`>>::
+    Print the _effective_ YAML configuration file for a given YAML
+    configuration file and inclusion directories.
+
+<<show-configuration-version-command,`show-configuration-version`>>::
+    Print the major version (2 or 3) of a YAML configuration file.
+
+== General options
+
+[[help-option]]`-h`::
+`--help`::
+    Print brief general help and exit.
+
+[[version-option]]`-V`::
+`--version`::
+    Print the version of `barectf` and exit.
+
+[[generate-command]]
+== `generate` command
+
+=== Synopses
+
+Generate files from configuration file:
+
+[.cl]
+[verse]
+*barectf generate* pass:[[]xref:#generate-prefix-option[--prefix]=__PREFIX__] pass:[[]xref:#generate-metadata-dir-option[--metadata-dir]=__MDIR__]
+                 pass:[[]xref:#generate-headers-dir-option[--headers-dir]=__HDIR__] pass:[[]xref:#generate-code-dir-option[--code-dir]=__CDIR__]
+                 pass:[[]xref:#generate-include-dir-option[--include-dir]=__IDIR__]...
+                 pass:[[]xref:#generate-ignore-include-not-found-option[--ignore-include-not-found]pass:[\]] _CONFIG-PATH_
+
+Print command's brief help:
+
+[.cl]
+[verse]
+*barectf generate* xref:#generate-help-option[--help]
+
+=== Command name aliases
+
+* `gen`
+
+=== Description
+
+The `barectf generate` command reads the xref:yaml:index.adoc[YAML
+configuration file] `__CONFIG-PATH__` to produce:
+
+[%autowidth.stretch, cols="d,a"]
+|===
+|File name |Description
+
+|`__MDIR__/metadata`
+|The CTF metadata stream file.
+
+|`__HDIR__/__FPREFIX__.h`
+|The generated tracer's public C{nbsp}header file.
+
+|`__HDIR__/__FPREFIX__-bitfield.h`
+|Internal macros for the generated tracer (included by `__FPREFIX__.c`).
+
+|`__CDIR__/__FPREFIX__.c`
+|The generated tracer's C{nbsp}source code.
+|===
+
+See xref:lel[Build the generated C{nbsp}source code] to learn how to
+build the C{nbsp}source which the `generate` command produces.
+
+In the list above, `__FPREFIX__` is:
+
+Without the <<generate-prefix-option,`--prefix`>> option::
+    If the `__CONFIG-PATH__` file has a file name xref:yaml:cfg-obj.adoc#prefix-prop[prefix option]:::
+        The `__CONFIG-PATH__` file's file name prefix option.
+    Otherwise:::
+        `barectf`
+
+With the <<generate-prefix-option,`--prefix`>> option::
+    `__PREFIX__`, without trailing underscores.
++
+For example, if `__PREFIX__` is `my_tracer_`, then `__FPREFIX__` is
+`my_tracer`.
+
+By default, `__MDIR__`, `__HDIR__`, and `__CDIR__` are the current
+working directory. Use the
+<<generate-metadata-dir-option,`--metadata-dir`>>,
+<<generate-headers-dir-option,`--headers-dir`>>, and
+<<generate-code-dir-option,`--code-dir`>> to specify other output
+directories.
+
+Therefore, by default, the `generate` command writes the `metadata`,
+`barectf.h`, `barectf-bitfield.h`, and `barectf.c` files to the current
+working directory.
+
+If you use the <<prefix-option,`--prefix`>> option, then all the
+public C{nbsp}identifiers in `__FPREFIX__.h` and `__FPREFIX__.c` begin
+with `__PREFIX__`. Otherwise, they begin with:
+
+If the `__CONFIG-PATH__` file has an identifier prefix option::
+    The `__CONFIG-PATH__` file's identifier prefix option.
+
+Otherwise::
+    `barectf_`
+
+Add directories to be searched into for inclusion files before the
+default inclusion directories with the repeatable
+<<generate-include-dir-option,`--include-dir`>> option.
+
+By default, if `barectf` can't find an inclusion file while processing
+the `__CONFIG-PATH__` file, the command prints an error and
+<<exit-status,exits>> with a non-zero status. Force
+`barectf generate` to continue silently instead with its
+<<generate-ignore-include-not-found-option,`--ignore-include-not-found`>>
+option.
+
+=== Options
+
+[[generate-code-dir-option]]`-c __CDIR__`::
+`--code-dir=__CDIR__`::
+    Write the C{nbsp}source file to the directory `__CDIR__` instead of
+    the current working directory.
+
+[[generate-headers-dir-option]]`-H __HDIR__`::
+`--headers-dir=__HDIR__`::
+    Write C{nbsp}header files to the directory `__HDIR__` instead of
+    the current working directory.
+
+[[generate-help-option]]`-h`::
+`--help`::
+    Print the `generate` command's brief help and exit.
+
+[[generate-ignore-include-not-found-option]]`--ignore-include-not-found`::
+    Continue to process the `__CONFIG-PATH__` file when inclusion
+    files are not found.
+
+[[generate-include-dir-option]]`-I __IDIR__`::
+`--include-dir=__IDIR__`::
+    Add `__IDIR__` to the list of directories to be searched into for
+    inclusion files before the default inclusion directories.
++
+The default inclusion directories are:
++
+. The current working directory.
+. The directory containing the standard inclusion files
+  (like `stdint.yaml`).
+
+[[generate-metadata-dir-option]]`-m __MDIR__`::
+`--metadata-dir=__MDIR__`::
+    Write the CTF metadata stream file to the directory `__MDIR__`
+    instead of the current working directory.
+
+[[generate-prefix-option]]`-p __PREFIX__`::
+`--prefix=__PREFIX__`::
+    Override the default or `__CONFIG-PATH__` file's file and
+    identifier prefixes with:
++
+File name prefix:::
+    `__PREFIX__`, without trailing underscores.
+Identifier prefix:::
+    `__PREFIX__`
+
++
+--
+The default file name prefix is `barectf`.
+
+The default identifier prefix is `barectf_`.
+--
+
+[[show-effective-configuration-command]]
+== `show-effective-configuration` command
+
+=== Synopses
+
+Show effective configuration:
+
+[.cl]
+[verse]
+*barectf show-effective-configuration* pass:[[]xref:#show-effective-configuration-include-dir-option[--include-dir]=__IDIR__]...
+        pass:[[]xref:#show-effective-configuration-ignore-include-not-found-option[--ignore-include-not-found]pass:[\]] _CONFIG-PATH_
+
+Print command's brief help:
+
+[.cl]
+[verse]
+*barectf show-effective-configuration* xref:#show-effective-configuration-help-option[`--help`]
+
+=== Command name aliases
+
+* `show-effective-config`
+* `show-effective-cfg`
+
+=== Description
+
+The `barectf show-effective-configuration` command reads the
+xref:yaml:index.adoc[YAML configuration file] `__CONFIG-PATH__` and
+prints an equivalent, _effective_ YAML configuration.
+
+See the xref:yaml:index.adoc#stages[processing stages] of a YAML
+configuration file to learn what an effective configuration is.
+
+Moreover, the `show-effective-configuration` command validates the
+`__CONFIG-PATH__` file. In other words, if the command
+<<exit-status,exits>> with status{nbsp}0, the
+<<generate-command,`generate` command>> using the same options and
+`__CONFIG-PATH__` file would also succeed.
+
+Add directories to be searched into for inclusion files before the
+default inclusion directories with the repeatable
+<<show-effective-configuration-include-dir-option,`--include-dir`>> option.
+
+By default, if `barectf` can't find an inclusion file while processing
+the `__CONFIG-PATH__` file, the command prints an error and
+<<exit-status,exits>> with a non-zero status. Force
+`barectf show-effective-configuration` to continue silently instead
+with its
+<<show-effective-configuration-ignore-include-not-found-option,`--ignore-include-not-found`>>
+option.
+
+=== Options
+
+[[show-effective-configuration-help-option]]`-h`::
+`--help`::
+    Print the `show-effective-configuration` command's
+    brief help and exit.
+
+[[show-effective-configuration-ignore-include-not-found-option]]`--ignore-include-not-found`::
+    Continue to process the `__CONFIG-PATH__` file when inclusion
+    files are not found.
+
+[[show-effective-configuration-include-dir-option]]`-I __IDIR__`::
+`--include-dir=__IDIR__`::
+    Add `__IDIR__` to the list of directories to be searched into for
+    inclusion files before the default inclusion directories.
++
+The default inclusion directories are:
++
+. The current working directory.
+. The directory containing the standard inclusion files
+  (like `stdint.yaml`).
+
+[[show-configuration-version-command]]
+== `show-configuration-version` command
+
+=== Synopses
+
+Show configuration file's version:
+
+[.cl]
+[verse]
+*barectf show-configuration-version* _CONFIG-PATH_
+
+Print command's brief help:
+
+[.cl]
+[verse]
+*barectf show-configuration-version* xref:#show-configuration-version-help-option[`--help`]
+
+=== Command name aliases
+
+* `show-config-version`
+* `show-cfg-version`
+
+=== Description
+
+The `barectf show-configuration-version` command reads the
+xref:yaml:index.adoc[YAML configuration file] `__CONFIG-PATH__` and
+prints its version, which is either 2 or 3.
+
+The `show-configuration-version` does _not_ validate the
+`__CONFIG-PATH__` file.
+
+=== Options
+
+[[show-configuration-version-help-option]]`-h`::
+`--help`::
+    Print the `show-configuration-version` command's brief help
+    and exit.
+
+[[exit-status]]
+== Exit status
+
+0::
+    Success
+
+Not 0::
+    Error

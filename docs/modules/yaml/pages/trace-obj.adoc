@@ -1,0 +1,77 @@
+= YAML trace object
+
+A _**trace object**_ represents a
+xref:how-barectf-works:ctf-primer.adoc[CTF trace].
+
+A trace object has a xref:trace-type-obj.adoc[type] and an
+optional environment.
+
+As of barectf{nbsp}{page-component-version}, a
+xref:cfg-obj.adoc[configuration object] has a single trace object.
+
+== Properties
+
+[%autowidth.stretch, cols="d,d,a,d,d"]
+|===
+|Name |Type |Description |{req-abbr} |Default
+
+|[[type-prop]]`type`
+|xref:trace-type-obj.adoc[Trace type object]
+|Type of this trace (metadata part).
+|Yes
+|
+
+|[[env-prop]]`environment`
+|Mapping of string keys to integer or string values
+|This trace's environment variables.
+
+Keys of this mapping are environment variable names. They must be valid
+xref:index.adoc#tsdl-ident[TSDL identifiers].
+
+A CTF trace reader can read the variables of this mapping.
+|No
+|Empty mapping
+
+|[[include-prop]]`$include`
+|Sequence of strings.
+|See xref:include.adoc[].
+|No
+|No inclusions
+|===
+
+== Examples
+
+NOTE: The following examples omit the <<type-prop,trace type object>>
+for clarity.
+
+.Basic trace object.
+====
+[source,yaml]
+----
+type:
+  # ...
+----
+====
+
+.Trace object with <<env-prop,environment variables>>.
+====
+[source,yaml]
+----
+type:
+  # ...
+environment:
+  my_program_version_major: 1
+  my_program_version_minor: 6
+  os: Palm OS
+----
+====
+
+.Trace object with an <<include-prop,inclusion>>.
+====
+[source,yaml]
+----
+type:
+  # ...
+$include: [my-env.yaml]
+----
+====

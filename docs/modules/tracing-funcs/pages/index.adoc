@@ -1,0 +1,202 @@
+= Use the generated C{nbsp}tracing functions
+:us: _
+
+include::ROOT:partial$def-prefix-note.adoc[]
+
+The public `barectf.h` header which barectf
+xref:cli:index.adoc[generates] contains two groups of function
+prototypes:
+
+[[tracing-funcs]]Tracing functions::
+    barectf generates one tracing function per configured
+    xref:yaml:ert-obj.adoc[event record type].
++
+A tracing function is named `barectf_trace{us}__DSTNAME__{us}__ERTNAME__()`,
+where `__DSTNAME__` is the xref:yaml:dst-obj.adoc[data stream type] name
+and `__ERTNAME__` the event record type name.
++
+NOTE: If your configuration has a xref:yaml:dst-obj.adoc#is-def-prop[default
+data stream type] named `__DEFDSTNAME__`, then barectf also generates
+C{nbsp}preprocessor definitions named `barectf_trace{us}__ERTNAME__`
+which are set to `barectf_trace{us}__DEFDSTNAME__{us}__ERTNAME__`.
++
+Those are the functions which your application can call to write
+xref:how-barectf-works:ctf-primer.adoc#er[CTF event records] to
+xref:how-barectf-works:ctf-primer.adoc#ds[data streams].
+
+Tracing control functions::
+    barectf generates the `+barectf_is_tracing_enabled()+` and
+    `+barectf_enable_tracing()+` functions to
+    <<control,control>> the tracing activity for a given
+    barectf context.
+
+xref:platform:api.adoc[Platform API] functions::
+    barectf generates one
+    xref:platform:api.adoc#open[packet opening] and one
+    xref:platform:api.adoc#close[packet closing] function
+    per configured xref:yaml:dst-obj.adoc[data stream type].
++
+It also generates a xref:platform:api.adoc#init[barectf context
+initialization] function and a few
+xref:platform:api.adoc#accessors[context property getters and setters].
++
+The suggested barectf approach is for a
+xref:platform:index.adoc[platform] to handle the barectf context
+initialization, packet opening and packet closing operations.
++
+This hides the details of how packets are written to the back end from
+the application so that it only calls <<tracing-funcs,tracing>> and
+<<control,tracing control>> functions.
+
+[[obtain-ctx-ptr]]
+== Obtain a barectf context pointer
+
+<<tracing-funcs,Tracing>> and <<control,tracing control>> functions
+accept a **_barectf context_** pointer as their first parameter.
+
+For example:
+
+[source,c]
+----
+void barectf_my_stream_trace_my_event(struct barectf_my_stream_ctx *sctx,
+                                      uint8_t p_user_id, const char *p_msg);
+
+int barectf_is_tracing_enabled(const void *vctx);
+
+void barectf_enable_tracing(void *vctx, int enable);
+----
+
+A barectf context represents a
+xref:how-barectf-works:ctf-primer.adoc#ds[CTF data stream].
+
+The suggested barectf approach is for a
+xref:platform:index.adoc[platform]'s API to offer a function to obtain
+a pointer to an initialized barectf context.
+
+For example, the
+https://github.com/efficios/barectf/tree/stable-{page-component-version}/platforms/linux-fs[Linux
+FS] demonstration platform offers the
+`+barectf_platform_linux_fs_get_barectf_ctx()+` function to obtain a
+barectf context pointer from a platform context.
+
+== Tracing function parameters
+
+As explained in <<obtain-ctx-ptr>>, a tracing function's first parameter
+is always a barectf context pointer.
+
+The other parameters depend on the xref:yaml:index.adoc[configuration].
+
+For a given xref:yaml:dst-obj.adoc[data stream type] and
+xref:yaml:ert-obj.adoc[event record type], the generated tracing
+function parameters are, in this order:
+
+. For each member `__NAME__` of the
+  xref:yaml:dst-obj.adoc#er-common-ctx-ft-prop[event record common
+  context structure field type], a parameter named `cc{us}__NAME__`.
+
+. For each member `__NAME__` of the
+  xref:yaml:ert-obj.adoc#spec-ctx-ft-prop[event record specific
+  context structure field type], a parameter named `sc{us}__NAME__`.
+
+. For each member `__NAME__` of the
+  xref:yaml:ert-obj.adoc#payload-ft-prop[event record payload structure
+  field type], a parameter named `p{us}__NAME__`.
+
+See xref:yaml:ft-obj.adoc#gen-c-types[Generated C{nbsp}types] to
+determine the exact C{nbsp}type of each parameter.
+
+Note that a member with a xref:yaml:dyn-array-ft-obj.adoc[dynamic array
+field type] actually makes barectf generate _two_ adjacent parameters:
+
+. One for the dynamic array's length.
++
+Example: `uint32_t p___my_array_len`
+
+. One for the dynamic array's data.
++
+Example: `const uint8_t *p_my_array`
+
+====
+Consider this xref:yaml:dst-obj.adoc[data stream type object]
+named `my_stream`:
+
+[source,yaml]
+----
+event-record-common-context-field-type:
+  class: structure
+  members:
+    - pid: uint32
+    - t_level: double
+event-record-types:
+  my_event:
+    specific-context-field-type:
+      class: structure
+      members:
+        - count: uint16
+    payload-field-type:
+      class: structure
+      members:
+        - msg: string
+        - src_ip_addr:
+            field-type:
+              class: static-array
+              length: 4
+              element-field-type: uint8
+----
+
+The generated tracing prototype for the `my_event` event record type
+is:
+
+[source,c]
+----
+void barectf_my_stream_trace_my_event(struct barectf_my_stream_ctx *sctx,
+                                      uint32_t cc_pid, double cc_t_level,
+                                      uint16_t sc_count, const char *p_msg,
+                                      const uint8_t *p_src_ip_addr);
+----
+====
+
+[[control]]
+== Control tracing
+
+You can control the tracing activity for a given
+<<obtain-ctx-ptr,barectf context>> with the following functions:
+
+* {empty}
++
+[source,c]
+----
+int barectf_is_tracing_enabled(const void *vctx);
+----
++
+Returns whether or not tracing is currenty enabled for the barectf
+context `vctx`.
+
+* {empty}
++
+[source,c]
+----
+void barectf_enable_tracing(void *vctx, int enable);
+----
++
+Enables (if `enable` is{nbsp}1) or disables (if `enable` is{nbsp}0)
+tracing for the barectf context `vctx`.
+
+When tracing is disabled for a given barectf context, the
+<<tracing-funcs,tracing functions>> have no effect for this context.
+
+== Concurrent access safety
+
+The C{nbsp}source code which barectf generates doesn't guarantee any
+concurrent access safety (thread safety, reentrancy).
+
+Because barectf generates general ANSI{nbsp}C code with no dependencies,
+it can't know how to synchronize accesses to <<obtain-ctx-ptr,barectf
+context>> structures. As of barectf{nbsp}{page-component-version}, you
+need to protect tracing function calls for a given barectf context with
+your own synchronization primitives.
+
+Note, however, that xref:how-barectf-works:ctf-primer.adoc[CTF] is
+designed for fast multicore/multithread tracing: dedicate one barectf
+context (one xref:how-barectf-works:ctf-primer.adoc#ds[data stream]) per
+core/thread to avoid tracing function locking.

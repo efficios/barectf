@@ -1,0 +1,371 @@
+= YAML field type object
+
+A _**field type object**_ is the type of data field, found in
+xref:how-barectf-works:ctf-primer.adoc#ds[data streams].
+
+A field type object describes what a CTF consumer needs to decode a data
+field.
+
+You can use a xref:trace-type-obj.adoc#ft-aliases-prop[field type alias]
+name (a string) anywhere a field type object is expected.
+
+== Expected usage locations
+
+A field type object is expected at the following locations:
+
+Within another field type object::
++
+--
+* The xref:struct-ft-obj.adoc#member-ft-prop[`field-type` property]
+  of a structure field type member object.
+
+* The `element-field-type` property of a
+  xref:static-array-ft-obj.adoc#element-ft-prop[static] or
+  xref:dyn-array-ft-obj.adoc#element-ft-prop[dynamic field type object].
+--
+
+Within a xref:trace-type-obj.adoc[trace type object]::
++
+--
+* A value of a xref:trace-type-obj.adoc#ft-aliases-prop[field type
+  alias] mapping entry.
+
+* Any property of a
+  xref:trace-type-obj.adoc#features-obj[features object].
+--
+
+Within a xref:dst-obj.adoc[data stream type object]::
++
+--
+* Any property of a
+  xref:dst-obj.adoc#pkt-features-obj[packet features object].
+
+* Any property of an
+  xref:dst-obj.adoc#er-features-obj[event record features object].
+
+* The
+  xref:dst-obj.adoc#er-common-ctx-ft-prop[`event-record-common-context-field-type`
+  property].
+--
+
+Within an xref:ert-obj.adoc[event record type object]::
++
+--
+* The xref:ert-obj.adoc#spec-ctx-ft-prop[`specific-context-field-type`
+  property].
+
+* The xref:ert-obj.adoc#payload-ft-prop[`payload-field-type`
+  property].
+--
+
+== Available field type objects
+
+As of barectf{nbsp}{page-component-version}, the available field type
+objects are:
+
+xref:int-ft-obj.adoc[Integer field type objects]::
+    Describes unsigned and signed integer data fields.
+
+xref:enum-ft-obj.adoc[Enumeration field type objects]::
+    Describes unsigned and signed enumeration data fields.
+
+xref:real-ft-obj.adoc[Real field type object]::
+    Describes single-precision and double-precision real data fields.
+
+xref:str-ft-obj.adoc[String field type object]::
+    Describes null-terminated string data fields.
+
+xref:struct-ft-obj.adoc[Structure field type object]::
+    Describes structure data fields.
+
+xref:static-array-ft-obj.adoc[Static array field type object]::
+    Describes array data fields with a static length.
+
+xref:dyn-array-ft-obj.adoc[Dynamic array field type object]::
+    Describes array data fields with a dynamic (variable) length.
+
+[[gen-c-types]]
+== Generated C{nbsp}types
+
+barectf uses configured field types to generate user data parameters of
+packet opening and tracing functions.
+
+Each field type object page indicates the field type's corresponding
+C{nbsp}type(s).
+
+Here's a summary:
+
+[%autowidth.stretch, cols="d,a"]
+|===
+|Field type |C&#160;type
+
+|Unsigned
+xref:int-ft-obj.adoc[integer]/xref:enum-ft-obj.adoc[enumeration field
+type]
+|Depending on the `size` property:
+
+[1,{nbsp}8]::
+  `uint8_t`
+
+[9,{nbsp}16]::
+  `uint16_t`
+
+[17,{nbsp}32]::
+  `uint32_t`
+
+[33,{nbsp}64]::
+  `uint64_t`
+
+|Signed
+ xref:int-ft-obj.adoc[integer]/xref:enum-ft-obj.adoc[enumeration field
+ type]
+|Depending on the `size` property:
+
+[1,{nbsp}8]::
+  `int8_t`
+
+[9,{nbsp}16]::
+  `int16_t`
+
+[17,{nbsp}32]::
+  `int32_t`
+
+[33,{nbsp}64]::
+  `int64_t`
+
+|xref:real-ft-obj.adoc[Real field type]
+|Depending on the xref:real-ft-obj.adoc#size-prop[`size` property]:
+
+32::
+  `float`
+
+64::
+  `double`
+
+|xref:str-ft-obj.adoc[String field type]
+|`const char *`
+
+|xref:static-array-ft-obj.adoc[Static array field type]
+|Pointer to `const __T__`, where `__T__` is the generated C{nbsp}type
+ for the field type object of the
+ xref:static-array-ft-obj.adoc#element-ft-prop[`element-field-type`
+ property].
+
+|xref:dyn-array-ft-obj.adoc[Dynamic array field type]
+|Two adjacent parameters:
+
+Dynamic length::
+    `uint32_t`
+
+Element::
+    Pointer to `const __T__`, where `__T__` is the generated C{nbsp}type
+    for the field type object of the
+    xref:dyn-array-ft-obj.adoc#element-ft-prop[`element-field-type`
+    property].
+|===
+
+[[inherit]]
+== Inherit a field type object
+
+A field type object can _inherit_ the properties of another field type
+object with the common <<inherit-prop,`$inherit` property>>.
+
+When a field type object __**A**__ inherits another field type object
+__**B**__, the _effective_ field type object is __**A**__ "`patching`"
+__**B**__.
+
+include::partial$patching-rules-table.adoc[]
+
+=== Examples
+
+In the examples below, the name of the base field type object's alias is
+`base`.
+
+.Override scalar property.
+====
+.Base field type object
+[source,yaml]
+----
+class: unsigned-integer
+size: 32
+alignment: 8
+----
+
+.Overlay field type object
+[source,yaml]
+----
+$inherit: base
+size: 16
+----
+
+.Effective field type object
+[source,yaml]
+----
+class: unsigned-integer
+size: 16
+alignment: 8
+----
+====
+
+.Add and override scalar properties.
+====
+.Base field type object
+[source,yaml]
+----
+class: unsigned-integer
+size: 32
+alignment: 8
+----
+
+.Overlay field type object
+[source,yaml]
+----
+$inherit: base
+size: 16
+preferred-display-base: hexadecimal
+----
+
+.Effective field type object
+[source,yaml]
+----
+class: unsigned-integer
+size: 16
+alignment: 8
+preferred-display-base: hexadecimal
+----
+====
+
+.Append to sequence property.
+====
+.Base field type object
+[source,yaml]
+----
+class: signed-enumeration
+mappings:
+  COMPOSE:
+    - 56
+    - [100, 299]
+  DIRTY: [0]
+----
+
+.Overlay field type object
+[source,yaml]
+----
+$inherit: base
+size: 16
+mappings:
+  COMPOSE:
+    - -22
+----
+
+.Effective field type object
+[source,yaml]
+----
+class: signed-enumeration
+size: 16
+mappings:
+  COMPOSE:
+    - 56
+    - [100, 299]
+    - -22
+  DIRTY: [0]
+----
+====
+
+.Add to nested mapping property.
+====
+.Base field type object
+[source,yaml]
+----
+class: structure
+members:
+  - msg: string
+  - user_id: uint16
+----
+
+.Overlay field type object
+[source,yaml]
+----
+$inherit: base
+members:
+  - src_ip_addr:
+      field-type:
+        class: static-array
+        length: 4
+        element-field-type: uint8
+  - user_id: int8
+----
+
+.Effective field type object
+[source,yaml]
+----
+class: structure
+members:
+  - msg: string
+  - user_id: int8
+  - src_ip_addr:
+      field-type:
+        class: static-array
+        length: 4
+        element-field-type: uint8
+----
+====
+
+[[props]]
+== Common properties
+
+All field type objects require that the <<class-prop,`class`>> _or_ the
+<<inherit-prop,`$inherit` property>> be set, but not both.
+
+[%autowidth.stretch, cols="d,d,a,d"]
+|===
+|Name |Type |Description |Required?
+
+|[[class-prop]]`class`
+|String
+|Class of this field type amongst:
+
+`unsigned-integer`::
+`unsigned-int`::
+`uint`::
+    Unsigned xref:int-ft-obj.adoc[integer field type]
+
+`signed-integer`::
+`signed-int`::
+`sint`::
+    Signed xref:int-ft-obj.adoc[integer field type]
+
+`unsigned-enumeration`::
+`unsigned-enum`::
+`uenum`::
+    Unsigned xref:enum-ft-obj.adoc[enumeration field type]
+
+`signed-enumeration`::
+`signed-enum`::
+`senum`::
+    Signed xref:enum-ft-obj.adoc[enumeration field type]
+
+`real`::
+    xref:real-ft-obj.adoc[Real field type]
+
+`string`::
+`str`::
+    xref:str-ft-obj.adoc[String field type]
+
+`structure`::
+`struct`::
+    xref:struct-ft-obj.adoc[Structure field type]
+
+`static-array`::
+    xref:static-array-ft-obj.adoc[Static array field type]
+
+`dynamic-array`::
+    xref:dyn-array-ft-obj.adoc[Dynamic array field type]
+|Yes if the <<inherit-prop,`$inherit`>> property is not set.
+
+|[[inherit-prop]]`$inherit`
+|String
+|Name of a xref:trace-type-obj.adoc#ft-aliases-prop[field type alias]
+from which to <<inherit,inherit>>.
+|Yes if the <<class-prop,`class`>> property is not set.
+|===

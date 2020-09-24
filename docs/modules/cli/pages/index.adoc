@@ -1,0 +1,113 @@
+= Generate files from a YAML configuration file
+
+barectf ships with the `barectf` command-line interface (CLI) tool.
+
+The `barectf` CLI tool has a command interface, like
+https://git-scm.com/[Git].
+
+This page focuses on the `barectf generate` command. See
+xref:usage.adoc[] for the complete CLI tool's documentation.
+
+== Generate files from a YAML configuration
+
+Use the xref:usage.adoc#generate-command[`barectf generate` command] to
+generate files from a barectf xref:yaml:index.adoc[YAML configuration
+file]:
+
+[.cl]
+[verse]
+[.prompt]##$## barectf generate my-config.yaml
+
+On success, this command writes the following files to the current
+working directory:
+
+[%autowidth.stretch, cols="d,a"]
+|===
+|File name |Description
+
+|[[metadata-file]]`metadata`
+|The CTF metadata stream file.
+
+You'll need to place this file in a directory with the
+xref:how-barectf-works:ctf-primer.adoc#ds[data stream] files which your
+application will write through the generated tracer.
+
+See xref:how-barectf-works:index.adoc[] to learn more.
+
+|`barectf.h`
+|The generated tracer's public C{nbsp}header file.
+
+This header contains the prototypes of the packet opening, packet
+closing, and xref:tracing-funcs:index.adoc[tracing functions].
+
+barectf generates one packet opening/closing function per configured
+xref:yaml:dst-obj.adoc[data stream type] and one tracing function per
+configured xref:yaml:ert-obj.adoc[event record type].
+
+Your application and xref:platform:index.adoc[platforms] need to
+include this file.
+
+|`barectf-bitfield.h`
+|Internal macros for the generated tracer (included by `barectf.c`).
+
+|[[barectf.c-file]]`barectf.c`
+|The generated tracer's C{nbsp}source code.
+|===
+
+Those file names assume that `my-config.yaml` uses the default
+xref:yaml:cfg-obj.adoc#prefix-prop[prefixes].
+
+=== Use dedicated output directories
+
+Because the <<metadata-file,`metadata` file>> which barectf generates is
+part of an eventual
+xref:how-barectf-works:ctf-primer.adoc#trace[CTF trace], you'll probably
+want to make barectf write it to its own directory.
+
+Use the `barectf generate` command's
+xref:usage.adoc#generate-metadata-dir-option[`+--metadata-dir+` option]
+to specify the `metadata` file's output directory:
+
+[.cl]
+[verse]
+[.prompt]##$## barectf generate my-config.yaml --metadata-dir=my-trace
+
+`barectf generate` also offers the
+xref:usage.adoc#generate-code-dir-option[`+--code-dir+`] and
+xref:usage.adoc#generate-headers-dir-option[`+--headers-dir+`] options
+to select the output directories of the generated
+<<barectf.c-file,tracer source file>> and headers.
+
+=== Control inclusions
+
+A barectf xref:yaml:index.adoc[YAML configuration file] can
+xref:yaml:include.adoc[include partial YAML files].
+
+Set the most significant inclusion search directories with the `barectf
+generate` command's
+xref:usage.adoc#generate-include-dir-option[`+--include-dir+`] option.
+You can use the option more than once:
+
+[.cl]
+[verse]
+[.prompt]##$## barectf generate my-config.yaml \
+                   --include-dir=/path/to/project/barectf \
+                   --include-dir=/path/to/base/barectf
+
+By default, if `barectf generate` can't find an inclusion file, it
+prints an error and xref:usage.adoc#exit-status[exits] with a non-zero
+status.
+
+However, it's possible that some YAML file **_A_** includes a file
+**_B_** which barectf can't find, but **_A_** doesn't need anything from
+**_B_**.
+
+Force `barectf generate` to continue silently instead with its
+xref:usage.adoc#generate-ignore-include-not-found-option[`+--ignore-include-not-found+`]
+option:
+
+[.cl]
+[verse]
+[.prompt]##$## barectf generate my-config.yaml --ignore-include-not-found \
+                   --include-dir=/path/to/project/barectf \
+                   --include-dir=/path/to/base/barectf \

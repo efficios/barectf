@@ -1,0 +1,5 @@
+|[[inherit-prop]]`$inherit`
+|String
+|Name of a xref:trace-type-obj.adoc#ft-aliases-prop[field type alias]
+from which to xref:ft-obj.adoc#inherit[inherit].
+|Yes if the <<class-prop,`class`>> property is not set.

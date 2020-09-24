@@ -1,0 +1,20 @@
+= Get help
+
+To get help with barectf:
+
+* Write to the
+  https://lists.lttng.org/cgi-bin/mailman/listinfo/lttng-dev[lttng-dev]
+  mailing list with the `+[barectf]+` subject prefix.
+
+* Query `eepp` on the OFTC or Freenode IRC networks.
+
+* https://github.com/efficios/barectf/issues/new[Create a GitHub issue].
+
+For commercial support and feature requests, please
+https://www.efficios.com/contact/[contact EfficiOS].
+
+Other links:
+
+* https://ci.lttng.org/view/barectf/[Continuous integration]
+* https://lttng.org/blog/[LTTng blog], which contains posts about
+  barectf

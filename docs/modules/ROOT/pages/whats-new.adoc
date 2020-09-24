@@ -1,0 +1,108 @@
+= What's new in barectf{nbsp}3?
+
+barectf{nbsp}3 is a major update of the project.
+
+The main, user-visible changes are:
+
+* Support for user-defined
+  xref:yaml:static-array-ft-obj.adoc[static] and
+  xref:yaml:dyn-array-ft-obj.adoc[dynamic array field types].
+
+* Reworked `barectf` Python API to match the recent CTF terminology and
+  model (like https://babeltrace.org/[Babeltrace{nbsp}2] and the
+  upcoming CTF{nbsp}2).
+
+* Reworked xref:yaml:index.adoc[YAML configuration] format to match the
+  new Python API.
++
+barectf{nbsp}3 can still read and use barectf{nbsp}2 YAML
+configurations.
++
+The main changes are:
++
+** Updated terminology for property names and values.
+** The xref:yaml:cfg-obj.adoc[configuration object] mapping (the YAML
+   document) must be tagged with `tag:barectf.org,2020/3/config`.
+** The configuration object contains a xref:yaml:trace-obj.adoc[trace
+   object] which contains a xref:yaml:trace-type-obj.adoc[trace type
+   object].
++
+A trace can have an environment while a trace type can have a UUID.
+
+** You can specify two
+   xref:yaml:cfg-obj.adoc#prefix-obj[prefixes] instead of a
+   single one: a file name prefix and an identifier prefix.
++
+With barectf{nbsp}2, the single prefix `my_app_` becomes the file name
+prefix `my_app` and the identifier prefix `my_app_`.
+
+** You don't need to specify special CTF structure field type members,
+   like `magic`, `stream_id`, and `timestamp`.
++
+Instead, you specify
+xref:yaml:trace-type-obj.adoc#features-obj[trace type] and
+xref:yaml:dst-obj.adoc#features-obj[data stream type
+features]. You can still control the exact field type of a feature.
+
+** A data stream type can have zero or one
+   xref:yaml:dst-obj.adoc#def-clk-type-name-prop[default clock type].
++
+When a data stream type has a default clock type, its timestamp integer
+field types (packet beginning, packet end, and event record)
+automatically refer to this specific clock type, effectively removing
+the integer field type's `property-mappings` property.
+
+** The only way to make a data stream type the default one is with its
+   xref:yaml:dst-obj.adoc#is-def-prop[`$is-default`
+   boolean property].
+
+** You cannot specify custom
+   xref:how-barectf-works:ctf-primer.adoc#pkt[packet] header and
+   xref:how-barectf-works:ctf-primer.adoc#er[event record]
+   header field type members anymore.
++
+The header field types only exist for the trace format itself.
++
+Instead,
+xref:yaml:dst-obj.adoc#pkt-ctx-ft-extra-members-prop[append user-defined
+members to the packet context field type]
+and use the
+xref:yaml:dst-obj.adoc#er-common-ctx-ft-prop[event record common context
+field type].
+
+** xref:yaml:trace-type-obj.adoc#ft-aliases-prop[Field type aliases]
+   do not need to be defined in any specific order.
+** An xref:yaml:int-ft-obj.adoc[integer field type] _is_ a bit array
+   field type.
++
+A bit array field type has size and alignment properties. It doesn't
+have a byte order property: as of barectf{nbsp}3.0, the generated tracer
+always uses the native byte order.
+
+** An integer field type doesn't have a `signed` property: unsigned
+   and signed integer field types are two different classes.
+** An xref:yaml:enum-ft-obj.adoc[enumeration field type] _is_ an integer
+   field type.
+** The xref:yaml:enum-ft-obj.adoc#mappings-prop[mappings] of an
+   enumeration field type are a YAML mapping of labels to sequences of
+   integer ranges.
+** A xref:yaml:real-ft-obj.adoc[real field type] _is_ a bit array field
+   type.
+** The xref:yaml:struct-ft-obj.adoc#members-prop[members] of a structure
+   field type are a sequence instead of a mapping (YAML mappings are
+   _not_ ordered).
++
+This sequence is considered to be an _ordered mapping_, similar to
+YAML's https://yaml.org/type/omap.html[`+!!omap+`] type.
+
+* Updated xref:yaml:include.adoc#std[standard partial YAML files] for
+  the new YAML configuration format.
+
+* The xref:cli:usage.adoc[`barectf` CLI tool] now has a Git-like user
+  interface with a few commands.
++
+The `barectf` CLI tool remains backward compatible with barectf{nbsp}2's
+CLI: the default command is
+xref:cli:usage.adoc#generate-command[`generate`].
+
+* The generated C{nbsp}code is ``const``-correct.

@@ -1,0 +1,113 @@
+= Write a barectf YAML configuration file
+
+A barectf configuration controls how barectf generates a tracer, for
+example:
+
+* What are the event record types for which to generate
+  xref:tracing-funcs:index.adoc[tracing functions]?
++
+In other words, what are the tracing function names and what are their
+parameter types and names?
+
+* Does a data stream have a clock source? If so, what's the clock source
+  function's return C{nbsp}type?
+
+* What's the identifier prefix for the C{nbsp}source code which barectf
+  generates?
++
+By default, a tracing function name could be
+`+barectf_trace_my_stream_my_event()+`, but it can also be
+`+my_company_trace_my_stream_my_event()+`.
+
+barectf supports two methods to write a configuration:
+
+. Create and assemble configuration objects with the barectf Python API
+  (`barectf` package).
+
+. Write a configuration in https://yaml.org/[YAML].
+
+This section is about method{nbsp}2.
+
+Read xref:yaml-primer.adoc[] to learn more about the YAML language.
+
+A barectf YAML configuration document is a
+xref:yaml:cfg-obj.adoc[configuration object].
+
+[NOTE]
+====
+In a barectf YAML configuration, a xref:yaml-primer.adoc#scalar[null
+value] always means to use the default value.
+
+This is useful when taking into account the xref:include.adoc[partial
+YAML file inclusion] or xref:ft-obj.adoc#inherit[field type object
+inheritance] features: the overriding object can reset properties to
+their default values.
+====
+
+[[stages]]
+== Processing stages
+
+barectf goes through the following stages when it processes a YAML
+configuration:
+
+. xref:include.adoc[Include], recursively, partial YAML files.
+
+. Expand xref:trace-type-obj.adoc#ft-aliases-prop[field type aliases].
++
+Replace every field type alias with its full xref:ft-obj.adoc[field type
+object], recursively.
+
+. Apply xref:ft-obj.adoc#inherit[field type object inheritance].
+
+. Expand xref:trace-type-obj.adoc#ll-aliases-prop[log level aliases].
++
+Replace every log level alias with its numeric value.
+
+. Normalize property values.
++
+If more than one value mean the same thing (for example,
+xref:common-values.adoc#byte-order[`be` and
+`big-endian`]), prefer one version.
+
+A xref:cfg-obj.adoc[configuration object], after step{nbsp}5, is known
+as an _effective configuration object_. The
+xref:cli:usage.adoc#show-effective-configuration-command[`barectf show-effective-configuration`
+CLI command] shows the effective version of a YAML configuration file.
+
+[[tsdl-ident]]
+== TSDL identifier
+
+Many barectf YAML objects require that a given string key or value
+be a valid TSDL identifier.
+
+As per https://diamon.org/ctf/v1.8.3/[CTF{nbsp}1.8.3], a valid TSDL
+identifier is any valid C{nbsp}identifier which is __not__ one of:
+
+* `align`
+* `callsite`
+* `const`
+* `char`
+* `clock`
+* `double`
+* `enum`
+* `env`
+* `event`
+* `floating_point`
+* `float`
+* `integer`
+* `int`
+* `long`
+* `short`
+* `signed`
+* `stream`
+* `string`
+* `struct`
+* `trace`
+* `typealias`
+* `typedef`
+* `unsigned`
+* `variant`
+* `void`
+* `_Bool`
+* `_Complex`
+* `_Imaginary`

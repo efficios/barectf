@@ -1,0 +1,165 @@
+= Write a barectf platform
+:us: _
+
+A **_barectf platform_** is:
+
+* Callback functions to xref:api.adoc#cb-open[open] and
+  xref:api.adoc#cb-close[close]
+  xref:how-barectf-works:ctf-primer.adoc#pkt[packets].
++
+Those functions allow the platform to control
+where the xref:how-barectf-works:ctf-primer.adoc#ds[data streams]
+are stored (called the _back end_) and how full packets are appended to
+them.
++
+The back end can be anything: files, memory, network, serial, and more.
+
+* A callback function to indicate
+  xref:api.adoc#cb-is-back-end-full[whether or not the back end is full].
+
+* Data stream xref:how-barectf-works:ctf-primer.adoc#def-clk[default
+  clock] xref:api.adoc#cb-clk-src[source callback functions].
+
+* An API for applications to:
+** Initialize the platform.
+** xref:tracing-funcs:index.adoc#obtain-ctx-ptr[Obtain a barectf context
+   pointer].
+** Finalize the platform.
+
+The purpose of a barectf platform is to decouple the packet storing
+and clock sourcing operations from
+the xref:how-barectf-works:ctf-primer.adoc#er[event record] writing
+operations. xref:tracing-funcs:index.adoc[Tracing functions], which the
+application calls, handle the latter.
+
+See xref:example.adoc[] for a complete barectf platform example.
+
+== Steps
+
+To write a barectf platform:
+
+. Write the xref:api.adoc#cbs[platform callback functions].
++
+Each function receives some platform context pointer as its first
+parameter.
+
+. Write a platform initialization function.
++
+This function needs to allocate one or more xref:api.adoc#ctx[barectf
+contexts], xref:api.adoc#init[initialize them] with the platform
+callback functions of step{nbsp}1, and store them.
++
+This function typically xref:api.adoc#open[opens] the first packet.
++
+This function can return a pointer to a platform context structure. This
+structure can also be global if needed.
+
+. Write a platform finalization function.
++
+This function can accept a platform context pointer parameter.
++
+This function typically starts with this, for each barectf context
+of the platform:
++
+[source,c]
+----
+if (barectf_packet_is_open(barectf_ctx) &&
+        !barectf_packet_is_empty(barectf_ctx)) {
+    /* Close the packet here */
+}
+----
++
+where `barectf_ctx` is a pointer to a xref:api.adoc#ctx[barectf
+context].
++
+This function also needs to deallocate the platform's
+xref:api.adoc#ctx[barectf contexts].
+
+. Write one or more xref:api.adoc#ctx[barectf context] pointer accessor
+  functions.
++
+This function can accept a platform context pointer parameter. It
+returns the requested barectf context pointer.
+
+See xref:example.adoc[] for a complete barectf platform example.
+
+== YAML configuration file recommandation
+
+The barectf project recommends that you create a
+partial YAML file containing a base xref:yaml:trace-type-obj.adoc[trace
+type object] as its document for your platform.
+
+This platform's base trace type object can be configured so that it
+matches what your platform expects, for example:
+
+* The xref:yaml:trace-type-obj.adoc#native-bo[native byte order]
+* Specific xref:yaml:clk-type-obj.adoc[clock type objects]
+
+* Specific xref:yaml:dst-obj.adoc[Data stream type objects], possibly
+  with:
+** xref:yaml:dst-obj.adoc#def-clk-type-name-prop[Default clock types]
+** xref:yaml:dst-obj.adoc#pkt-ctx-ft-extra-members-prop[Extra packet
+   context field type members]
+
+An application-specific
+xref:yaml:index.adoc[YAML configuration files]
+can then xref:yaml:include.adoc[include] the platform's trace type
+partial YAML file and augment it.
+
+====
+Consider this partial YAML file:
+
+.`my-platform-trace-type.yaml`
+[source,yaml]
+----
+native-byte-order: little-endian
+clock-types:
+  sys3:
+    frequency: 8000000
+    precision: 80
+    origin-is-unix-epoch: false
+data-stream-types:
+  main:
+    $default-clock-type-name: sys3
+    packet-context-field-type-extra-members:
+      - load: int8
+      - node_id: uint16
+----
+
+An application-specific YAML configuration file can
+xref:yaml:include.adoc[include]
+`my-platform-trace-type.yaml` at the xref:yaml:trace-type-obj.adoc[trace type
+object] level:
+
+[source,yaml]
+----
+--- !<tag:barectf.org,2020/3/config>
+trace:
+  type:
+    $include:
+      - my-platform-trace-type.yaml
+      - stdint.yaml
+      - stdmisc.yaml
+    $field-type-aliases:
+      ipv4-addr:
+        class: static-array
+        length: 4
+        element-field-type: uint8
+    data-stream-types:
+      main:
+        $is-default: true
+        event-record-types:
+          on_send:
+            payload-field-type:
+              class: structure
+              members:
+                - msg: string
+                - dst_ip_addr: ipv4-addr
+          on_recv:
+            payload-field-type:
+              class: structure
+              members:
+                - msg: string
+                - src_ip_addr: ipv4-addr
+----
+====

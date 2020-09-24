@@ -1,0 +1,47 @@
+include::partial$ft-obj-inherit-prop.adoc[]
+|
+
+|[[size-prop]]`size`
+|Positive integer
+|Size of this field type's instances (bits).
+
+This property's value must be in the [1,{nbsp}64] range.
+|Yes
+|
+
+|[[align-prop]]`alignment`
+|Power-of-two integer
+|Alignment of the first bit of this field type's instances within a
+xref:how-barectf-works:ctf-primer.adoc#pkt[CTF{nbsp}packet] (bits).
+|No
+|8 if the <<size-prop,`size` property>> is a multiple of{nbsp}8,
+or{nbsp}1 otherwise.
+
+|[[pref-disp-base-prop]]`preferred-display-base`
+|String
+|
+The preferred base (radix) to use when displaying this field type's
+instances.
+
+The value of this property is only a _hint_ to CTF consumers; they don't
+have to consider it.
+
+This property's value must be one of:
+
+`bin`::
+`binary`::
+    Binary.
+
+`oct`::
+`octal`::
+    Octal.
+`dec`::
+`decimal`::
+    Decimal.
+
+`hex`::
+`hexadecimal`::
+    Hexadecimal.
+
+|No
+|Decimal preferred display base

@@ -1,0 +1,85 @@
+= YAML real field type object
+
+A _**real field type object**_ is the type of floating point number data
+fields, found in xref:how-barectf-works:ctf-primer.adoc#ds[data
+streams].
+
+[[props]]
+== Properties
+
+[%autowidth.stretch, cols="d,d,a,d,a"]
+|===
+|Name |Type |Description |{req-abbr} |Default
+
+|[[class-prop]]`class`
+|String
+|This property's value must be `real`.
+|Yes if the <<inherit-prop,`$inherit`>> property is not set.
+|
+
+include::partial$ft-obj-inherit-prop.adoc[]
+|
+
+|[[size-prop]]`size`
+|Positive integer
+|Size of this field type's instances (bits).
+
+This property's value must be one of:
+
+32::
+    https://en.wikipedia.org/wiki/Single-precision_floating-point_format[Single-precision floating point number]
+    instances (binary32).
+
+64::
+    https://en.wikipedia.org/wiki/Double-precision_floating-point_format[Double-precision floating point number]
+    instances (binary64).
+|Yes
+|
+
+|[[align-prop]]`alignment`
+|Power-of-two integer
+|Alignment of the first bit of this field type's instances within a
+xref:how-barectf-works:ctf-primer.adoc#pkt[CTF{nbsp}packet] (bits).
+|No
+|8
+|===
+
+== Generated C{nbsp}types
+
+Depending on the value of the <<size-prop,`size` property>>:
+
+32::
+    `float`
+
+64::
+    `double`
+
+== Examples
+
+.Basic <<size-prop,single-precision>> real field type object.
+====
+[source,yaml]
+----
+class: real
+size: 32
+----
+====
+
+.Basic <<size-prop,double-precision>> real field type object.
+====
+[source,yaml]
+----
+class: real
+size: 64
+----
+====
+
+.64-bit-<<align-prop,aligned>> <<size-prop,single-precision>> real field type object.
+====
+[source,yaml]
+----
+class: real
+size: 32
+alignment: 64
+----
+====

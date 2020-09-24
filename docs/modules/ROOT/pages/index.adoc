@@ -1,0 +1,101 @@
+= Welcome!
+:ansi-c: ANSI{nbsp}C
+
+[.welcome-logo]
+image::barectf-logo.svg[]
+
+Welcome to the _**barectf**_{nbsp}{page-component-version}
+documentation!
+
+== What's barectf?
+
+barectf (from _bare_ metal and _CTF_) is a generator of
+https://en.wikipedia.org/wiki/Tracing_(software)[tracer] which produces
+xref:how-barectf-works:ctf-primer.adoc#ds[CTF data streams].
+
+CTF is a binary trace format designed to be very fast to write without
+compromising great flexibility.
+
+barectf reads a configuration and produces:
+
+* A CTF xref:how-barectf-works:ctf-primer.adoc#trace[metadata stream]
+  file.
+
+* {ansi-c} source code files which, once compiled, constitute a tracer
+  which writes CTF data streams.
++
+The generated C{nbsp}source code has no other dependencies than a few
+C{nbsp}standard library headers.
+
+Your C/{cpp} program can include the generated `barectf.h` header and
+call its xref:tracing-funcs:index.adoc[`+barectf_trace_*()+` functions]
+from source locations of your choice to write
+xref:how-barectf-works:ctf-primer.adoc#er[event records] to
+xref:how-barectf-works:ctf-primer.adoc#pkt[CTF packets]. You can then
+read and analyze the CTF traces with tools such as
+https://babeltrace.org/[Babeltrace{nbsp}2] and
+https://www.eclipse.org/tracecompass/[Trace{nbsp}Compass].
+
+xref:getting-started.adoc[Get started] now with a simple barectf
+configuration.
+
+Read xref:how-barectf-works:index.adoc[] to understand the mechanics and
+terminology of barectf.
+
+== Do I need barectf?
+
+You may need barectf if you need to add CTF tracing capabilities to your
+bare metal or embedded application/system.
+
+Because barectf generates portable {ansi-c} code, you can compile it and
+use it for virtually any system.
+
+If you need to add CTF instrumentation to Linux applications or to the
+Linux kernel, have a look at https://lttng.org/[LTTng] which offers a
+comprehensive tracing solution for Linux.
+
+== Components of barectf
+
+The barectf project contains:
+
+* A Python{nbsp}3 package, named `barectf`, which offers an API to
+  programatically create a barectf configuration and generate files out
+  of it.
++
+The documentation of the `barectf` Python{nbsp}3 package isn't available
+yet.
+
+* A xref:cli:index.adoc[command-line interface] (CLI), named `barectf`,
+  which can process a xref:yaml:index.adoc[barectf YAML configuration
+  file] to generate files out of it.
+
+* Installed xref:yaml:include.adoc#std[standard partial YAML files]
+  which you can include in your barectf YAML configuration.
+
+== What's in this documentation?
+
+This documentation shows:
+
+* xref:install.adoc[How to install barectf].
+
+* xref:how-barectf-works:index.adoc[How barectf works].
+
+* xref:yaml:index.adoc[How to write a barectf YAML configuration].
+
+* xref:cli:index.adoc[How to generate files from a YAML configuration
+  file] with the `barectf` CLI tool.
+
+* xref:build:index.adoc[How to use and build your application with
+  a generated tracer].
+
+* xref:platform:index.adoc[How to write a barectf platform].
+
+== It's "`barectf`"!
+
+The name of the project is "`**barectf**`"; not "`BareCTF`", nor
+"`__bareCTF__`", nor "`__Barectf__`".
+
+== License
+
+The barectf project, including this documentation, is licensed under the
+https://github.com/efficios/barectf/blob/stable-{page-component-version}/LICENSE[MIT license].

@@ -1,0 +1,398 @@
+= YAML data stream type object
+
+A _**data stream type object**_ is the type of a
+xref:how-barectf-works:ctf-primer.adoc#ds[data stream].
+
+A data stream type describes everything a CTF consumer needs to decode
+its instances (data streams).
+
+Data stream type objects are only found under the
+xref:trace-type-obj.adoc#dsts-prop[`data-stream-types` property] of a
+trace type object.
+
+[[props]]
+== Properties
+
+[%autowidth.stretch, cols="d,d,a,d,d", role="can-break"]
+|===
+|Name |Type |Description |{req-abbr} |Default
+
+|[[is-def-prop]]`$is-default`
+|Boolean
+|If this property is true, then this data stream type is its
+xref:trace-type-obj.adoc[trace type]'s default data stream type.
+
+For a generated tracing function `__F__` named
+`+barectf_trace_my_stream_my_event()+`, where `my_stream` is the name of
+the default data stream type, barectf also generates a public
+C{nbsp}preprocessor definition named `barectf_trace_my_event` and set to
+`__F__`.
+
+For a given trace type object, a single data stream type object can
+have this property set to true.
+
+See also the code generation header option object's
+xref:cfg-obj.adoc#def-dst-name-def-prop[`def-dst-name-def-prop`
+property].
+|No
+|False
+
+|[[def-clk-type-name-prop]]`$default-clock-type-name`
+|String
+|Name of the xref:clk-type-obj.adoc[clock type] which describes the
+default clock of this data stream type's instances.
+
+This property's value must be an existing key within this trace type's
+xref:trace-type-obj.adoc#clk-types-prop[`clock-types`] mapping.
+
+When a data stream type has a default clock type, all its instances
+(xref:how-barectf-works:ctf-primer.adoc#ds[data streams])
+have their own default clock.
+
+A data stream clock is an integral counter of _cycles_. With the clock's
+type's xref:clk-type-obj.adoc#freq-prop[frequency] and
+type's xref:clk-type-obj.adoc#offset-prop[offset] properties, you can
+convert a clock value to seconds from its origin.
+
+The header fields of CTF
+xref:how-barectf-works:ctf-primer.adoc#pkt[packets] and
+xref:how-barectf-works:ctf-primer.adoc#er[event records] can contain
+snapshots, named _timestamps_, of the value of their data stream's
+default clock.
+|No
+|No default clock type
+
+|`$features`
+|<<features-obj>>
+|Features of this data stream type's instances.
+|No
+|See <<features-obj>> for default values.
+
+|[[pkt-ctx-ft-extra-members-prop]]`packet-context-field-type-extra-members`
+|Type of the structure field type object's
+xref:struct-ft-obj.adoc#members-prop[`members` property]
+|Extra, user-defined members to be appended to this data stream type's
+packet context structure field type.
+
+For each member name `__NAME__` of this property, the packet opening
+function which barectf generates for this data stream type has an
+additional parameter named `pc___NAME__`.
+
+Member names must be valid xref:index.adoc#tsdl-ident[TSDL identifiers].
+|No
+|No packet context field type extra members
+
+|[[er-common-ctx-ft-prop]]`event-record-common-context-field-type`
+|xref:struct-ft-obj.adoc[Structure field type object] or string
+|
+xref:how-barectf-works:ctf-primer.adoc#er[Event record common context
+field] type of this data stream type.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+
+For each member `__NAME__` of this property, all the
+xref:tracing-funcs:index.adoc[tracing functions] which barectf generates
+for this data stream type have an additional parameter named
+`cc___NAME__`.
+
+Member names must be valid xref:index.adoc#tsdl-ident[TSDL identifiers].
+|No
+|No event record common context field type
+
+|[[erts-prop]]`event-record-types`
+|Mapping of string keys to xref:ert-obj.adoc[event record type objects]
+|Event record types of this data stream type.
+
+Keys of this mapping are event record type names. They must be valid
+C{nbsp}identifiers.
+
+This mapping must contain at least one entry.
+|Yes
+|
+
+|[[include-prop]]`$include`
+|Sequence of strings.
+|See xref:include.adoc[].
+|No
+|No inclusions
+|===
+
+[[features-obj]]
+== Features object
+
+The features of a data stream type object.
+
+=== Properties
+
+All the properties are optional.
+
+[%autowidth.stretch]
+|===
+|Name |Type |Description |Default
+
+|`packet`
+|<<pkt-features-obj>>
+|Features related to xref:how-barectf-works:ctf-primer.adoc#pkt[CTF packets].
+|See <<pkt-features-obj>> for default values.
+
+|`event-record`
+|<<er-features-obj>>
+|Features related to xref:how-barectf-works:ctf-primer.adoc#er[CTF
+event records].
+|See <<er-features-obj>> for default values.
+|===
+
+[[pkt-features-obj]]
+== Packet features object
+
+The packet features of a data stream type object.
+
+As of barectf{nbsp}{page-component-version}, each feature controls
+whether or not some information will be part of the context of each
+xref:how-barectf-works:ctf-primer.adoc#pkt[CTF packet] which the generated
+tracer produces.
+
+You can enable or disable a feature. When you enable one, you can set
+its xref:ft-obj.adoc[field type] explicitly or make barectf choose a
+sane default.
+
+=== Properties
+
+For all the feature properties below, if the value is a boolean:
+
+True::
+    Make barectf use a default field type.
+
+False::
+    Disable the feature (if possible).
+
+All the properties are optional.
+
+[%autowidth.stretch, cols="d,d,a,d", role="can-break"]
+|===
+|Name |Type |Description |Default
+
+|[[total-size-ft-prop]]`total-size-field-type`
+|Unsigned xref:int-ft-obj.adoc[integer field type object], string,
+or boolean
+|Type of packet context's total size field.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+
+The size of this feature's integer field type must be greater than or
+equal to the size of the `content-size-field-type` property's field
+type.
+
+You **can't** disable this feature.
+|True
+
+|[[content-size-ft-prop]]`content-size-field-type`
+|Unsigned xref:int-ft-obj.adoc[integer field type object], string,
+or boolean
+|Type of packet context's content size field.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+
+The size of this feature's integer field type must be less than or equal
+to the size of the `total-size-field-type` property's field type.
+
+You **can't** disable this feature.
+|True
+
+|[[beginning-ts-ft-prop]]`beginning-timestamp-field-type`
+|Unsigned xref:int-ft-obj.adoc[integer field type object], string,
+or boolean
+|Type of packet context's beginning timestamp field.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+|True if this data stream type has a <<def-clk-type-name-prop,default
+clock type>>, or false otherwise.
+
+|[[end-ts-ft-prop]]`end-timestamp-field-type`
+|Unsigned xref:int-ft-obj.adoc[integer field type object], string,
+or boolean
+|Type of packet context's end timestamp field.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+|True if this data stream type has a <<def-clk-type-name-prop,default
+clock type>>, or false otherwise.
+
+|[[disc-er-counter-snapshot-ft-prop]]`discarded-event-records-counter-snapshot-field-type`
+|Unsigned xref:int-ft-obj.adoc[integer field type object], string,
+or boolean
+|Type of packet context's
+xref:how-barectf-works:ctf-primer.adoc#disc-er-counter[discarded event
+record counter] snapshot field.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+|True
+|===
+
+[[er-features-obj]]
+== Event record features object
+
+The event records features of a data stream type object.
+
+As of barectf{nbsp}{page-component-version}, each feature controls
+whether or not some information will be part of the header of each
+xref:how-barectf-works:ctf-primer.adoc#er[CTF event record] which the
+generated tracer produces.
+
+You can enable or disable a feature. When you enable one, you can set
+its xref:ft-obj.adoc[field type] explicitly or make barectf choose a
+sane default.
+
+=== Properties
+
+For all the feature properties below, if the value is a boolean:
+
+True::
+    Make barectf use a default field type.
+
+False::
+    Disable the feature.
+
+All the properties are optional.
+
+[%autowidth.stretch, cols="d,d,a,d", role="can-break"]
+|===
+|Name |Type |Description |Default
+
+|[[type-id-ft-prop]]`type-id-field-type`
+|Unsigned xref:int-ft-obj.adoc[integer field type object], string,
+or boolean
+|Type of event header's xref:ert-obj.adoc[event record type] ID field.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+
+This feature is required when this data stream type has more than one
+event record type (<<erts-prop,`event-record-types` property>>).
+|True
+
+|[[ts-prop]]`timestamp-field-type`
+|Unsigned xref:int-ft-obj.adoc[integer field type object], string,
+or boolean
+|Type of event header's timestamp field.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+|True if this data stream type has a <<def-clk-type-name-prop,default
+clock type>>, or false otherwise.
+|===
+
+== Examples
+
+NOTE: The following examples can omit <<erts-prop,event record type
+objects>> for clarity.
+
+.Basic data stream type object.
+====
+[source,yaml]
+----
+event-record-types:
+  # ...
+----
+====
+
+.Basic <<is-def-prop,default>> data stream type object.
+====
+[source,yaml]
+----
+$is-default: true
+event-record-types:
+  # ...
+----
+====
+
+.Data stream type object with a <<def-clk-type-name-prop,default clock type>>.
+====
+[source,yaml]
+----
+$default-clock-type-name: sys_clock2
+event-record-types:
+  # ...
+----
+====
+
+.Data stream type object with a disabled packet <<disc-er-counter-snapshot-ft-prop,discarded event records counter snapshot field type feature>>.
+====
+[source,yaml]
+----
+$features:
+  packet:
+    discarded-event-records-counter-snapshot-field-type: false
+event-record-types:
+  # ...
+----
+====
+
+.Data stream type object with 16-bit packet <<total-size-ft-prop,total>> and <<content-size-ft-prop,content size field type features>>.
+====
+[source,yaml]
+----
+$features:
+  packet:
+    total-size-field-type: uint16
+    content-size-field-type: uint16
+event-record-types:
+  # ...
+----
+====
+
+.Data stream type object with a disabled event record <<ts-prop,timestamp field type feature>>.
+====
+[source,yaml]
+----
+$features:
+  event-record:
+    timestamp-field-type: false
+event-record-types:
+  # ...
+----
+====
+
+.Data stream type object with <<pkt-ctx-ft-extra-members-prop,packet context field type extra members>>.
+====
+[source,yaml]
+----
+packet-context-field-type-extra-members:
+  - cur_load: int8
+  - node_id: uint16
+  - node_addr: string
+event-record-types:
+  # ...
+----
+====
+
+.Data stream type object with an <<er-common-ctx-ft-prop,event record common context field type>>.
+====
+[source,yaml]
+----
+event-record-common-context-field-type:
+  class: structure
+  members:
+    - pid: uint32
+    - level: double
+event-record-types:
+  # ...
+----
+====
+
+.Data stream type object with <<include-prop,inclusions>>.
+====
+[source,yaml]
+----
+event-record-types:
+  # ...
+$include:
+  - project-b-event-record-types.yaml
+  - common-data-stream-type-features.yaml
+----
+====

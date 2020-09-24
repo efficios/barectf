@@ -1,0 +1,119 @@
+= YAML dynamic array field type objects
+
+A _**dynamic array field type object**_ is the type of dynamic
+(variable-length) array data fields, found in
+xref:how-barectf-works:ctf-primer.adoc#ds[data streams].
+
+A dynamic array data field is a sequence of data fields, or _elements_.
+In CTF, the number of elements in a dynamic array data field (its
+length) is the value of a prior integer data field.
+
+[[props]]
+== Properties
+
+[%autowidth.stretch, cols="d,d,a,d"]
+|===
+|Name |Type |Description |{req-abbr}
+
+|[[class-prop]]`class`
+|String
+|This property's value must be `dynamic-array`.
+|Yes if the <<inherit-prop,`$inherit`>> property is not set.
+
+include::partial$ft-obj-inherit-prop.adoc[]
+
+|[[element-ft-prop]]`element-field-type`
+|xref:ft-obj.adoc[Field type object] (except a
+xref:struct-ft-obj.adoc[structure field type object] and a
+dynamic array field type object) or string
+|Type of each element (data fields) in this field type's instances.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias]. This
+field type must _not_ be a structure field type or a dynamic array
+field type.
+|Yes
+|===
+
+== Generated C{nbsp}types
+
+barectf always generates two packet opening or tracing function
+parameters for a dynamic array field type object. Their C{nbsp}types
+are:
+
+Dynamic array's length::
+    `uint32_t`
+
+Dynamic array's data::
+    Pointer to `const __T__`, where `__T__` is the generated C{nbsp}type
+    for the field type object of the
+    <<element-ft-prop,`element-field-type` property>>.
++
+Examples:
++
+[%autowidth.stretch]
+|===
+|Element field type |Generated C{nbsp}type
+
+|8-bit unsigned xref:int-ft-obj.adoc[integer]
+|`const uint8_t *`
+
+|32-bit signed integer
+|`const int32_t *`
+
+|Single-precision xref:real-ft-obj.adoc[real]
+|`const float *`
+
+|xref:str-ft-obj.adoc[String]
+|`const char * const *`
+
+|Static array of 16-bit signed integers
+|`const int16_t * const *`
+
+|Static array of double-precision reals
+|`const double * const *`
+
+|Static array of strings
+|`const char * const * const *`
+
+|Static array of static arrays of 32-bit unsigned integers
+|`const uint32_t * const * const *`
+|===
+
+== Examples
+
+.Dynamic array field type object: <<length-prop,four>> 8-bit unsigned xref:int-ft-obj.adoc[integers].
+====
+[source,yaml]
+----
+class: dynamic-array
+length: 4
+element-field-type: uint8
+----
+====
+
+.Dynamic array field type object: <<length-prop,22>>{nbsp}xref:str-ft-obj.adoc[strings].
+====
+[source,yaml]
+----
+class: dynamic-array
+length: 22
+element-field-type:
+  class: string
+----
+====
+
+.Dynamic array field type object: <<length-prop,five>> xref:static-array-ft-obj.adoc[static arrays] of 32{nbsp}double-precision xref:real-ft-obj.adoc[reals].
+====
+[source,yaml]
+----
+class: dynamic-array
+length: 5
+element-field-type:
+  class: static-array
+  length: 32
+  element-field-type:
+    class: real
+    size: 64
+----
+====

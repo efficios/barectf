@@ -1,0 +1,280 @@
+= Platform example
+:us: _
+
+This barectf platform example is a stripped-down version of the
+https://github.com/efficios/barectf/tree/stable-{page-component-version}/platforms/linux-fs[Linux FS]
+demonstration platform.
+
+== Header
+
+.`my-platform.h`
+[source,c]
+----
+#ifndef _MY_PLATFORM_H
+#define _MY_PLATFORM_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Platform context */
+struct my_platform_ctx;
+
+/* barectf context */
+struct barectf_my_stream_ctx;
+
+/* Platform initialization function */
+struct my_platform_ctx *my_platform_init(unsigned int buf_size,
+                                         const char *data_stream_file_path);
+
+/* Platform finalization function */
+void my_platform_fini(struct my_platform_ctx *platform_ctx);
+
+/* barectf context pointer access function */
+struct barectf_my_stream_ctx *my_platform_get_barectf_ctx(
+    struct my_platform_ctx *platform_ctx);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _MY_PLATFORM_H */
+----
+
+== Source
+
+.`my-platform.c`
+[source,c]
+----
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <assert.h>
+#include <time.h>
+
+#include "barectf.h"
+
+/* Platform context */
+struct my_platform_ctx {
+    struct barectf_my_stream_ctx ctx;
+    FILE *fh;
+};
+
+/* Clock source platform function */
+static uint64_t my_clock_get_value(void * const data)
+{
+    struct timespec ts;
+
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+}
+
+static void write_packet(const struct my_platform_ctx * const platform_ctx)
+{
+    /* Append current packet to data stream file */
+    const size_t nmemb = fwrite(barectf_packet_buf_addr(&platform_ctx->ctx),
+                                barectf_packet_buf_size(&platform_ctx->ctx),
+                                1, platform_ctx->fh);
+
+    assert(nmemb == 1);
+}
+
+/* Full back end check platform function */
+static int is_backend_full(void * const data)
+{
+    return 0;
+}
+
+/* Packet opening platform function */
+static void open_packet(void * const data)
+{
+    struct my_platform_ctx * const platform_ctx = data;
+
+    barectf_my_stream_open_packet(&platform_ctx->ctx);
+}
+
+/* Packet closing platform function */
+static void close_packet(void * const data)
+{
+    struct my_platform_ctx * const platform_ctx = data;
+
+    /* Close packet now */
+    barectf_my_stream_close_packet(&platform_ctx->ctx);
+
+    /* Write packet to file */
+    write_packet(platform_ctx);
+}
+
+/* Platform initialization function */
+struct my_platform_ctx *my_platform_init(const unsigned int buf_size,
+    const char * const data_stream_file_path)
+{
+    char stream_path[256];
+    uint8_t *buf = NULL;
+    struct my_platform_ctx *platform_ctx;
+    struct barectf_platform_callbacks cbs;
+
+    /* Set platform callback functions */
+    cbs.my_clock_clock_get_value = my_clock_get_value;
+    cbs.is_backend_full = is_backend_full;
+    cbs.open_packet = open_packet;
+    cbs.close_packet = close_packet;
+
+    /* Allocate platform context (which contains a barectf context) */
+    platform_ctx = malloc(sizeof(*platform_ctx));
+
+    if (!platform_ctx) {
+        goto error;
+    }
+
+    /* Allocate packet buffer */
+    buf = malloc(buf_size);
+
+    if (!buf) {
+        goto error;
+    }
+
+    /* Open data stream file */
+    platform_ctx->fh = fopen(data_stream_file_path, "wb");
+
+    if (!platform_ctx->fh) {
+        goto error;
+    }
+
+    /* Initialize barectf context */
+    barectf_init(&platform_ctx->ctx, buf, buf_size, cbs, platform_ctx);
+
+    /* Open the first packet */
+    open_packet(platform_ctx);
+
+    goto end;
+
+error:
+    free(platform_ctx);
+    free(buf);
+
+end:
+    /* Return platform context to user */
+    return platform_ctx;
+}
+
+/* Platform finalization function */
+void my_platform_fini(struct my_platform_ctx * const platform_ctx)
+{
+    /* Close current packet if needed */
+    if (barectf_packet_is_open(&platform_ctx->ctx) &&
+            !barectf_packet_is_empty(&platform_ctx->ctx)) {
+        close_packet(platform_ctx);
+    }
+
+    /* Close data stream file */
+    fclose(platform_ctx->fh);
+
+    /* Deallocate packet buffer */
+    free(barectf_packet_buf(&platform_ctx->ctx));
+
+    /* Deallocate platform context */
+    free(platform_ctx);
+}
+
+/* barectf context pointer access function */
+struct barectf_my_stream_ctx *my_platform_get_barectf_ctx(
+    struct my_platform_ctx * const platform_ctx)
+{
+    return &platform_ctx->ctx;
+}
+----
+
+== Components
+
+In this example, you can find all the required components of a barectf
+platform:
+
+xref:api.adoc#cbs[Platform callback functions]::
+    xref:api.adoc#cb-clk-src[Clock source]:::
++
+[source,c]
+----
+static uint64_t my_clock_get_value(void * const data)
+{
+    struct timespec ts;
+
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+}
+----
+
+    xref:api.adoc#cb-open[Packet opening]:::
++
+[source,c]
+----
+static void open_packet(void * const data)
+{
+    struct my_platform_ctx * const platform_ctx = data;
+
+    barectf_my_stream_open_packet(&platform_ctx->ctx);
+}
+----
+
+    xref:api.adoc#cb-close[Packet closing]:::
++
+[source,c]
+----
+static void close_packet(void * const data)
+{
+    struct my_platform_ctx * const platform_ctx = data;
+
+    barectf_my_stream_close_packet(&platform_ctx->ctx);
+    write_packet(platform_ctx);
+}
+----
+
+    xref:api.adoc#cb-is-back-end-full[Is the back end full?]:::
++
+[source,c]
+----
+static int is_backend_full(void * const data)
+{
+    return 0;
+}
+----
++
+This one always returns 0 as we assume that we can always append a
+packet to the data stream file.
+
+Platform initialization function::
++
+[source,c]
+----
+struct my_platform_ctx *my_platform_init(const unsigned int buf_size,
+    const char * const data_stream_file_path)
+{
+    /* ... */
+}
+----
+
+Platform finalization function::
++
+[source,c]
+----
+void my_platform_fini(struct my_platform_ctx * const platform_ctx)
+{
+    if (barectf_packet_is_open(&platform_ctx->ctx) &&
+            !barectf_packet_is_empty(&platform_ctx->ctx)) {
+        close_packet(platform_ctx);
+    }
+
+    /* ... */
+}
+----
+
+barectf context pointer access function::
++
+[source,c]
+----
+struct barectf_my_stream_ctx *my_platform_get_barectf_ctx(
+    struct my_platform_ctx * const platform_ctx)
+{
+    return &platform_ctx->ctx;
+}
+----

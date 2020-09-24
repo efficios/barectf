@@ -1,0 +1,151 @@
+= YAML clock type object
+
+A _**clock type object**_ is the type of data stream
+xref:how-barectf-works:ctf-primer.adoc#def-clk[clocks].
+
+Clock type objects are only found under the
+xref:trace-type-obj.adoc#clk-types-prop[`clock-types` property] of a
+trace type object.
+
+The only purpose of a clock type is to be a
+xref:dst-obj.adoc[data stream type object]'s default
+clock type.
+
+[[props]]
+== Properties
+
+All the properties are optional.
+
+[%autowidth.stretch, cols="d,d,a,d", role="can-break"]
+|===
+|Name |Type |Description |Default
+
+|[[freq-prop]]`frequency`
+|Integer, greater than{nbsp}0
+|Frequency of instances (Hz).
+|1,000,000,000 (1{nbsp}GHz)
+
+|[[offset-prop]]`offset`
+|<<offset-obj>>
+|Offset of instances.
+|See <<offset-obj>> for default values.
+
+|`origin-is-unix-epoch`
+|Boolean
+|True if the origin of instances is the Unix epoch.
+|True
+
+|`precision`
+|Positive integer
+|Precision of instances (cycles).
+|0
+
+|`uuid`
+|xref:common-values.adoc#uuid[UUID]
+|Clock type's UUID.
+|No UUID
+
+|`description`
+|String
+|Clock type's description.
+|No description
+
+|[[c-type-prop]]`$c-type`
+|String
+|Return C{nbsp}type of the clock source function for this clock type.
+
+See xref:platform:index.adoc[] to learn more.
+|`uint32_t`
+
+|[[include-prop]]`$include`
+|Sequence of strings.
+|See xref:include.adoc[].
+|No inclusions
+|===
+
+[[offset-obj]]
+== Clock type offset object
+
+Offset information of a clock type's instances.
+
+=== Properties
+
+All the properties are optional.
+
+[%autowidth.stretch, cols="d,d,a,d"]
+|===
+|Name |Type |Description |Default
+
+|`seconds`
+|Integer
+|Offset in seconds.
+|0
+
+|`cycles`
+|Positive integer
+|Offset in cycles.
+|0
+|===
+
+The two properties form an effective offset (from the clock's origin) as
+such:
+
+----
+seconds + cycles / frequency
+----
+
+`frequency` is a <<freq-prop,clock type property>>.
+
+== Examples
+
+.Basic 1{nbsp}GHz clock type object.
+====
+This empty mapping, when used where a clock type is expected, is a
+valid, default clock type.
+
+[source,yaml]
+----
+{}
+----
+====
+
+.Basic <<freq-prop,100{nbsp}kHz>> clock type object.
+====
+[source,yaml]
+----
+frequency: 100000
+----
+====
+
+.Basic <<freq-prop,1{nbsp}GHz>> clock type object with an `unsigned long long` <<c-type-prop,C{nbsp}type>>.
+====
+[source,yaml]
+----
+$c-type: unsigned long long
+----
+====
+
+.Complete clock type object.
+====
+[source,yaml]
+----
+frequency: 8000000
+offset:
+  seconds: 1600463226
+  cycles: 200000
+origin-is-unix-epoch: false
+precision: 8
+uuid: 79e49040-21b5-42d4-a873-677261696e65
+description: System clock
+$c-type: uint64_t
+----
+====
+
+.Clock type object with an <<include-prop,inclusion>>.
+====
+[source,yaml]
+----
+$include: [base-clock-type.yaml]
+frequency: 8000000
+----
+====

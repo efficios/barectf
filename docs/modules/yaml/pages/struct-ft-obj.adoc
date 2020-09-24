@@ -1,0 +1,130 @@
+= YAML structure field type objects
+
+A _**structure field type object**_ is the type of structure data
+fields, found in xref:how-barectf-works:ctf-primer.adoc#ds[data
+streams].
+
+A structure data field is a sequence of named data fields, or
+_members_. In CTF, the names of those members are found in the
+xref:how-barectf-works:ctf-primer.adoc#trace[metadata stream].
+
+[[props]]
+== Properties
+
+[%autowidth.stretch, cols="d,a,a,d,a"]
+|===
+|Name |Type |Description |{req-abbr} |Default
+
+|[[class-prop]]`class`
+|String
+|This property's value must be one of:
+
+* `structure`
+* `struct`
+|Yes if the <<inherit-prop,`$inherit`>> property is not set.
+|
+
+include::partial$ft-obj-inherit-prop.adoc[]
+|
+
+|[[min-align-prop]]`minimum-alignment`
+|Power-of-two integer
+|_Minimum_ alignment of the first bit of this field type's instances
+within a xref:how-barectf-works:ctf-primer.adoc#pkt[CTF{nbsp}packet]
+(bits).
+|No
+|1
+
+|[[members-prop]]`members`
+|Sequence of mappings, where each mapping has a single entry:
+
+Key::
+    Member's name.
+
+Value::
+    <<struct-ft-member-obj,Structure field type member object>>
+    or string.
+
+This sequence is considered to be an _ordered mapping_, similar to
+YAML's https://yaml.org/type/omap.html[`+!!omap+`] type. Therefore,
+each mapping key must be unique.
+|Members of this structure field type.
+
+If a mapping's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias]. This
+field type must _not_ be a structure field type.
+|No
+|No members
+|===
+
+[[struct-ft-member-obj]]
+== Structure field type member object
+
+A member within a structure field type object.
+
+=== Properties
+
+[%autowidth.stretch, cols="d,d,a,d"]
+|===
+|Name |Type |Description |{req-abbr}
+
+|[[member-ft-prop]]`field-type`
+|xref:ft-obj.adoc[Field type object] (except a structure field type
+object) or string
+|Member's field type.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias]. This
+field type must _not_ be a structure field type.
+|Yes
+|===
+
+== Examples
+
+.Basic structure field type object with no <<members-prop,members>>.
+====
+[source,yaml]
+----
+class: structure
+----
+====
+
+.Structure field type object with three <<members-prop,members>> using xref:trace-type-obj.adoc#ft-aliases-prop[field type aliases].
+====
+[source,yaml]
+----
+class: structure
+members:
+  - msg: string
+  - msg_id: uint32
+  - src_ip_addr: ipv4
+----
+====
+
+.Structure field type object with one <<struct-ft-member-obj,member object>>.
+====
+[source,yaml]
+----
+class: structure
+members:
+  - msg: string
+  - msg_id:
+      field-type:
+        class: unsigned-integer
+        size: 32
+  - src_ip_addr: ipv4
+----
+====
+
+.Structure field type object with an explicit <<min-align-prop,minimum alignment>>.
+====
+[source,yaml]
+----
+class: structure
+minimum-alignment: 64
+members:
+  - msg: string
+  - msg_id: uint32
+  - src_ip_addr: ipv4
+----
+====

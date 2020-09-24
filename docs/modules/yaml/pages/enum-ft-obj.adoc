@@ -1,0 +1,125 @@
+= YAML enumeration field type objects
+
+_**Enumeration field type objects**_ are the types of enumeration data
+fields, found in xref:how-barectf-works:ctf-primer.adoc#ds[data
+streams].
+
+An enumeration data field is an integer data field.
+
+An enumeration field type is an integer field type with
+<<mappings-prop,_mappings_>>. An enumeration field type mapping is a labeled
+set of integer ranges. An enumeration data field can have zero or more
+labels depending on its value.
+
+[[props]]
+== Properties
+
+[%autowidth.stretch, cols="d,d,a,d,a", role="can-break"]
+|===
+|Name |Type |Description |{req-abbr} |Default
+
+|[[class-prop]]`class`
+|String
+|This property's value must be one of:
+
+`unsigned-enumeration`::
+`unsigned-enum`::
+`uenum`::
+    Unsigned enumeration field type
+
+`signed-enumeration`::
+`signed-enum`::
+`senum`::
+    Signed enumeration field type
+|Yes if the <<inherit-prop,`$inherit`>> property is not set.
+|
+
+include::partial$int-ft-obj-base-props.adoc[]
+
+|[[mappings-prop]]`mappings`
+|Mapping of string keys to
+<<enum-ft-mapping-seq,enumeration field type mapping sequences>>
+|Mappings of this enumeration field type.
+
+Each mapping assigns a label to a set of integer ranges.
+|No
+|No mappings
+|===
+
+[[enum-ft-mapping-seq]]
+== Enumeration field type mapping sequence
+
+A YAML sequence of integer ranges, which can be:
+
+A sequence of two integers::
+    The first integer is the range's lower value (included).
++
+The second integer is the range's upper value (included).
+
+An integer::
+    This is equivalent to a sequence of two identical integers.
++
+In other words, `17` is equivalent to `+[17, 17]+`.
+
+== Generated C{nbsp}types
+
+include::partial$int-ft-obj-c-types-table.adoc[]
+
+== Examples
+
+.Basic <<size-prop,8-bit>> unsigned enumeration field type object.
+====
+[source,yaml]
+----
+class: unsigned-enumeration
+size: 8
+----
+====
+
+.<<size-prop,23-bit>> signed enumeration field type object with simple <<mappings-prop,mappings>>.
+====
+[source,yaml]
+----
+class: signed-enumeration
+size: 23
+mappings:
+  A: [2]
+  B: [5]
+  C: [9]
+----
+====
+
+.32-bit-<<align-prop,aligned>> <<size-prop,16-bit>> signed enumeration field type object with <<mappings-prop,mappings>>.
+====
+[source,yaml]
+----
+class: signed-enumeration
+size: 16
+alignment: 32
+mappings:
+  RUNNING:
+    - 17
+    - [19, 24]
+    - -144
+  WAITING:
+    - 18
+    - [-32, -25]
+  STOPPED: [202]
+----
+====
+
+.<<size-prop,32-bit>> unsigned enumeration field type object with a hexadecimal <<pref-disp-base-prop,preferred display base>> and <<mappings-prop,mappings>>.
+====
+[source,yaml]
+----
+class: unsigned-enumeration
+size: 32
+preferred-display-base: hexadecimal
+mappings:
+  steam-machine: [18]
+  on/off:
+    - 15
+    - [200, 1000]
+  the-prime-time-of-your-life: [2]
+----
+====

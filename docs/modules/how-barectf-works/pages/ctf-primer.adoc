@@ -1,0 +1,215 @@
+= CTF primer
+
+The https://diamon.org/ctf/[_**Common Trace Format**_] (CTF) is a binary
+https://en.wikipedia.org/wiki/Tracing_(software)[trace] format which is
+designed to be very fast to write while offering many field types to
+represent data.
+
+A barectf configuration can use the following CTF field types:
+
+* Unsigned/signed xref:yaml:int-ft-obj.adoc[integer] (1 to 64 bits).
+* Unsigned/signed xref:yaml:enum-ft-obj.adoc[enumeration] (1 to
+  64 bits).
+* xref:yaml:real-ft-obj.adoc[Real] (single or double precision).
+* Null-terminated xref:yaml:str-ft-obj.adoc[string].
+* xref:yaml:struct-ft-obj.adoc[Structure] (zero or more named members).
+* xref:yaml:static-array-ft-obj.adoc[Static array] of any field type
+  except structure and dynamic array.
+* xref:yaml:dyn-array-ft-obj.adoc[Dynamic array] of any field type
+  except structure and dynamic array.
+
+CTF makes it possible to describe the alignment and byte order of
+integer, enumeration, and real fields.
+
+A system which produces CTF streams is known as a _CTF producer_.
+
+A system which consumes CTF streams is known as a _CTF consumer_.
+
+[[trace]]
+== CTF trace structure
+
+A _**CTF trace**_ is exactly one metadata stream and one or more
+<<ds,data streams>>:
+
+[.width-50]
+image::ctf-trace.svg[]
+
+The metadata stream describes the trace's data streams with the TSDL
+language. On the file system, its file name must be `metadata`.
+
+The metadata stream describes things such as:
+
+* The xref:yaml:clk-type-obj.adoc[type] of the data stream default clocks.
+* The names of xref:yaml:ert-obj.adoc[event record types].
+* The types of event record fields.
+* The xref:yaml:trace-obj.adoc[trace]'s environment variables.
+
+[[ds]]
+=== Data stream
+
+A _**CTF data stream**_ is a sequence of one or more data
+<<pkt,packets>>:
+
+A xref:yaml:dst-obj.adoc[data stream type] describes data streams.
+
+[.width-100]
+image::ctf-data-stream.svg[]
+
+A packet contains one or more bytes of data.
+
+Although a packet can contain padding itself, from the data stream's
+point of view, there's no padding between packets.
+
+A data stream can have, conceptually:
+
+[[def-clk]]A default clock::
+    Described by a xref:yaml:clk-type-obj.adoc[clock type] in the trace's
+    metadata stream.
++
+<<pkt,Packets>> and event records can contain snapshots, named
+_timestamps_, of their data stream's clock.
+
+[[disc-er-counter]]A counter of discarded event records::
+    Indicates the number of event records which the generated tracer
+    needed to discard for different reasons.
++
+For example, the tracer discards an event record when it doesn't fit the
+current packet and the back end is full (see
+xref:platform:index.adoc[]).
++
+A <<pkt,packet>> can contain a snapshot of this counter.
+
+On the file system, a data stream file:
+
+* Can have any name, except `metadata` and anything which begins with
+  `.`.
+
+* Must be in the same directory as the `metadata` file.
+
+[[pkt]]
+=== Packet
+
+A _**CTF packet**_ is a part of a <<ds,data stream>>.
+
+[.width-100]
+image::ctf-packet.svg[]
+
+A packet contains, in this order:
+
+. [.opt]##Optional##A header structure field, which contains:
++
+** [.opt]##Optional##The CTF magic number.
++
+See the trace type features object's
+xref:yaml:trace-type-obj.adoc#magic-ft-prop[`magic-field-type`
+property].
+
+** [.opt]##Optional##A trace type UUID.
++
+See the trace type object's
+xref:yaml:trace-type-obj.adoc#uuid-prop[`uuid` property] and the
+trace type features object's
+xref:yaml:trace-type-obj.adoc#uuid-ft-prop[`uuid-field-type`
+property].
+
+** [.opt]##Optional##The numeric ID of the data stream type which, in the
+   metadata stream, describes this packet's data stream.
++
+See the trace type features object's
+xref:yaml:trace-type-obj.adoc#dst-id-ft-prop[`data-stream-type-id-field-type`
+property].
+
+** [.opt]##Optional##The numeric ID of this packet's data stream.
+
+. A context structure field, which contains:
++
+** The packet's total size, in bits (always a multiple of{nbsp}8).
++
+See the data stream type packet features object's
+xref:yaml:dst-obj.adoc#total-size-ft-prop[`total-size-field-type`
+property].
+
+** The packet's content size, in bits.
++
+See the data stream type packet features object's
+xref:yaml:dst-obj.adoc#content-size-ft-prop[`content-size-field-type`
+property].
+
+** [.opt]##Optional##The packet's beginning timestamp.
++
+See the data stream type packet features object's
+xref:yaml:dst-obj.adoc#beginning-ts-ft-prop[`beginning-timestamp-field-type`
+property].
+
+** [.opt]##Optional##The packet's end timestamp.
++
+See the data stream type packet features object's
+xref:yaml:dst-obj.adoc#end-ts-ft-prop[`end-timestamp-field-type`
+property].
+
+** [.opt]##Optional##A discarded event record counter snapshot.
++
+See the data stream type packet features object's
+xref:yaml:dst-obj.adoc#disc-er-counter-snapshot-ft-prop[`discarded-event-records-counter-snapshot-field-type`
+property].
+
+** [.opt]##Optional##A packet sequence number.
+** [.opt]##Optional##User fields.
++
+See the data stream type object's
+xref:yaml:dst-obj.adoc#pkt-ctx-ft-extra-members-prop[`packet-context-field-type-extra-members`
+property].
+
+. Zero or more <<er,event records>>.
+
+A packet contains one or more bytes of data.
+
+A packet can have padding (garbage data) after its last event record if
+its total size is different from its content size.
+
+[[er]]
+=== Event record
+
+A _**CTF event record**_ is the result of a tracer writing a
+time-stamped record with user data when an event occurs during a user
+application's execution.
+
+An xref:yaml:ert-obj.adoc[event record type] describes event records.
+
+[.width-80]
+image::ctf-event-record.svg[]
+
+An event record contains, in this order:
+
+. [.opt]##Optional##A header structure field, which contains:
++
+** [.opt]##Optional##The numeric ID of the event record type which, in the
+   metadata stream, describes this event record.
++
+See the data stream type event record features object's
+xref:yaml:dst-obj.adoc#type-id-ft-prop[`type-id-field-type` property].
+
+** [.opt]##Optional##A timestamp.
++
+See the data stream type event record features object's
+xref:yaml:dst-obj.adoc#ts-prop[`timestamp-field-type` property].
+
+. [.opt]##Optional##A common context structure field, which contains
+  user fields.
++
+See the data stream type object's
+xref:yaml:dst-obj.adoc#er-common-ctx-ft-prop[`event-record-common-context-field-type`
+property].
+
+. [.opt]##Optional##A specific context structure field, which contains user
+  fields.
++
+See the event record type object's
+xref:yaml:ert-obj.adoc#spec-ctx-ft-prop[`specific-context-field-type`
+property].
+
+. [.opt]##Optional##A payload structure field, which contains user
+  fields.
++
+See the event record type object's
+xref:yaml:ert-obj.adoc#payload-ft-prop[`payload-field-type` property].

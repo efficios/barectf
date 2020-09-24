@@ -1,0 +1,39 @@
+For a given property of __**A**__, the patching rules are:
+
+[%autowidth.stretch, cols="d,a,a"]
+|===
+|__**A**__'s property type |<em>A</em>'s property exists in&#160;<em>B</em> |<em>A</em>'s property doesn't exist in&#160;<em>B</em>
+
+|Null, boolean, integer, and string
+|Replace __**B**__'s property with __**A**__'s property.
+|Keep __**A**__'s property.
+
+|Sequence
+|
+__**B**__'s property is also a sequence::
+    Append the items of __**A**__'s property to __**B**__'s
+    property.
++
+A structure field type object's
+xref:struct-ft-obj.adoc#members-prop[`members` property] is an
+exception: __**A**__'s property is considered to be an _ordered
+mapping_, therefore apply the mapping patching rules.
+
+__**B**__'s property is _not_ a sequence::
+    Replace __**B**__'s property with __**A**__'s property.
+|Keep __**A**__'s property.
+
+|Mapping
+|
+__**B**__'s property is also a mapping::
+    Patch __**A**__'s property over __**B**__'s property according to
+    those rules.
+
+__**B**__'s property is _not_ a mapping::
+    Replace __**B**__'s property with __**A**__'s property.
+|Keep __**A**__'s property.
+|===
+
+NOTE: When __**A**__'s property replaces __**B**__'s property and the
+value of __**A**__'s property is null, this effectively "`resets`" the
+property to its default value.

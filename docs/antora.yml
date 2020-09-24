@@ -1,0 +1,8 @@
+name: barectf
+title: barectf
+version: '3.0'
+asciidoc:
+  attributes:
+    req-abbr: '<abbr title="Required?">Req?</abbr>'
+nav:
+  - modules/ROOT/nav.adoc

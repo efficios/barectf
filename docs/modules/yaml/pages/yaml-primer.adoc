@@ -1,0 +1,238 @@
+= YAML primer
+
+https://yaml.org/[YAML] is a human-readable data serialization format,
+like https://www.json.org/json-en.html[JSON].
+
+In fact, YAML is a superset of JSON: you can also write a barectf
+configuration in JSON.
+
+YAML has many features which are outside the scope of the barectf
+documentation. This page is a simple introduction to the
+https://yaml.org/spec/1.2/spec.html[YAML{nbsp}1.2] language.
+
+YAML uses indentation for scoping, much like Python.
+
+The root of a YAML document is a <<mapping,mapping>>.
+
+[[mapping]]
+== Mapping
+
+A YAML mapping is an unordered list of key-value pairs.
+
+Within a mapping, `:` delimits the value from the key.
+
+.A YAML mapping with four entries.
+====
+[source,yaml]
+----
+Castonguay: Huguette Delisle
+Létourneau: Gaétan Delisle
+Robitaille: Serge Paquette
+Gonthier-Hyndman: Micheline Paquette
+----
+====
+
+.A YAML mapping with a nested mapping.
+====
+[source,yaml]
+----
+title: C'est comme ça que je t'aime
+country: Canada
+language: French
+release-date: 6 March 2020
+cast:
+  Castonguay: Huguette Delisle
+  Létourneau: Gaétan Delisle
+  Robitaille: Serge Paquette
+  Gonthier-Hyndman: Micheline Paquette
+----
+====
+
+You can also write a mapping on a single line, delimiting key-value
+pairs with `,`, beginning with `{` and ending with `}`:
+
+.A single-line YAML mapping with four entries.
+====
+[source,yaml]
+----
+{Marilyn: Huguette, François: Gaétan, Karine: Micheline, Patrice: Serge}
+----
+====
+
+.A YAML mapping with a nested single-line mapping.
+====
+[source,yaml]
+----
+title: C'est comme ça que je t'aime
+country: Canada
+language: French
+release-date: 6 March 2020
+cast: {Marilyn: Huguette, François: Gaétan, Karine: Micheline, Patrice: Serge}
+----
+====
+
+Although the keys of a mapping can be any value, barectf only uses
+strings.
+
+Each key of a given mapping must be unique.
+
+[[sequence]]
+== Sequence
+
+A YAML sequence is an ordered list of values.
+
+Each item begins with `-`.
+
+.A YAML sequence with four items.
+====
+[source,yaml]
+----
+- Corvette Express
+- Québec Deli
+- Boulangerie Fanfare
+- Marché Méli-Mélo
+----
+====
+
+.A YAML sequence. The third item is a <<mapping,mapping>>.
+====
+[source,yaml]
+----
+- Le poète des temps gris
+- Aidez-moi
+- name: Granby
+  album: Toutte est temporaire
+  year: 2014
+- La patente
+----
+====
+
+You can also write a sequence on a single line, delimiting items
+with a comma (`,`), beginning with `[` and ending with `]`:
+
+.A single-line YAML sequence with four items.
+====
+[source,yaml]
+----
+[Corvette Express, Québec Deli, Boulangerie Fanfare, Marché Méli-Mélo]
+----
+====
+
+.A single-line YAML sequence. The third item is a single-line <<mapping,mapping>>.
+====
+[source,yaml]
+----
+[Le poète des temps gris, Aidez-moi, {name: Granby, year: 2014}, La patente]
+----
+====
+
+[[scalar]]
+== Null, boolean, integer, and string values
+
+The basic YAML scalar values which are of interest to write a barectf
+configuration are:
+
+Null::
+    `null`, `Null`, `NULL`, `+~+`, or nothing.
++
+In a barectf YAML configuration, a null value always means to use the
+default value.
+
+Boolean::
+    `true`, `True`, `TRUE`, `false`, `False`, or `FALSE`.
+
+Integer::
+    Anything matching:
++
+** `+[-+]?[0-9]++` (decimal)
+** `+0o[0-7]++` (octal)
+** `+0x[0-9a-fA-F]++` (hexadecimal)
+
++
+Examples: `23`, `0x45fc1`, `-17`, `0o644`.
+
+String::
+    Double-quoted or single-quoted sequence of characters, or unquoted
+    sequence of characters when it doesn't match the form of another
+    value.
++
+Examples:
++
+** `+"Whoever is happy will make others happy too."+`
+** `+'Life is either a daring adventure or nothing at all.'+`
+** `+Only a life lived for others is a life worthwhile.+`
+
+.A YAML mapping with null, boolean, integer, and string values.
+====
+[source,yaml]
+----
+'null': null
+booleans: [true, false]
+integers: [23, 0x45fc1, -17, 0o644]
+strings:
+  - "Whoever is happy will make others happy too."
+  - 'Life is either a daring adventure or nothing at all.'
+  - Only a life lived for others is a life worthwhile
+----
+====
+
+== Comment
+
+A YAML comment starts with `+#+` and ends at the end of the line.
+
+.A YAML mapping with comments.
+====
+[source,yaml]
+----
+title: C'est comme ça que je t'aime
+
+# This is actually a Québec production.
+country: Canada
+
+language: French
+release-date: 6 March 2020
+cast:
+  Castonguay: Huguette Delisle
+  Létourneau: Gaétan Delisle # also cowrote Série noire
+  Robitaille: Serge Paquette
+  Gonthier-Hyndman: Micheline Paquette
+----
+====
+
+== Tags
+
+Any YAML value has a tag to indicate its meaning.
+
+If you don't write any tag, it's implicit from the value's form.
+
+.A YAML value with a tag.
+====
+The second `true` value below is actually a string instead of a boolean
+because it has an explicit YAML string tag:
+
+[source,yaml]
+----
+a boolean: true
+actually a string: !<tag:yaml.org,2002:str> true
+----
+====
+
+In the example above, `tag:yaml.org,2002:str` is the standard YAML tag
+for string values.
+
+barectf requires that the configuration file's root <<mapping,mapping>>
+be tagged with `tag:barectf.org,2020/3/config` to identify the whole
+mapping as a barectf configuration object.
+
+You can tag the root mapping by tagging the YAML document itself:
+
+.A tagged YAML document.
+====
+[source,yaml]
+----
+--- !<tag:barectf.org,2020/3/config>
+trace:
+  type:
+    # ...
+----
+====

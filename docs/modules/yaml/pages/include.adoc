@@ -1,0 +1,228 @@
+= Include partial YAML files
+
+You can include a partial YAML file from specific objects within the
+xref:cfg-obj.adoc[configuration object]:
+
+* xref:trace-obj.adoc[Trace object]
+* xref:trace-type-obj.adoc[Trace type object]
+* xref:clk-type-obj.adoc[Clock type object]
+* xref:dst-obj.adoc[Data stream type object]
+* xref:ert-obj.adoc[Event record type object]
+
+Each of the objects above can have an `$include` property which is a
+sequence of names of files to include.
+
+By choosing where to include partial YAML files strategically, you can
+split a configuration object into multiple reusable parts for different
+systems or projects.
+
+== Inclusion file search
+
+barectf tries to find each file of an `$include` property sequence in
+specific directories.
+
+When using the `barectf` CLI tool's
+xref:cli:usage.adoc#generate-command[`generate`] or
+xref:cli:usage.adoc#show-effective-configuration-command[`show-effective-configuration`]
+commands, the inclusion directory search order is:
+
+. The value of each
+  xref:cli:usage.adoc#generate-include-dir-option[`+--include-dir+`]
+  option, in order.
+
+. The current working directory.
+
+. The directory containing the <<std,standard inclusion files>> (like
+  `stdint.yaml` and `stdmisc.yaml`).
+
+By default, if `barectf` can't find an inclusion file, the command
+prints an error and xref:cli:usage.adoc#exit-status[exits] with a
+non-zero status. Force `barectf` to continue silently instead with its
+xref:cli:usage.adoc#generate-ignore-include-not-found-option[`+--ignore-include-not-found+`]
+option.
+
+== Inclusion rules
+
+With the `$include` property, an object _includes_ the properties of
+one or more YAML documents.
+
+barectf processes the items of the `$include` property sequence
+in order.
+
+When an object __**A**__ includes a YAML document __**B**__, the
+_effective_ object is __**A**__ "`patching`" __**B**__.
+
+include::partial$patching-rules-table.adoc[]
+
+=== Examples
+
+.Override scalar property (xref:ert-obj.adoc[event record type object]).
+====
+.`base.yaml`
+[source,yaml]
+----
+log-level: WARN
+payload-field-type:
+  class: structure
+  members:
+    - msg: string
+    - msg_id: uint16
+----
+
+.Overlay event record type object
+[source,yaml]
+----
+$include: [base.yaml]
+log-level: ERROR
+----
+
+.Effective event record type object
+[source,yaml]
+----
+log-level: ERROR
+payload-field-type:
+  class: structure
+  members:
+    - msg: string
+    - msg_id: uint16
+----
+====
+
+.Add and override scalar properties (xref:clk-type-obj.adoc[clock type object]).
+====
+.`base.yaml`
+[source,yaml]
+----
+frequency: 1000000
+offset:
+  seconds: 1992839
+----
+
+.Overlay clock type object
+[source,yaml]
+----
+$include: [base.yaml]
+frequency: 8000000
+origin-is-unix-epoch: false
+----
+
+.Effective clock type object
+[source,yaml]
+----
+frequency: 8000000
+offset:
+  seconds: 1992839
+origin-is-unix-epoch: false
+----
+====
+
+.Append to sequence property (xref:trace-type-obj.adoc[trace type object]).
+====
+.`base.yaml`
+[source,yaml]
+----
+$field-type-aliases:
+  my-enum:
+    class: signed-enumeration
+    mappings:
+      COMPOSE:
+        - 56
+        - [100, 299]
+      DIRTY: [0]
+----
+
+.Overlay trace type object
+[source,yaml]
+----
+$include: [base.yaml]
+$field-type-aliases:
+  my-enum:
+    size: 16
+    mappings:
+      COMPOSE:
+        - -22
+# ...
+----
+
+.Effective trace type object
+[source,yaml]
+----
+$field-type-aliases:
+  my-enum:
+    class: signed-enumeration
+    size: 16
+    mappings:
+      COMPOSE:
+        - 56
+        - [100, 299]
+        - -22
+      DIRTY: [0]
+# ...
+----
+====
+
+.Add to nested mapping property (event record type object).
+====
+.`base.yaml`
+[source,yaml]
+----
+specific-context-field-type:
+  class: structure
+  members:
+    - msg: string
+    - user_id: uint16
+----
+
+.Overlay event record type object
+[source,yaml]
+----
+$include: [base.yaml]
+specific-context-field-type:
+  class: structure
+  members:
+    - src_ip_addr:
+        field-type:
+          class: static-array
+          length: 4
+          element-field-type: uint8
+    - user_id: int8
+----
+
+.Effective event record type object
+[source,yaml]
+----
+specific-context-field-type:
+  class: structure
+  members:
+    - msg: string
+    - user_id: int8
+    - src_ip_addr:
+        field-type:
+          class: static-array
+          length: 4
+          element-field-type: uint8
+----
+====
+
+[[std]]
+== Standard partial YAML files
+
+The barectf project ships with a few "`standard`" partial YAML files
+to be included from a xref:trace-type-obj.adoc[trace type object]:
+
+https://github.com/efficios/barectf/blob/stable-{page-component-version}/barectf/include/3/stdint.yaml[`stdint.yaml`]::
+    Standard xref:int-ft-obj.adoc[integer]
+    xref:trace-type-obj.adoc#ft-aliases-prop[field type aliases], like
+    `uint8`, `byte-packed-sint16`, and `bit-packed-uint64`.
+
+https://github.com/efficios/barectf/blob/stable-{page-component-version}/barectf/include/3/stdreal.yaml[`stdreal.yaml`]::
+    Standard xref:real-ft-obj.adoc[real] field type aliases, like
+    `float` and `double`.
+
+https://github.com/efficios/barectf/blob/stable-{page-component-version}/barectf/include/3/stdmisc.yaml[`stdmisc.yaml`]::
+    The `string` and `str` xref:str-ft-obj.adoc[string] field type
+    aliases.
+
+https://github.com/efficios/barectf/blob/stable-{page-component-version}/barectf/include/3/lttng-ust-log-levels.yaml[`lttng-ust-log-levels.yaml`]::
+    xref:trace-type-obj.adoc#ll-aliases-prop[Log level aliases] which
+    correspond to the https://lttng.org/[LTTng-UST] log levels.

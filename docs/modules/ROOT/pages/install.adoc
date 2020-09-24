@@ -1,0 +1,47 @@
+= Install barectf
+
+== Requirements
+
+barectf{nbsp}{page-component-version} requires
+http://python.org/[Python]{nbsp}3.6 and pip for Python{nbsp}3.
+
+You can install barectf on Linux, macOS, or Windows.
+
+== Install barectf
+
+There are two ways to install barectf with pip:
+
+* To install barectf on your system:
++
+[.cl]
+[verse]
+[.prompt]##&#35;## pip3 install barectf
+
+* To install barectf for the current user:
++
+[.cl]
+[verse]
+--
+[.prompt]##$## pip3 install --user barectf
+--
++
+See `+pip3 install --help+` to learn more about the `+--user+`
+option.
+
+NOTE: The commands above install the latest version of barectf,
+while you're currently reading the documentation of
+barectf{nbsp}{page-component-version}.
+
+== Upgrade barectf
+
+To upgrade your system barectf:
+
+[.cl]
+[verse]
+[.prompt]##&#35;## pip3 install --upgrade barectf
+
+To upgrade your user barectf:
+
+[.cl]
+[verse]
+[.prompt]##$## pip3 install --user --upgrade barectf

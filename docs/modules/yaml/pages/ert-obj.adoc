@@ -1,0 +1,146 @@
+= YAML event record type object
+
+An _**event record type object**_ is the type of an
+xref:how-barectf-works:ctf-primer.adoc#er[event record].
+
+An event record type describes parts (specific context and payload
+fields) of what a CTF consumer needs to decode its instances (event
+records). The other parts (header and common context) are described by
+the xref:dst-obj.adoc[data stream type] which contains the event record
+type.
+
+Event record type objects are only found under the
+xref:dst-obj.adoc#erts-prop[`event-record-types` property] of a data
+stream type object.
+
+barectf generates one xref:tracing-funcs:index.adoc[tracing function]
+per event record type.
+
+[[props]]
+== Properties
+
+All the properties are optional.
+
+[%autowidth.stretch, cols="d,d,a,d", role="can-break"]
+|===
+|Name |Type |Description |Default
+
+|[[ll-prop]]`log-level`
+|Positive integer or string
+|Numeric log level of this event record type's instances.
+
+If this property's value is a string, it's the name of an existing
+xref:trace-type-obj.adoc#ll-aliases-prop[log level alias].
+|No log level
+
+|[[spec-ctx-ft-prop]]`specific-context-field-type`
+|xref:struct-ft-obj.adoc[Structure field type object] or string
+|
+xref:how-barectf-works:ctf-primer.adoc#er[Specific context
+field] type of this event record type.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+
+For each member `__NAME__` of this property, the
+xref:tracing-funcs:index.adoc[tracing function] which barectf generates
+for this event record type has an additional parameter named
+`sc___NAME__`.
+
+Member names must be valid xref:index.adoc#tsdl-ident[TSDL identifiers].
+|No specific context field type
+
+|[[payload-ft-prop]]`payload-field-type`
+|xref:struct-ft-obj.adoc[Structure field type object] or string
+|
+xref:how-barectf-works:ctf-primer.adoc#er[Payload field] type of
+this event record type.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+
+For each member `__NAME__` of this property, the
+xref:tracing-funcs:index.adoc[tracing function] which barectf generates
+for this event record type has an additional parameter named
+`p___NAME__`.
+
+Member names must be valid xref:index.adoc#tsdl-ident[TSDL identifiers].
+|No payload field type
+
+|[[include-prop]]`$include`
+|Sequence of strings.
+|See xref:include.adoc[].
+|No inclusions
+|===
+
+== Examples
+
+.Basic event record type object.
+====
+[source,yaml]
+----
+payload-field-type:
+  class: structure
+  members:
+    - msg: string
+----
+====
+
+.Event record type object with a <<ll-prop,log level>>.
+====
+[source,yaml]
+----
+log-level: 12
+payload-field-type:
+  class: structure
+  members:
+    - msg: string
+----
+====
+
+.Event record type object with a <<ll-prop,log level>> (using a xref:trace-type-obj.adoc#ll-aliases-prop[log level alias]).
+====
+[source,yaml]
+----
+log-level: CRITICAL
+payload-field-type:
+  class: structure
+  members:
+    - msg: string
+----
+====
+
+.Event record type object with a <<spec-ctx-ft-prop,specific context field type>>.
+====
+[source,yaml]
+----
+specific-context-field-type:
+  class: structure
+  members:
+    - count:
+        field-type:
+          class: signed-integer
+          size: 32
+payload-field-type:
+  class: structure
+  members:
+    - msg: string
+----
+====
+
+.Event record type object with <<include-prop,inclusions>>.
+====
+[source,yaml]
+----
+payload-field-type:
+  class: structure
+  members:
+    - msg: string
+    - ip_addr:
+        field-type:
+          class: static-array
+          length: 4
+          element-field-type: uint8
+$include: [net-ctx.yaml]
+----
+====

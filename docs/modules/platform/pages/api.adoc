@@ -1,0 +1,312 @@
+= Platform API
+:us: _
+
+include::ROOT:partial$def-prefix-note.adoc[]
+
+The public header (usually named `barectf.h`) which barectf
+xref:cli:index.adoc[generates] offers an API to write a
+barectf platform.
+
+[[ctx]]
+== Context structure
+
+For a given xref:yaml:dst-obj.adoc[data stream type] named `__NAME__`:
+
+[source,c]
+----
+struct barectf_NAME_ctx {
+    /* ... */
+};
+----
+
+A barectf platform is responsible for allocating and deallocating such
+a structure for each data stream type.
+
+What this structure actually contains is not important; a barectf
+platform only needs to store it.
+
+[[cbs]]
+== Platform callback functions structure
+
+[source,c]
+----
+struct barectf_platform_callbacks {
+    /* Clock source callback functions here */
+
+    /*
+     * Returns whether or not the back end is full.
+     */
+    int (*is_backend_full)(void *user_data);
+
+    /*
+     * Opens the current packet.
+     */
+    void (*open_packet)(void *user_data);
+
+    /*
+     * Closes the current packet.
+     */
+    void (*close_packet)(void *user_data);
+};
+----
+
+Each callback function receives as its `user_data` parameter what you
+passed to the <<init,barectf context initialization function>> as the
+`user_data` parameter.
+
+[[cb-clk-src]]
+=== Clock source
+
+For each xref:yaml:clk-type-obj.adoc[clock type object] `__NAME__`
+within the trace type's
+xref:yaml:trace-type-obj.adoc#clk-types-prop[`clock-types` property],
+the platform callback functions structure contains one clock source
+callback function:
+
+[source,c]
+----
+CTYPE (*NAME_clock_get_value)(void *user_data);
+----
+
+`__CTYPE__` is the clock type object's
+xref:yaml:clk-type-obj.adoc#c-type-prop[`$c-type` property] (`uint32_t`
+by default).
+
+A clock source function returns the clock's current value. The clock
+value must be monotonic.
+
+[[cb-open]]
+=== Packet opening
+
+[source,c]
+----
+void (*open_packet)(void *user_data);
+----
+
+This function must call the <<open,packet opening function>>.
+
+[[cb-close]]
+=== Packet closing
+
+[source,c]
+----
+void (*close_packet)(void *user_data);
+----
+
+This function must:
+
+. Call the <<close,packet closing function>>.
+
+. Copy or move the current packet to the back end.
+
+After step{nbsp}2, this function _can_ set a new packet buffer with
+<<barectf-packet-set-buf-func,`+barectf_packet_set_buf()+`>>. If it
+doesn't, the next calls to the <<open,packet opening function>> and
+xref:tracing-funcs:index.adoc[tracing functions] will write to the
+current packet buffer.
+
+[[cb-is-back-end-full]]
+=== Is the back end full?
+
+[source,c]
+----
+int (*is_backend_full)(void *user_data);
+----
+
+This function returns whether or not the back end is full.
+
+In other words, if a new packet is <<cb-open,opened>> now, does this
+packet have its reserved space in the back end?
+
+[[accessors]]
+== Context property accessors
+
+* {empty}
++
+[source,c]
+----
+uint8_t *barectf_packet_buf_addr(const void *vctx);
+----
++
+Returns the packet buffer address of the barectf context `vctx`.
+
+* {empty}
++
+[source,c]
+----
+uint32_t barectf_packet_buf_size(const void *vctx);
+----
++
+Returns the packet buffer size (bytes) of the barectf context `vctx`.
+
+* {empty}
++
+[source,c]
+----
+int barectf_packet_is_full(const void *vctx);
+----
++
+Returns whether or not the packet of the barectf context `vctx` is full.
+
+* {empty}
++
+[source,c]
+----
+int barectf_packet_is_empty(const void *vctx);
+----
++
+Returns whether or not the packet of the barectf context `vctx` is empty.
+
+* {empty}
++
+[source,c]
+----
+int barectf_packet_is_open(const void *vctx);
+----
++
+Returns whether or not the packet of the barectf context `vctx` is
+open.
+
+* [[barectf-packet-set-buf-func]]{empty}
++
+[source,c]
+----
+void barectf_packet_set_buf(void *vctx, uint8_t *addr, uint32_t size);
+----
++
+Sets the packet buffer of the barectf context `vctx` to the address `addr`
+and the size `size` bytes.
++
+You can only call this function from the <<cb-close,packet closing
+callback function>>.
+
+* {empty}
++
+[source,c]
+----
+uint32_t barectf_discarded_event_records_count(const void *vctx);
+----
++
+Returns the number of
+xref:how-barectf-works:ctf-primer.adoc#disc-er-counter[discarded event
+records] in the barectf context `vctx`.
+
+* {empty}
++
+[source,c]
+----
+int barectf_is_in_tracing_section(const void *vctx);
+----
++
+Returns whether or not there's a current
+xref:tracing-funcs:index.adoc[tracing function] call for the barectf
+context `vctx`.
+
+* {empty}
++
+[source,c]
+----
+volatile const int *barectf_is_in_tracing_section_ptr(const void *vctx);
+----
++
+Returns a pointer to an `int` variable which indicates whether or not
+there's a current xref:tracing-funcs:index.adoc[tracing function] call
+for the barectf context `vctx`.
+
+[[init]]
+== Context initialization
+
+Initializes the <<ctx,barectf context>> `vctx` with the initial packet
+buffer located at the address `buf_addr` and having `buf_size` bytes,
+the <<cbs,platform callback functions>> `cbs`, and the
+user data `data`.
+
+[source,c]
+----
+void barectf_init(void *vctx, uint8_t *buf_addr, uint32_t buf_size,
+                  struct barectf_platform_callbacks cbs, void *user_data);
+----
+
+`user_data` is what the platform callback functions receive as
+their first parameter.
+
+[[open]]
+== Packet opening
+
+For a given xref:yaml:dst-obj.adoc[data stream type] named `__NAME__`, a
+packet opening function opens the current
+xref:how-barectf-works:ctf-primer.adoc#pkt[packet] of a
+<<ctx,barectf context>> `sctx`:
+
+[source,c]
+----
+void barectf_NAME_open_packet(struct barectf_NAME_ctx *sctx);
+----
+
+[[open-params]]
+=== Parameters
+
+For each member `__MNAME__` of the data stream type object's
+xref:yaml:dst-obj.adoc#pkt-ctx-ft-extra-members-prop[`packet-context-field-type-extra-members`
+property], this function has an additional parameter named
+`pc{us}__MNAME__`.
+
+See xref:yaml:ft-obj.adoc#gen-c-types[Generated C{nbsp}types] to
+determine the exact C{nbsp}type of each parameter.
+
+Note that a member with a xref:yaml:dyn-array-ft-obj.adoc[dynamic array
+field type] actually makes barectf generate _two_ adjacent parameters:
+
+. One for the dynamic array's length.
++
+Example: `uint32_t pc___my_array_len`
+
+. One for the dynamic array's data.
++
+Example: `const uint8_t *pc_my_array`
+
+=== Role
+
+A packet opening function:
+
+. Writes initial
+  xref:how-barectf-works:ctf-primer.adoc#pkt[packet header and context]
+  fields.
++
+The source of some of those fields can be <<open-params,parameters>>.
+
+. Saves the offsets of some packet context field to write them at
+  <<close,packet closing>> time.
+
+. Marks the current packet as being open.
+
+In general, a <<cb-open,packet opening platform callback function>> and
+a platform initialization function (for the first packet) call this
+function.
+
+[[close]]
+== Packet closing
+
+For a given xref:yaml:dst-obj.adoc[data stream type] named `__NAME__`, a
+packet closing function closes the current
+xref:how-barectf-works:ctf-primer.adoc#pkt[packet] of a
+<<ctx,barectf context>> `sctx`:
+
+[source,c]
+----
+void barectf_NAME_close_packet(struct barectf_NAME_ctx *sctx);
+----
+
+=== Role
+
+A packet closing function:
+
+. Writes some
+  xref:how-barectf-works:ctf-primer.adoc#pkt[packet context]
+  fields.
+
+. Marks the current packet as being closed.
+
+In general, a <<cb-close,packet closing platform callback function>> and
+a platform finalization function (for the last packet) call this
+function.

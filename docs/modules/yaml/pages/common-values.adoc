@@ -1,0 +1,40 @@
+= Common YAML values
+
+As of barectf{nbsp}{page-component-version}, the only common values are
+the <<byte-order,byte order>> and the <<uuid,UUID>>.
+
+[[byte-order]]
+== Byte order
+
+A byte order or endianness.
+
+Type::
+    String
+
+Value::
+    One of:
+`little-endian`:::
+`little`:::
+`le`:::
+    Little-endian byte order.
+
+`big-endian`:::
+`big`:::
+`be`:::
+    Big-endian byte order.
+
+[[uuid]]
+== UUID
+
+A https://en.wikipedia.org/wiki/Universally_unique_identifier[universally
+unique identifier].
+
+Type::
+    String
+
+Value::
+    The canonical textual representation of the UUID, for example:
++
+----
+79e49040-21b5-42d4-a873-677261696e65
+----

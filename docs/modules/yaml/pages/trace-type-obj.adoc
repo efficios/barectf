@@ -1,0 +1,308 @@
+= YAML trace type object
+
+A _**trace type object**_ is the type of a xref:trace-obj.adoc[trace
+object].
+
+A trace type describes everything a CTF consumer needs to decode all the
+trace's xref:how-barectf-works:ctf-primer.adoc#ds[data
+streams].
+
+A trace type object is only found as the
+xref:trace-obj.adoc#type-prop[`type` property] of a trace object.
+
+[[props]]
+== Properties
+
+[%autowidth.stretch, cols="d,d,a,d,d", role="can-break"]
+|===
+|Name |Type |Description |{req-abbr} |Default
+
+|[[native-bo]]`native-byte-order`
+|xref:common-values.adoc#byte-order[Byte order]
+|Native byte order of the system which produces this trace type's
+instance's xref:how-barectf-works:ctf-primer.adoc#ds[data streams].
+|Yes
+|
+
+|[[uuid-prop]]`uuid`
+|xref:common-values.adoc#uuid[UUID] or string
+|UUID of this trace type.
+
+If this property's value is the string `auto`, barectf generates a UUID.
+
+|No
+|No UUID
+
+|[[ft-aliases-prop]]`$field-type-aliases`
+|Mapping of string keys to xref:ft-obj.adoc[field type objects]
+or strings
+|Field type aliases.
+
+Keys of this mapping are field type alias names.
+
+If an entry's value is a string, it must be the name of an existing
+field type alias.
+
+You can use a field type alias name anywhere you can use a
+xref:ft-obj.adoc[field type object].
+|No
+|Empty mapping
+
+|[[ll-aliases-prop]]`$log-level-aliases`
+|Mapping of string keys to integers
+|Log level aliases.
+
+Keys of this mapping are log level alias names.
+
+Values of this mapping are positive integral log levels.
+
+You can use a log level alias name as the value of an event record type
+object's xref:ert-obj.adoc#ll-prop[`log-level` property].
+|No
+|Empty mapping
+
+|`$features`
+|<<features-obj>>
+|Features of this trace type's instance (trace).
+|No
+|See <<features-obj>> for default values.
+
+|[[clk-types-prop]]`clock-types`
+|Mapping of string keys to xref:clk-type-obj.adoc[clock type objects]
+|Clock type store for this trace type.
+
+Keys of this mapping are clock type names. They must be valid
+xref:index.adoc#tsdl-ident[TSDL identifiers].
+
+The
+xref:dst-obj.adoc#def-clk-type-name-prop[`$default-clock-type-name`
+property] of a data stream type object refers to a key of this mapping.
+|No
+|No clock type store
+
+|[[dsts-prop]]`data-stream-types`
+|Mapping of string keys to xref:dst-obj.adoc[data stream
+type objects]
+|Data stream types of this trace type.
+
+Keys of this mapping are data stream type names. They must be valid
+C{nbsp}identifiers.
+
+This mapping must contain at least one entry.
+|Yes
+|
+
+|[[include-prop]]`$include`
+|Sequence of strings.
+|See xref:include.adoc[].
+|No
+|No inclusions
+|===
+
+[[features-obj]]
+== Features object
+
+The features of a trace type object.
+
+As of barectf{nbsp}{page-component-version}, each feature controls
+whether or not some information will be part of the header of each
+xref:how-barectf-works:ctf-primer.adoc#pkt[CTF packet] which the
+generated tracer produces.
+
+You can enable or disable a feature. When you enable one, you can set
+its xref:ft-obj.adoc[field type] explicitly or make barectf choose a
+sane default.
+
+=== Properties
+
+For all the feature properties below, if the value is a boolean:
+
+True::
+    Make barectf use a default field type.
+
+False::
+    Disable the feature.
+
+All the properties are optional.
+
+[%autowidth.stretch, cols="d,d,a,d", role="can-break"]
+|===
+|Name |Type |Description |Default
+
+|[[magic-ft-prop]]`magic-field-type`
+|32-bit{nbsp}unsigned xref:int-ft-obj.adoc[integer field type object],
+string, or boolean
+|Type of packet header's magic number field.
+
+If this property's value is a string, it must be the name of an existing
+<<ft-aliases-prop,field type alias>>.
+|True
+
+|[[uuid-ft-prop]]`uuid-field-type`
+|xref:static-array-ft-obj.adoc[Static array field type object] of
+16{nbsp}8-bit{nbsp}unsigned xref:int-ft-obj.adoc[integer field
+type objects] (8-bit{nbsp}alignment), string, or boolean
+|Type of packet header's trace type UUID field.
+
+If this property's value is a string, it must be the name of an existing
+<<ft-aliases-prop,field type alias>>.
+|True if this trace type has a <<uuid-prop,`uuid` property>>, or false
+otherwise.
+
+|[[dst-id-ft-prop]]`data-stream-type-id-field-type`
+|Unsigned xref:int-ft-obj.adoc[integer field type object], string,
+or boolean
+|Type of packet header's xref:dst-obj.adoc[data stream type] ID field.
+
+If this property's value is a string, it must be the name of an existing
+<<ft-aliases-prop,field type alias>>.
+
+This feature is required when this trace type has more than one
+data stream type (<<dsts-prop,`data-stream-types` property>>).
+|True
+|===
+
+== Examples
+
+NOTE: The following examples can omit <<dsts-prop,data stream type
+objects>> for clarity.
+
+.Basic trace type object.
+====
+[source,yaml]
+----
+native-byte-order: little-endian
+data-stream-types:
+  # ...
+----
+====
+
+.Trace type object with a specific <<uuid-prop,UUID>>.
+====
+[source,yaml]
+----
+native-byte-order: little-endian
+uuid: 1b706833-b56c-4960-b5f7-e43651ff01fb
+data-stream-types:
+  # ...
+----
+====
+
+.Trace type object with an automatic <<uuid-prop,UUID>>.
+====
+[source,yaml]
+----
+native-byte-order: little-endian
+uuid: auto
+data-stream-types:
+  # ...
+----
+====
+
+.Trace type object with a disabled <<magic-ft-prop,magic field type feature>>.
+====
+[source,yaml]
+----
+native-byte-order: little-endian
+$features:
+  magic-field-type: false
+data-stream-types:
+  # ...
+----
+====
+
+.Trace type object with a specific <<dst-id-ft-prop,data stream type ID field type feature>>.
+====
+[source,yaml]
+----
+native-byte-order: little-endian
+$features:
+  data-stream-type-id-field-type:
+    class: unsigned-integer
+    size: 8
+data-stream-types:
+  # ...
+----
+====
+
+.Trace type object with a <<clk-types-prop,clock type object>>.
+====
+[source,yaml]
+----
+native-byte-order: little-endian
+clock-types:
+  sys_clock:
+    frequency: 8000000
+    description: Clock A13 (8 MHz)
+    origin-is-unix-epoch: false
+data-stream-types:
+  my_stream:
+    $default-clock-type-name: sys_clock
+    # ...
+  # ...
+----
+====
+
+.Trace type object with <<ft-aliases-prop,field type aliases>>.
+====
+[source,yaml]
+----
+native-byte-order: little-endian
+$field-type-aliases:
+  hex-uint8:
+    $inherit: uint8
+    preferred-display-base: hexadecimal
+  string-array:
+    class: dynamic-array
+    element-field-type:
+      class: string
+$features:
+  magic-field-type: hex-uint8
+data-stream-types:
+  my_stream:
+    event-record-types:
+      my_event:
+        payload-field-type:
+          client_id: hex-uint8
+          messages: string-array
+      # ...
+    # ...
+  # ...
+----
+====
+
+.Trace type object with a <<ll-aliases-prop,log level alias>>.
+====
+[source,yaml]
+----
+native-byte-order: little-endian
+$log-level-aliases:
+  WARN: 17
+data-stream-types:
+  my_stream:
+    event-record-types:
+      my_event:
+        log-level: WARN
+        # ...
+      # ...
+    # ...
+  # ...
+----
+====
+
+.Trace type object with <<include-prop,inclusions>>.
+====
+[source,yaml]
+----
+native-byte-order: little-endian
+data-stream-types:
+  # ...
+$include:
+  - stdint.yaml
+  - stdmisc.yaml
+  - network-field-type-aliases.yaml
+  - sched-field-type-aliases.yaml
+  - default-log-levels.yaml
+  - project-b-data-stream-types.yaml
+----
+====

@@ -1,0 +1,75 @@
+= YAML integer field type objects
+
+_**Integer field type objects**_ are the types of integer data fields,
+found in xref:how-barectf-works:ctf-primer.adoc#ds[data streams].
+
+[[props]]
+== Properties
+
+[%autowidth.stretch, cols="d,d,a,d,a", role="can-break"]
+|===
+|Name |Type |Description |{req-abbr} |Default
+
+|[[class-prop]]`class`
+|String
+|This property's value must be one of:
+
+`unsigned-integer`::
+`unsigned-int`::
+`uint`::
+    Unsigned integer field type
+
+`signed-integer`::
+`signed-int`::
+`sint`::
+    Signed integer field type
+|Yes if the <<inherit-prop,`$inherit`>> property is not set.
+|
+
+include::partial$int-ft-obj-base-props.adoc[]
+
+|===
+
+== Generated C{nbsp}types
+
+include::partial$int-ft-obj-c-types-table.adoc[]
+
+== Examples
+
+.Basic <<size-prop,8-bit>> unsigned integer field type object.
+====
+[source,yaml]
+----
+class: unsigned-integer
+size: 8
+----
+====
+
+.<<size-prop,23-bit>> signed integer field type object.
+====
+[source,yaml]
+----
+class: signed-integer
+size: 23
+----
+====
+
+.32-bit-<<align-prop,aligned>> <<size-prop,16-bit>> signed integer field type object.
+====
+[source,yaml]
+----
+class: signed-integer
+size: 16
+alignment: 32
+----
+====
+
+.<<size-prop,32-bit>> unsigned integer field type object with a hexadecimal <<pref-disp-base-prop,preferred display base>>.
+====
+[source,yaml]
+----
+class: unsigned-integer
+size: 32
+preferred-display-base: hexadecimal
+----
+====

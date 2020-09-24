@@ -1,0 +1,100 @@
+= How barectf works
+
+barectf generates a CTF metadata stream and C{nbsp}source files
+from a xref:yaml:index.adoc[**configuration**].
+
+A barectf configuration specifies a xref:yaml:trace-type-obj.adoc[trace
+type], xref:yaml:clk-type-obj.adoc[clock types],
+xref:yaml:dst-obj.adoc[data stream types], xref:yaml:ert-obj.adoc[event
+record types], and other options to generate the files.
+
+With the `barectf` Python package, you build the barectf configuration
+programatically by assembling configuration objects. This documentation
+is _not_ about the Python package.
+
+The xref:cli:index.adoc[`barectf` CLI tool] can read a
+xref:yaml:index.adoc[YAML configuration file] and generate files out of
+it.
+
+[[generated-files]]
+== Generated files
+
+barectf generates the following files from a configuration:
+
+[%autowidth.stretch, cols="d,a"]
+|===
+|File name |Description
+
+|[[metadata]]`metadata`
+|The CTF metadata stream file.
+
+You'll need to place this file in a directory with the
+xref:how-barectf-works:ctf-primer.adoc#ds[data stream] files which your
+application will write through the generated tracer.
+
+See xref:how-barectf-works:index.adoc[] to learn more.
+
+|[[barectf.h]]`barectf.h`
+|The generated tracer's public C{nbsp}header file.
+
+This header contains the prototypes of the packet opening, packet
+closing, and xref:tracing-funcs:index.adoc[tracing functions].
+
+barectf generates one packet opening/closing function per configured
+xref:yaml:dst-obj.adoc[data stream type] and one tracing function per
+configured xref:yaml:ert-obj.adoc[event record type].
+
+Your application and xref:platform:index.adoc[platforms] need to
+include this file.
+
+|`barectf-bitfield.h`
+|Internal macros for the generated tracer (included by `barectf.c`).
+
+|[[barectf.c]]`barectf.c`
+|The generated tracer's C{nbsp}source code.
+|===
+
+Those file names assume that the configuration uses the default
+xref:yaml:cfg-obj.adoc#prefix-prop[prefixes].
+
+All C{nbsp}files are written in ANSI{nbsp}C.
+
+[[ctf-data-stream-file-creation]]
+== CTF data stream file creation
+
+Your application calls the xref:tracing-funcs:index.adoc[tracing
+functions] found in <<barectf.h,`barectf.h`>> to write
+xref:ctf-primer.adoc#er[event records] to CTF
+xref:ctf-primer.adoc#ds[data streams] of
+xref:ctf-primer.adoc#pkt[packets]. Those CTF data streams and the
+generated <<metadata,CTF metadata stream>> form a complete
+xref:ctf-primer.adoc#trace[CTF trace].
+
+How exactly the event timestamps are sourced and the CTF packets are
+appended to some file or memory buffer is controlled by the
+xref:platform:index.adoc[**platform**].
+
+== Data flow
+
+The typical data flow with barectf is:
+
+[.width-80]
+image::barectf-data-flow.svg[]
+
+. barectf reads your xref:yaml:index.adoc[YAML configuration file].
+
+. barectf <<generated-files,generates>> the CTF metadata stream file.
+
+. barectf also generates the tracer's C{nbsp}files.
+
+. You pass your application's C{nbsp}source file(s),
+  xref:platform:index.adoc[platform]
+  C{nbsp}source files, and the generated tracer's C{nbsp}source file to
+  a xref:build:index.adoc[C{nbsp}compiler to create your final
+  application].
+
+. Your application <<ctf-data-stream-file-creation,creates CTF data
+  stream files>> during its execution.
++
+Those data stream files and the metadata stream file of step{nbsp}2 form
+a complete xref:ctf-primer.adoc#trace[CTF trace].

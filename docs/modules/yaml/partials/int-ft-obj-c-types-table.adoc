@@ -1,0 +1,19 @@
+Depending on the signedness of the integer field type and on the
+value of its <<size-prop,`size` property>>:
+
+[%autowidth.stretch]
+|===
+|__Signedness__{nbsp}/{nbsp}__Size (bits)__ |[1,{nbsp}8] |[9,{nbsp}16] |[17,{nbsp}32] |[33,{nbsp}64]
+
+|**Unsigned**
+|`uint8_t`
+|`uint16_t`
+|`uint32_t`
+|`uint64_t`
+
+|**Signed**
+|`int8_t`
+|`int16_t`
+|`int32_t`
+|`int64_t`
+|===

@@ -1,0 +1,198 @@
+= YAML configuration object
+
+The _**configuration object**_ is the root of a barectf YAML
+configuration document. It describes a complete barectf configuration.
+
+The configuration object must have the YAML tag
+`tag:barectf.org,2020/3/config`.
+
+The configuration object has a mandatory xref:trace-obj.adoc[trace
+object] and <<opts-obj,options>>.
+
+== Properties
+
+[%autowidth.stretch]
+|===
+|Name |Type |Description |{req-abbr} |Default
+
+|`options`
+|<<opts-obj>>
+|Configuration options.
+|No
+|See <<opts-obj>> for default values.
+
+|[[trace-prop]]`trace`
+|xref:trace-obj.adoc[Trace object]
+|Configuration's trace.
+|Yes
+|
+|===
+
+[[opts-obj]]
+== Options object
+
+The options of a configuration object.
+
+=== Properties
+
+[%autowidth.stretch]
+|===
+|Name |Type |Description |Default
+
+|`code-generation`
+|<<code-gen-opts-obj>>
+|Code generation options.
+|See <<code-gen-opts-obj>> for default values.
+|===
+
+[[code-gen-opts-obj]]
+== Code generation options object
+
+The code generation options of a configuration object.
+
+=== Properties
+
+All the properties are optional.
+
+[%autowidth.stretch, cols="d,d,a,d"]
+|===
+|Name |Type |Description |Default
+
+|[[prefix-prop]]`prefix`
+|String or <<prefix-obj,prefix object>>
+|Identifier and file name prefixes.
+
+If the value is the string `__PREFIX__`, then the identifier prefix is
+`__PREFIX___` and the file name prefix is `__PREFIX__`.
+|The identifier prefix `barectf_` and the file name prefix `barectf`.
+
+|`header`
+|<<code-gen-header-opts-obj>>
+|C{nbsp}header generation options.
+|See <<code-gen-header-opts-obj>> default values.
+|===
+
+[[prefix-obj]]
+== Prefix object
+
+Identifier and file name prefixes.
+
+=== Properties
+
+All the properties are required.
+
+[%autowidth.stretch, cols="d,d,a"]
+|===
+|Name |Type |Description
+
+|`file-name`
+|String
+|Prefix of any C{nbsp}file which barectf generates.
+
+barectf adds `-` between this prefix and other file name parts if
+needed.
+
+This prefix must only contain valid characters for a file name.
+
+|`identifier`
+|String
+|Prefix of any public C identifier which barectf generates.
+
+barectf does _not_ add anything between this prefix and the rest of the
+identifier.
+
+For example, if this prefix is `acme_corp_`, then a tracing function
+name could be `+acme_corp_trace_my_event()+`.
+
+This prefix must be a valid C{nbsp}identifier.
+|===
+
+[[code-gen-header-opts-obj]]
+== Code generation header options object
+
+The C{nbsp}header generation options of a configuration object.
+
+=== Properties
+
+All the properties are optional.
+
+[%autowidth.stretch, cols="d,d,a,d", role="can-break"]
+|===
+|Name |Type |Description |Default
+
+|`identifier-prefix-definition`
+|Boolean
+|If this property is true, then barectf generates a public
+C{nbsp}preprocessor definition named `_BARECTF_IDENTIFIER_PREFIX` which
+is set to the configuration's <<prefix-prop,identifier prefix>>.
+|False
+
+|[[def-dst-name-def-prop]]`default-data-stream-type-name-definition`
+|Boolean
+|If this property is true, then barectf generates a public
+C{nbsp}preprocessor definition named
+`_BARECTF_DEFAULT_DATA_STREAM_TYPE_NAME` which is set to the name of the
+trace type's
+xref:dst-obj.adoc#is-def-prop[default data stream type].
+|False
+|===
+
+== Examples
+
+NOTE: The following examples omit the <<trace-prop,trace object>> for
+clarity.
+
+.Basic configuration object.
+====
+[source,yaml]
+----
+--- !<tag:barectf.org,2020/3/config>
+trace:
+  # ...
+----
+====
+
+.Configuration object with custom <<prefix-obj,prefixes>>.
+====
+[source,yaml]
+----
+--- !<tag:barectf.org,2020/3/config>
+options:
+  code-generation:
+    prefix:
+      file-name: acme-corp
+      identifier: acme_corp_
+trace:
+  # ...
+----
+====
+
+.Configuration object with <<code-gen-header-opts-obj,identifier and default data stream type name C{nbsp}preprocessor definitions>>.
+====
+[source,yaml]
+----
+--- !<tag:barectf.org,2020/3/config>
+options:
+  code-generation:
+    header:
+      identifier-prefix-definition: true
+      default-data-stream-type-name-definition: true
+trace:
+  # ...
+----
+====
+
+.Basic configuration object with a YAML directive.
+====
+This https://yaml.org/spec/1.2/spec.html#id2781553[YAML directive]
+indicates that the YAML document honours the YAML{nbsp}1.2
+specification.
+
+[source,yaml]
+----
+%YAML 1.2
+--- !<tag:barectf.org,2020/3/config>
+trace:
+  # ...
+----
+====

@@ -1,0 +1,3 @@
+NOTE: This page assumes that the configured
+xref:yaml:cfg-obj.adoc#prefix-prop[identifier prefix] is the default
+`barectf`.

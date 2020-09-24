@@ -1,0 +1,37 @@
+= YAML string field type object
+
+A _**string field type object**_ is the type of null-terminated string
+data fields, found in xref:how-barectf-works:ctf-primer.adoc#ds[data
+streams].
+
+[[props]]
+== Properties
+
+[%autowidth.stretch, cols="d,d,a,d"]
+|===
+|Name |Type |Description |Required?
+
+|[[class-prop]]`class`
+|String
+|This property's value must be one of:
+
+* `string`
+* `str`
+|Yes if the <<inherit-prop,`$inherit`>> property is not set.
+
+include::partial$ft-obj-inherit-prop.adoc[]
+|===
+
+== Generated C{nbsp}type
+
+`const char *`
+
+== Example
+
+.Basic string field type object.
+====
+[source,yaml]
+----
+class: string
+----
+====
