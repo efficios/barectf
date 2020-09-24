@@ -38,4 +38,3 @@ trace:
                     field-type:
                       class: dynamic-array
                       element-field-type: uint8
-...

@@ -44,4 +44,3 @@ trace:
                         size: 8
                         alignment: 64
                 - after: uint8
-...

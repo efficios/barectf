@@ -42,4 +42,3 @@ trace:
                         class: static-array
                         length: 3
                         element-field-type: uint8
-...

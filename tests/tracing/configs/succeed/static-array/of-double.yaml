@@ -39,4 +39,3 @@ trace:
                       class: static-array
                       length: 4
                       element-field-type: double
-...

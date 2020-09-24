@@ -43,4 +43,3 @@ trace:
                         class: uint
                         size: 3
                 - after: str
-...
