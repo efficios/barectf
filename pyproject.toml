@@ -28,7 +28,7 @@ build-backend = 'poetry.masonry.api'
 [tool.poetry]
 name = 'barectf'
 version = '2.3.1'
-description = 'Generator of ANSI C tracers which output CTF'
+description = 'Generator of ANSI C tracers which output CTF data streams'
 license = 'MIT'
 authors = ['Philippe Proulx <eeppeliteloop@gmail.com>']
 readme = 'README.md'
