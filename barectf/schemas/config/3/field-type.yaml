@@ -90,6 +90,10 @@ definitions:
     additionalProperties: false
   enum-ft:
     properties:
+      class: true
+      size: true
+      alignment: true
+      preferred-display-base: true
       mappings:
         if:
           type: object
@@ -97,6 +101,7 @@ definitions:
           patternProperties:
             '.*':
               type: array
+              minItems: 1
               items:
                 if:
                   type: array
@@ -107,15 +112,12 @@ definitions:
                   maxItems: 2
                 else:
                   type: integer
+          minProperties: 1
         else:
           type: 'null'
-    properties:
-      class: true
-      size: true
-      alignment: true
-      preferred-display-base: true
-      mappings: true
     additionalProperties: false
+    required:
+      - mappings
   uenum-ft-class-prop:
     type: string
     enum:

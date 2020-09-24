@@ -173,7 +173,7 @@ class _Parser(barectf_config_parse_common._Parser):
         }[ft_node['class']]
         mappings = collections.OrderedDict()
 
-        for label, mapping_node in ft_node.get('mappings', {}).items():
+        for label, mapping_node in ft_node['mappings'].items():
             ranges = set()
 
             for range_node in mapping_node:

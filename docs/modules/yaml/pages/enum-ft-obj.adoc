@@ -7,9 +7,9 @@ streams].
 An enumeration data field is an integer data field.
 
 An enumeration field type is an integer field type with
-<<mappings-prop,_mappings_>>. An enumeration field type mapping is a labeled
-set of integer ranges. An enumeration data field can have zero or more
-labels depending on its value.
+<<mappings-prop,_mappings_>>. An enumeration field type mapping is a
+labeled set of integer ranges. An enumeration data field can have zero
+or more labels depending on its value.
 
 [[props]]
 == Properties
@@ -42,8 +42,10 @@ include::partial$int-ft-obj-base-props.adoc[]
 |Mappings of this enumeration field type.
 
 Each mapping assigns a label to a set of integer ranges.
-|No
-|No mappings
+
+This mapping must contain at least one entry.
+|Yes
+|
 |===
 
 [[enum-ft-mapping-seq]]
@@ -61,18 +63,22 @@ An integer::
 +
 In other words, `17` is equivalent to `+[17, 17]+`.
 
+This sequence must contain at least one item.
+
 == Generated C{nbsp}types
 
 include::partial$int-ft-obj-c-types-table.adoc[]
 
 == Examples
 
-.Basic <<size-prop,8-bit>> unsigned enumeration field type object.
+.Basic <<size-prop,8-bit>> unsigned enumeration field type object with a single <<mappings-prop,mapping>>
 ====
 [source,yaml]
 ----
 class: unsigned-enumeration
 size: 8
+mappings:
+  A: [0]
 ----
 ====
 
