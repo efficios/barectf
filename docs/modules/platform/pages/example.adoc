@@ -4,9 +4,8 @@
 This barectf platform example is a stripped-down version of the
 https://github.com/efficios/barectf/tree/stable-{page-component-version}/platforms/linux-fs[Linux FS demonstration platform].
 
-== Header
+== `my-platform.h`
 
-.`my-platform.h`
 [source,c]
 ----
 #ifndef _MY_PLATFORM_H
@@ -40,9 +39,8 @@ struct barectf_my_stream_ctx *my_platform_get_barectf_ctx(
 #endif /* _MY_PLATFORM_H */
 ----
 
-== Source
+== `my-platform.c`
 
-.`my-platform.c`
 [source,c]
 ----
 #include <stdio.h>
