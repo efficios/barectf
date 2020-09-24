@@ -25,9 +25,8 @@
 
 #include <stdlib.h>
 
-#include "barectf.h"
-
 struct test_platform_ctx;
+struct barectf_default_ctx;
 
 struct test_platform_ctx *test_platform_init(size_t buf_size);
 void test_platform_fini(struct test_platform_ctx *ctx);
