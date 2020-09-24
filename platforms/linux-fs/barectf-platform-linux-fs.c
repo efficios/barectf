@@ -64,12 +64,12 @@ static void write_packet(const struct barectf_platform_linux_fs_ctx * const plat
 static int is_backend_full(void * const data)
 {
 	int is_backend_full = 0;
-	const struct barectf_platform_linux_fs_ctx * const ctx =
+	const struct barectf_platform_linux_fs_ctx * const platform_ctx =
 		_FROM_VOID_PTR(const struct barectf_platform_linux_fs_ctx, data);
 
-	if (ctx->simulate_full_backend) {
-		if (rand() % ctx->full_backend_rand_max <
-				ctx->full_backend_rand_lt) {
+	if (platform_ctx->simulate_full_backend) {
+		if (rand() % platform_ctx->full_backend_rand_max <
+				platform_ctx->full_backend_rand_lt) {
 			is_backend_full = 1;
 			goto end;
 		}
@@ -81,22 +81,22 @@ end:
 
 static void open_packet(void * const data)
 {
-	struct barectf_platform_linux_fs_ctx * const ctx =
+	struct barectf_platform_linux_fs_ctx * const platform_ctx =
 		_FROM_VOID_PTR(struct barectf_platform_linux_fs_ctx, data);
 
-	barectf_default_open_packet(&ctx->ctx);
+	barectf_default_open_packet(&platform_ctx->ctx);
 }
 
 static void close_packet(void * const data)
 {
-	struct barectf_platform_linux_fs_ctx * const ctx =
+	struct barectf_platform_linux_fs_ctx * const platform_ctx =
 		_FROM_VOID_PTR(struct barectf_platform_linux_fs_ctx, data);
 
 	/* Close packet now */
-	barectf_default_close_packet(&ctx->ctx);
+	barectf_default_close_packet(&platform_ctx->ctx);
 
 	/* Write packet to file */
-	write_packet(ctx);
+	write_packet(platform_ctx);
 }
 
 struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(
