@@ -797,6 +797,7 @@ class Trace:
             ('tracer_major', barectf_version.__major_version__),
             ('tracer_minor', barectf_version.__minor_version__),
             ('tracer_patch', barectf_version.__patch_version__),
+            ('tracer_pre', barectf_version.__pre_version__),
             ('barectf_gen_date', str(datetime.datetime.now().isoformat())),
         ])
 

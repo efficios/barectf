@@ -133,6 +133,7 @@ class _YamlItem(pytest.Item):
             'tracer_major =',
             'tracer_minor =',
             'tracer_patch =',
+            'tracer_pre =',
         ]
 
         for line in lines:

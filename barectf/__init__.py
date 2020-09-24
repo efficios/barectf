@@ -33,6 +33,7 @@ import barectf.typing as barectf_typing
 __major_version__ = barectf_version.__major_version__
 __minor_version__ = barectf_version.__minor_version__
 __patch_version__ = barectf_version.__patch_version__
+__pre_version__ = barectf_version.__pre_version__
 __version__ = barectf_version.__version__
 
 
