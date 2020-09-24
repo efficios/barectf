@@ -56,8 +56,9 @@ static uint64_t get_clock(void * const data)
 
 static void write_packet(const struct barectf_platform_linux_fs_ctx * const platform_ctx)
 {
-	size_t nmemb = fwrite(barectf_packet_buf(&platform_ctx->ctx),
+	const size_t nmemb = fwrite(barectf_packet_buf(&platform_ctx->ctx),
 		barectf_packet_buf_size(&platform_ctx->ctx), 1, platform_ctx->fh);
+
 	assert(nmemb == 1);
 }
 
