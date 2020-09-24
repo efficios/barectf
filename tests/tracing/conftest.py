@@ -38,43 +38,45 @@ def pytest_collect_file(parent, path):
         return
 
     # If `path` is
-    # `/home/jo/barectf/tests/tracing/configs/succeed/static-array/of-str.yaml`,
-    # for example, then `elems` is:
+    # `/home/jo/barectf/tests/tracing/configs/basic/static-array/of-str.yaml`,
+    # for example, then:
     #
-    # * `succeed`
-    # * `static-array`
-    # * `of-str.yaml`
+    # `cat`:
+    #     `basic`
+    #
+    # `subcat`:
+    #     `static-array`
+    #
+    # `file_name`:
+    #     `of-str.yaml`
     path_str = str(path)
-    elems = [os.path.basename(path_str)]
-    cat_dir = os.path.dirname(path_str)
-    elems.append(os.path.basename(cat_dir))
-    succeed_dir = os.path.dirname(cat_dir)
-    elems.append(os.path.basename(succeed_dir))
-    configs_dir = os.path.dirname(succeed_dir)
+    file_name = os.path.basename(path_str)
+    subcat_dir = os.path.dirname(path_str)
+    subcat = os.path.basename(subcat_dir)
+    cat_dir = os.path.dirname(subcat_dir)
+    cat = os.path.basename(cat_dir)
+    configs_dir = os.path.dirname(cat_dir)
 
-    if os.path.basename(succeed_dir) != 'succeed' or os.path.basename(configs_dir) != 'configs':
+    if cat not in {'basic'} or os.path.basename(configs_dir) != 'configs':
         # not a YAML configuration test
         return
 
-    elems = list(reversed(elems))
-
     # create C source, expectation file, and support directory paths
     base_dir = os.path.dirname(configs_dir)
-    base_name = elems[-1].replace(yaml_ext, '')
-    rel_dir = os.path.join(*elems[:-1])
-    src_path = os.path.join(*[base_dir, 'src', rel_dir, f'{base_name}.c'])
-    data_expect_path = os.path.join(*([base_dir, 'expect', rel_dir, f'{base_name}.data.expect']))
-    metadata_expect_path = os.path.join(*([base_dir, 'expect', rel_dir, f'{base_name}.metadata.expect']))
-    support_dir_path = os.path.join(base_dir, 'support')
-
-    # create a unique test name
-    name = f'test-{"-".join(elems)}'.replace(yaml_ext, '')
+    base_name = file_name.replace(yaml_ext, '')
+    subcat_rel_dir = os.path.join(cat, subcat)
+    src_path = os.path.join(base_dir, 'src', subcat_rel_dir, f'{base_name}.c')
+    data_expect_path = os.path.join(base_dir, 'expect', subcat_rel_dir, f'{base_name}.data.expect')
+    metadata_expect_path = os.path.join(base_dir, 'expect', subcat_rel_dir,
+                                        f'{base_name}.metadata.expect')
+    support_dir_path = os.path.join(base_dir, 'support', cat)
 
     # create the file node
     return _YamlFile.from_parent(parent, fspath=path, src_path=src_path,
                                  data_expect_path=data_expect_path,
                                  metadata_expect_path=metadata_expect_path,
-                                 support_dir_path=support_dir_path, name=name)
+                                 support_dir_path=support_dir_path,
+                                 name=f'test-{cat}-{subcat}-{base_name}')
 
 
 class _YamlFile(pytest.File):
