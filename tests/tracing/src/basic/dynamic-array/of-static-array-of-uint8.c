@@ -30,7 +30,7 @@
 #include "test-platform.h"
 #include "barectf.h"
 
-int main()
+int main(void)
 {
 	struct test_platform_ctx *platform_ctx;
 	const uint8_t subarray1[] = {1, 2, 3};

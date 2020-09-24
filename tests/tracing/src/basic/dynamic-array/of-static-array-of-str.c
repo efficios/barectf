@@ -29,7 +29,7 @@
 #include "test-platform.h"
 #include "barectf.h"
 
-int main()
+int main(void)
 {
 	struct test_platform_ctx *platform_ctx;
 	const char * const str1[] = {"Officia", "sit", "labore"};

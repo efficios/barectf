@@ -29,7 +29,7 @@
 #include "test-platform.h"
 #include "barectf.h"
 
-int main()
+int main(void)
 {
 	const float array[] = {1.f, 2.5f, 1000.423f, -77.99f};
 	struct test_platform_ctx * const platform_ctx = test_platform_init(512);

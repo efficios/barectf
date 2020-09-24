@@ -29,7 +29,7 @@
 #include "test-platform.h"
 #include "barectf.h"
 
-int main()
+int main(void)
 {
 	struct test_platform_ctx * const platform_ctx = test_platform_init(512);
 

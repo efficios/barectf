@@ -29,7 +29,7 @@
 #include "test-platform.h"
 #include "barectf.h"
 
-int main()
+int main(void)
 {
 	struct test_platform_ctx *platform_ctx;
 	const double subarray1[] = {-17.5, 15.48, 1001.};

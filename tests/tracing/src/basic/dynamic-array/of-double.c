@@ -29,7 +29,7 @@
 #include "test-platform.h"
 #include "barectf.h"
 
-int main()
+int main(void)
 {
 	struct test_platform_ctx *platform_ctx;
 	const double array[] = {3.14, 6.62, 299792458., 0.2229};
