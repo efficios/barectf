@@ -165,9 +165,10 @@ struct {{ prefix }}{{ dst.name }}_ctx {
 	{% include 'c/open-func-proto.j2' %};
 
 	{% include 'c/close-func-proto.j2' %};
-	{% for ert in dst.event_record_types | sort %}
 
+	{% for ert in dst.event_record_types | sort %}
 		{% include 'c/trace-func-proto.j2' %};
+		{% if not loop.last %}{{ '\n' }}{% endif %}
 	{% endfor %}
 {% endfor %}
 

@@ -387,8 +387,8 @@ end:
 end:
 	return;
 }
-	{% if dst._er_header_ft %}
 
+	{% if dst._er_header_ft %}
 static void _serialize_er_header_{{ dst.name }}(void * const vctx,
 	const uint32_t ert_id)
 {
@@ -400,19 +400,19 @@ static void _serialize_er_header_{{ dst.name }}(void * const vctx,
 
 	{{ this_ds_ops.er_header_op.serialize_str(dst=dst) | indent_tab }}
 }
+
 	{% endif %}
 	{% if dst.event_record_common_context_field_type %}
-
 static void _serialize_er_common_ctx_{{ dst.name }}(void * const vctx{{ dst | serialize_er_common_ctx_func_params_str(const_params) }})
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 
 	{{ this_ds_ops.er_common_ctx_op.serialize_str(dst=dst) | indent_tab }}
 }
+
 	{% endif %}
 	{# internal serialization functions #}
 	{% for ert in dst.event_record_types | sort %}
-
 static void _serialize_er_{{ dst.name }}_{{ ert.name }}(void * const vctx{{ (dst, ert) | trace_func_params_str(const_params) }})
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
@@ -437,11 +437,11 @@ static void _serialize_er_{{ dst.name }}_{{ ert.name }}(void * const vctx{{ (dst
 	{{ this_er_ops.payload_op.serialize_str(dst=dst, ert=ert) | indent_tab }}
 		{% endif %}
 }
+
 	{% endfor %}
 	{# internal size functions #}
 	{% for ert in dst.event_record_types | sort %}
 		{% set this_er_ops = this_ds_ops.er_ops[ert] %}
-
 static uint32_t _er_size_{{ dst.name }}_{{ ert.name }}(void * const vctx{{ (dst, ert) | trace_func_params_str(const_params, only_dyn=true) }})
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
@@ -465,10 +465,10 @@ static uint32_t _er_size_{{ dst.name }}_{{ ert.name }}(void * const vctx{{ (dst,
 
 	return at - ctx->at;
 }
+
 	{% endfor %}
 	{# public tracing functions #}
 	{% for ert in dst.event_record_types | sort %}
-
 		{% include 'c/trace-func-proto.j2' %}
 
 {
@@ -517,5 +517,6 @@ static uint32_t _er_size_{{ dst.name }}_{{ ert.name }}(void * const vctx{{ (dst,
 end:
 	return;
 }
+		{% if not loop.last %}{{ '\n' }}{% endif %}
 	{% endfor %}
 {% endfor %}

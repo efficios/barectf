@@ -32,6 +32,6 @@
 {
 {% for subop in op.subops %}
 	{{ subop.size_str(dst=dst, ert=ert) | indent_tab }}
-
+	{% if not loop.last %}{{ '\n' }}{% endif %}
 {% endfor %}
 }

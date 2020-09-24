@@ -25,7 +25,6 @@ import barectf.template as barectf_template
 import barectf.config as barectf_config
 import collections
 import copy
-import re
 from typing import List, Optional, Mapping, Callable, Any, Set, Tuple
 import typing
 from barectf.typing import Count, Alignment
@@ -789,29 +788,9 @@ class _CodeGen:
             return typing.cast(_Op, ret_op)
 
         ds_ops = create_ds_ops()
-        c_src = self._create_file_template('barectf.c.j2').render(header_file_name=header_file_name,
-                                                                  bitfield_header_file_name=bitfield_header_file_name,
-                                                                  root_ft_prefixes=_RootFtPrefixes,
-                                                                  root_ft_prefix_names=_ROOT_FT_PREFIX_NAMES,
-                                                                  ds_ops=ds_ops,
-                                                                  ds_op_pkt_ctx_op=ds_op_pkt_ctx_op)
-
-        # Jinja 2 makes it hard to have multiple contiguous blocks
-        # delimited with empty lines when using a for loop, while not
-        # also having an empty line at the end.
-        #
-        # Therefore, we often get this rendered pattern:
-        #
-        #         /* ... */
-        #         ...;
-        #         ...;
-        #
-        #         /* ... */
-        #         ...;
-        #         ...;
-        #         ...;
-        #
-        #     }
-        #
-        # It's ugly, so fix it here.
-        return re.sub(r'(\n)\s*\n(\s*})', r'\1\2', c_src)
+        return self._create_file_template('barectf.c.j2').render(header_file_name=header_file_name,
+                                                                 bitfield_header_file_name=bitfield_header_file_name,
+                                                                 root_ft_prefixes=_RootFtPrefixes,
+                                                                 root_ft_prefix_names=_ROOT_FT_PREFIX_NAMES,
+                                                                 ds_ops=ds_ops,
+                                                                 ds_op_pkt_ctx_op=ds_op_pkt_ctx_op)
