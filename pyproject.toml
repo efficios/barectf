@@ -27,11 +27,10 @@ build-backend = 'poetry.masonry.api'
 
 [tool.poetry]
 name = 'barectf'
-version = '2.3.1'
+version = '3.0.0'
 description = 'Generator of ANSI C tracers which output CTF data streams'
 license = 'MIT'
 authors = ['Philippe Proulx <eeppeliteloop@gmail.com>']
-readme = 'README.md'
 homepage = 'https://barectf.org/'
 repository = 'https://github.com/efficios/barectf/'
 keywords = [
@@ -75,3 +74,4 @@ barectf = 'barectf.cli:_run'
 'Bug tracker' = 'https://github.com/efficios/barectf/issues/'
 'Code review' = 'https://review.lttng.org/admin/repos/barectf'
 'Continuous integration' = 'https://ci.lttng.org/job/barectf_master_build/'
+'Commercial support' = 'https://www.efficios.com/contact/'

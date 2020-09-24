@@ -1,0 +1,110 @@
+// Render with Asciidoctor
+
+:version: 3.0
+
+ifndef::env-github[]
+:toc: left
+endif::env-github[]
+
+= barectf
+25 September 2020
+Philippe Proulx
+
+image::https://barectf.org/barectf-logo.svg[{nbsp}]
+
+https://pypi.python.org/pypi/barectf[image:https://img.shields.io/pypi/v/barectf.svg[]]
+https://ci.lttng.org/job/barectf_stable-{version}_build[image:https://img.shields.io/jenkins/s/https/ci.lttng.org/barectf_stable-{version}_build.svg[]]
+
+[.lead]
+https://barectf.org/[**_barectf_**] (from _bare_ metal and _CTF_)
+is a generator of
+https://en.wikipedia.org/wiki/Tracing_(software)[tracer] which produces
+https://diamon.org/ctf/[CTF] data streams.
+
+[NOTE]
+====
+This README mostly documents barectf development.
+
+To learn how to use barectf, read its
+https://barectf.org/docs/barectf/{version}/[documentation].
+====
+
+== Install barectf
+
+See the barectf documentation's
+https://barectf.org/docs/barectf/{version}/install.html[Install barectf]
+page.
+
+== Build barectf
+
+barectf is a https://python-poetry.org/[Poetry] project.
+
+To build barectf from this repository:
+
+. https://python-poetry.org/docs/#installation[Install Poetry].
+
+. Build the project:
++
+----
+$ poetry build
+----
++
+The `dist` directory contains the distribution archives.
+
+== Build the barectf documentation
+
+This repository contains an
+https://docs.antora.org/antora/2.3/component-version/[Antora
+documentation component version] under the `docs` directory.
+
+This component version is the source of the
+https://barectf.org/docs/barectf/{version}/[barectf documentation website].
+
+You can refer to this component version in your
+https://docs.antora.org/antora/2.3/playbook/[Antora playbook file],
+for example:
+
+[source,yaml]
+----
+site:
+  # ...
+content:
+  sources:
+    - url: https://github.com/efficios/barectf
+      branches: [stable-3.0]
+      start_path: docs
+    # ...
+ui:
+  # ...
+----
+
+== Test barectf
+
+To run the barectf tests:
+
+. Make sure you have the testing requirements:
+** A little-endian architecture.
++
+YAML configuration files of tracing tests use a little-endian
+native byte order.
+
+** https://tox.readthedocs.io/en/latest/install.html[tox]
+** A C{nbsp}compiler.
++
+If your C{nbsp}compiler is not the command `cc`, then set the `CC`
+environment variable to your compiler's path and export it to run
+the barectf tests.
+
+** https://www.gnu.org/software/make/[GNU Make]
+
+. Run the tests:
++
+----
+$ tox
+----
+
+== Get help
+
+See the barectf documentation's
+https://barectf.org/docs/barectf/{version}/get-help.html[Get help]
+page.
