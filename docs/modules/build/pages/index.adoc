@@ -1,0 +1,59 @@
+= Build your application with a generated tracer
+
+To build your application with a tracer which barectf
+xref:cli:index.adoc[generates] using https://gcc.gnu.org/[GCC]:
+
+[.cl]
+[verse]
+[.prompt]##$## gcc my-app.c barectf.c
+
+Note that you probably need to build a
+xref:platform:index.adoc[platform] into your application too:
+
+[.cl]
+[verse]
+[.prompt]##$## gcc my-app.c barectf.c platform.c
+
+You can also build the tracer and/or the platform as dynamic libraries
+and link your application to them if your system supports this feature.
+
+[[req]]
+== Compiler requirements
+
+barectf xref:cli:index.adoc[generates] ANSI{nbsp}C code, with the
+exception of a requirement for `stdint.h`, which is part of C99.
+
+If your C{nbsp}standard library doesn't offer `stdint.h`, you need to
+create this file and define the following type definitions:
+
+* `uint8_t`
+* `uint16_t`
+* `uint32_t`
+* `uint64_t`
+* `int8_t`
+* `int16_t`
+* `int32_t`
+* `int64_t`
+
+== Supported C{nbsp}compilers
+
+The C{nbsp}code which barectf generates is known to be compilable
+by the following compilers:
+
+* https://gcc.gnu.org/[GCC] and
+  G++ (tested with the IA-32, x86-64, MIPS, ARM, and AVR architectures;
+  also tested with and without the
+  https://gcc.gnu.org/onlinedocs/gcc/C-Dialect-Options.html[`+-ansi+` option])
+
+* https://clang.llvm.org/[Clang] and Clang++ (tested with and without
+  the
+  https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-ansi[`+-ansi+` option])
+
+* https://visualstudio.microsoft.com/[Microsoft Visual Studio] 2008
+  (with a <<req,custom `stdint.h`>>)
+
+* Microsoft Visual Studio 2010+
+
+* https://bellard.org/tcc/[TCC]
+
+* https://github.com/rui314/8cc[8cc]
