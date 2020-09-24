@@ -49,8 +49,8 @@ Dynamic array's data::
     for the field type object of the
     <<element-ft-prop,`element-field-type` property>>.
 +
-Examples:
-+
+.Generated C{nbsp}types for various element field types.
+====
 [%autowidth.stretch]
 |===
 |Element field type |Generated C{nbsp}type
@@ -79,6 +79,7 @@ Examples:
 |Static array of static arrays of 32-bit unsigned integers
 |`const uint32_t * const * const *`
 |===
+====
 
 == Examples
 
