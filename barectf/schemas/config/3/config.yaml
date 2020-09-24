@@ -67,7 +67,7 @@ definitions:
       if:
         type: boolean
       then:
-        const: True
+        const: true
       else:
         type: 'null'
   opt-struct-ft:
