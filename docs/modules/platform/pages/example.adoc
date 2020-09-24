@@ -2,8 +2,7 @@
 :us: _
 
 This barectf platform example is a stripped-down version of the
-https://github.com/efficios/barectf/tree/stable-{page-component-version}/platforms/linux-fs[Linux FS]
-demonstration platform.
+https://github.com/efficios/barectf/tree/stable-{page-component-version}/platforms/linux-fs[Linux FS demonstration platform].
 
 == Header
 
@@ -278,3 +277,25 @@ struct barectf_my_stream_ctx *my_platform_get_barectf_ctx(
     return &platform_ctx->ctx;
 }
 ----
+
+== Other platform examples
+
+Have a look at:
+
+* The
+  https://github.com/efficios/barectf/tree/stable-{page-component-version}/platforms/linux-fs[Linux FS platform].
+
+* The
+  https://github.com/efficios/barectf/blob/{page-component-version}/examples/barectf-tracepoint/barectf-platform-qemu-arm-uart.c[`barectf-platform-qemu-arm-uart.c`]
+  file, which is part of the `barectf-tracepoint.h` usage example.
+
+* The
+  https://github.com/efficios/barectf/tree/v2.3.1/platforms/parallella[Parallella platform].
++
+The project no longer maintains this platform as it was an experiment
+to trace the Epiphany cores of the
+https://www.parallella.org/[Parallella board].
++
+That being said, this platform can still prove interesting to understand
+how to implement a barectf platform using an asynchronous
+producer-consumer model.
