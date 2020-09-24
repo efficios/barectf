@@ -29,8 +29,8 @@ struct test_platform_ctx;
 struct barectf_default_ctx;
 
 struct test_platform_ctx *test_platform_init(size_t buf_size);
-void test_platform_fini(struct test_platform_ctx *ctx);
+void test_platform_fini(struct test_platform_ctx *platform_ctx);
 struct barectf_default_ctx *test_platform_barectf_ctx(
-	struct test_platform_ctx *ctx);
+	struct test_platform_ctx *platform_ctx);
 
 #endif /* _BARECTF_TEST_PLATFORM_H */
