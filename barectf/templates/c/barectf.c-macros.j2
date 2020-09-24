@@ -33,9 +33,9 @@
  # Generates the preamble of the packet opening/closing functions for
  # the data stream type `dst`.
  #}
-{% macro open_close_func_preamble(dst) %}
+{% macro open_close_func_preamble(dst, ts_feature) %}
 struct {{ prefix }}ctx * const ctx = &sctx->parent;
-{% if dst.default_clock_type %}
+{% if dst.default_clock_type and ts_feature %}
 const {{ cg_opts.clock_type_c_types[dst.default_clock_type] }} ts = ctx->use_cur_last_event_ts ?
 	sctx->cur_last_event_ts :
 	ctx->cbs.{{ dst.default_clock_type.name }}_clock_get_value(ctx->data);

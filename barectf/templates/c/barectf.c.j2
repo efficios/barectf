@@ -246,7 +246,7 @@ void _commit_er(void * const vctx)
 	{% include 'c/open-func-proto.j2' %}
 
 {
-	{{ macros.open_close_func_preamble(dst) | indent_tab }}
+	{{ macros.open_close_func_preamble(dst, dst.features.packet_features.beginning_timestamp_field_type) | indent_tab }}
 
 	/*
 	 * This function is either called by a tracing function, or
@@ -302,7 +302,7 @@ end:
 	{% include 'c/close-func-proto.j2' %}
 
 {
-	{{ macros.open_close_func_preamble(dst) | indent_tab }}
+	{{ macros.open_close_func_preamble(dst, dst.features.packet_features.end_timestamp_field_type) | indent_tab }}
 
 	/*
 	 * This function is either called by a tracing function, or
@@ -393,7 +393,7 @@ static void _serialize_er_header_{{ dst.name }}(void * const vctx,
 	const uint32_t ert_id)
 {
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
-		{% if def_clk_type %}
+		{% if def_clk_type and dst.features.event_record_features.timestamp_field_type %}
 	struct {{ sctx_name }}_ctx * const sctx = _FROM_VOID_PTR(struct {{ sctx_name }}_ctx, vctx);
 	const {{ cg_opts.clock_type_c_types[def_clk_type] }} ts = sctx->cur_last_event_ts;
 		{% endif %}
