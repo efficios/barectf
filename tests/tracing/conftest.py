@@ -37,36 +37,38 @@ def pytest_collect_file(parent, path):
         # not a YAML file: cancel
         return
 
-    # At the end of this loop, if `path` is
+    # If `path` is
     # `/home/jo/barectf/tests/tracing/configs/succeed/static-array/of-str.yaml`,
     # for example, then `elems` is:
     #
-    # * `of-str.yaml`
-    # * `static-array`
     # * `succeed`
+    # * `static-array`
+    # * `of-str.yaml`
     path_str = str(path)
-    elems = []
+    elems = [os.path.basename(path_str)]
+    cat_dir = os.path.dirname(path_str)
+    elems.append(os.path.basename(cat_dir))
+    succeed_dir = os.path.dirname(cat_dir)
+    elems.append(os.path.basename(succeed_dir))
+    configs_dir = os.path.dirname(succeed_dir)
 
-    while True:
-        elem = os.path.basename(path_str)
+    if os.path.basename(succeed_dir) != 'succeed' or os.path.basename(configs_dir) != 'configs':
+        # not a YAML configuration test
+        return
 
-        if elem == 'configs':
-            break
-
-        elems.append(elem)
-        path_str = os.path.dirname(path_str)
+    elems = list(reversed(elems))
 
     # create C source, expectation file, and support directory paths
-    base_dir = os.path.dirname(path_str)
-    base_name = elems[0].replace(yaml_ext, '')
-    rel_dir = os.path.join(*list(reversed(elems[1:])))
+    base_dir = os.path.dirname(configs_dir)
+    base_name = elems[-1].replace(yaml_ext, '')
+    rel_dir = os.path.join(*elems[:-1])
     src_path = os.path.join(*[base_dir, 'src', rel_dir, f'{base_name}.c'])
     data_expect_path = os.path.join(*([base_dir, 'expect', rel_dir, f'{base_name}.data.expect']))
     metadata_expect_path = os.path.join(*([base_dir, 'expect', rel_dir, f'{base_name}.metadata.expect']))
     support_dir_path = os.path.join(base_dir, 'support')
 
     # create a unique test name
-    name = f'test-{"-".join(reversed(elems))}'.replace(yaml_ext, '')
+    name = f'test-{"-".join(elems)}'.replace(yaml_ext, '')
 
     # create the file node
     return _YamlFile.from_parent(parent, fspath=path, src_path=src_path,
@@ -108,7 +110,7 @@ class _YamlItem(pytest.Item):
 
         # create barectf configuration
         with open(self.fspath) as f:
-            cfg = barectf.configuration_from_file(f)
+            cfg = barectf.configuration_from_file(f, inclusion_directories=[self._support_dir_path])
 
         # generate and write C code files
         cg = barectf.CodeGenerator(cfg)

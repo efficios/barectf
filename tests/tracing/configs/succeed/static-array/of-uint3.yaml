@@ -26,14 +26,10 @@
 trace:
   type:
     $include:
+      - base.yaml
       - stdint.yaml
-    native-byte-order: le
     data-stream-types:
       default:
-        $is-default: true
-        $features:
-          packet:
-            discarded-event-records-counter-snapshot-field-type: false
         event-record-types:
           ev:
             payload-field-type:
