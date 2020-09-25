@@ -199,6 +199,7 @@ cast:
 ----
 ====
 
+[[tag]]
 == Tags
 
 Any YAML value has a tag to indicate its meaning.

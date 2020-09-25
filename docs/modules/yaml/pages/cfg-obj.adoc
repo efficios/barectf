@@ -120,7 +120,7 @@ All the properties are optional.
 |===
 |Name |Type |Description |Default
 
-|`identifier-prefix-definition`
+|[[iden-prefix-def-prop]]`identifier-prefix-definition`
 |Boolean
 |If this property is true, then barectf generates a public
 C{nbsp}preprocessor definition named `_BARECTF_IDENTIFIER_PREFIX` which

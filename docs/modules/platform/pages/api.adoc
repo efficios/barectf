@@ -121,7 +121,7 @@ packet have its reserved space in the back end?
 [[accessors]]
 == Context property accessors
 
-* {empty}
+* [[barectf-pkt-buf-addr-func]]{empty}
 +
 [source,c]
 ----
@@ -180,7 +180,7 @@ and the size `size` bytes.
 You can only call this function from the <<cb-close,packet closing
 callback function>>.
 
-* {empty}
+* [[barectf-disc-er-count-func]]{empty}
 +
 [source,c]
 ----

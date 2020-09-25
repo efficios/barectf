@@ -92,7 +92,7 @@ type object] as its document for your platform.
 This platform's base trace type object can be configured so that it
 matches what your platform expects, for example:
 
-* The xref:yaml:trace-type-obj.adoc#native-bo[native byte order]
+* The xref:yaml:trace-type-obj.adoc#native-bo-prop[native byte order]
 * Specific xref:yaml:clk-type-obj.adoc[clock type objects]
 
 * Specific xref:yaml:dst-obj.adoc[Data stream type objects], possibly

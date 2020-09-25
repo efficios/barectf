@@ -17,7 +17,7 @@ xref:trace-obj.adoc#type-prop[`type` property] of a trace object.
 |===
 |Name |Type |Description |{req-abbr} |Default
 
-|[[native-bo]]`native-byte-order`
+|[[native-bo-prop]]`native-byte-order`
 |xref:common-values.adoc#byte-order[Byte order]
 |Native byte order of the system which produces this trace type's
 instance's xref:how-barectf-works:ctf-primer.adoc#ds[data streams].
