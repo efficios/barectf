@@ -24,19 +24,19 @@ Print brief general help:
 
 == General description
 
-The `barectf` tool has a Git-like user interface with the following
-available commands:
+The `barectf` tool offers a https://git-scm.com/[Git]-like
+user interface with the following available commands:
 
 <<generate-command,`generate`>>::
-    Generate the C source and CTF metadata stream files of a tracer
-    from a xref:yaml:index.adoc[YAML configuration file].
+    Generates the C{nbsp}source and CTF metadata stream files of a
+    tracer from a xref:yaml:index.adoc[YAML configuration file].
 
 <<show-effective-configuration-command,`show-effective-configuration`>>::
-    Print the _effective_ YAML configuration file for a given YAML
-    configuration file and inclusion directories.
+    Prints the xref:yaml:index.adoc#stages[_effective_] version of
+    a YAML configuration file.
 
 <<show-configuration-version-command,`show-configuration-version`>>::
-    Print the major version (2 or 3) of a YAML configuration file.
+    Prints the major version (2 or 3) of a YAML configuration file.
 
 == General options
 
@@ -53,7 +53,7 @@ available commands:
 
 === Synopses
 
-Generate files from configuration file:
+Generate files from a xref:yaml:index.adoc[YAML configuration file]:
 
 [.cl]
 [verse]
@@ -126,14 +126,14 @@ If you use the <<prefix-option,`--prefix`>> option, then all the
 public C{nbsp}identifiers in `__FPREFIX__.h` and `__FPREFIX__.c` begin
 with `__PREFIX__`. Otherwise, they begin with:
 
-If the `__CONFIG-PATH__` file has an identifier prefix option::
+If the `__CONFIG-PATH__` file has an identifier xref:yaml:cfg-obj.adoc#prefix-prop[prefix option]::
     The `__CONFIG-PATH__` file's identifier prefix option.
 
 Otherwise::
     `barectf_`
 
-Add directories to be searched into for inclusion files before the
-default inclusion directories with the repeatable
+Add directories to be searched into for xref:yaml:include.adoc[inclusion
+files] before the default inclusion directories with the repeatable
 <<generate-include-dir-option,`--include-dir`>> option.
 
 By default, if `barectf` can't find an inclusion file while processing
@@ -171,7 +171,8 @@ option.
 The default inclusion directories are:
 +
 . The current working directory.
-. The directory containing the standard inclusion files
+. The directory containing the
+  xref:yaml:include.adoc#std[standard partial YAML files]
   (like `stdint.yaml`).
 
 [[generate-metadata-dir-option]]`-m __MDIR__`::
@@ -191,6 +192,8 @@ Identifier prefix:::
 
 +
 --
+`__PREFIX__` must be a valid C{nbsp}identifier.
+
 The default file name prefix is `barectf`.
 
 The default identifier prefix is `barectf_`.
@@ -201,7 +204,8 @@ The default identifier prefix is `barectf_`.
 
 === Synopses
 
-Show effective configuration:
+Show the xref:yaml:index.adoc#stages[effective] version of a
+xref:yaml:index.adoc[YAML configuration file]:
 
 [.cl]
 [verse]
@@ -265,7 +269,8 @@ option.
 The default inclusion directories are:
 +
 . The current working directory.
-. The directory containing the standard inclusion files
+. The directory containing the
+  xref:yaml:include.adoc#std[standard partial YAML files]
   (like `stdint.yaml`).
 
 [[show-configuration-version-command]]
@@ -273,7 +278,7 @@ The default inclusion directories are:
 
 === Synopses
 
-Show configuration file's version:
+Show a xref:yaml:index.adoc[YAML configuration file]'s version:
 
 [.cl]
 [verse]
@@ -297,7 +302,9 @@ xref:yaml:index.adoc[YAML configuration file] `__CONFIG-PATH__` and
 prints its version, which is either 2 or 3.
 
 The `show-configuration-version` does _not_ validate the
-`__CONFIG-PATH__` file.
+`__CONFIG-PATH__` file like the
+<<show-effective-configuration-command,`show-effective-configuration`
+command>> does.
 
 === Options
 
