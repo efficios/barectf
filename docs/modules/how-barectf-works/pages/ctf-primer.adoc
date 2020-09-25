@@ -50,10 +50,10 @@ The metadata stream describes things such as:
 A _**CTF data stream**_ is a sequence of one or more data
 <<pkt,packets>>:
 
-A xref:yaml:dst-obj.adoc[data stream type] describes data streams.
-
 [.width-100]
-image::ctf-data-stream.svg[]
+image::ctf-trace-all.svg[]
+
+A xref:yaml:dst-obj.adoc[data stream type] describes data streams.
 
 A packet contains one or more bytes of data.
 
@@ -90,9 +90,6 @@ On the file system, a data stream file:
 === Packet
 
 A _**CTF packet**_ is a part of a <<ds,data stream>>.
-
-[.width-100]
-image::ctf-packet.svg[]
 
 A packet contains, in this order:
 
@@ -175,9 +172,6 @@ time-stamped record with user data when an event occurs during a user
 application's execution.
 
 An xref:yaml:ert-obj.adoc[event record type] describes event records.
-
-[.width-80]
-image::ctf-event-record.svg[]
 
 An event record contains, in this order:
 
