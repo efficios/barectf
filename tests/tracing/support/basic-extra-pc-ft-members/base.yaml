@@ -1,0 +1,23 @@
+native-byte-order: le
+data-stream-types:
+  default:
+    $is-default: true
+    $features:
+      packet:
+        discarded-event-records-counter-snapshot-field-type: false
+    packet-context-field-type-extra-members:
+      - a:
+          field-type:
+            class: uint
+            size: 32
+      - b:
+          field-type:
+            class: str
+    event-record-types:
+      dummy:
+        payload-field-type:
+          class: struct
+          members:
+            - u:
+                field-type:
+                  class: str
