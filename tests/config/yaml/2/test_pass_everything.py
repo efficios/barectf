@@ -43,7 +43,7 @@ def test_everything(request, tmpdir):
         with open(os.path.join(tmpdir, file.name), 'w') as f:
             f.write(file.contents)
 
-    cc = os.environ.get('CC', 'gcc')
+    cc = os.environ.get('CC', 'cc')
     o_file = 'obj.o'
     subprocess.check_call([cc, '-c', '-o', o_file, files[-1].name], cwd=tmpdir)
     nm = os.environ.get('NM', 'nm')
