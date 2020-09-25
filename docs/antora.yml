@@ -1,6 +1,6 @@
 name: barectf
 title: barectf
-version: '3.0'
+version: '3.1'
 asciidoc:
   attributes:
     req-abbr: '<abbr title="Required?">Req?</abbr>'

@@ -1,4 +1,4 @@
-* xref:whats-new.adoc[What's new in barectf{nbsp}3?]
+* xref:whats-new.adoc[]
 * xref:install.adoc[]
 * xref:getting-started.adoc[]
 * xref:how-barectf-works:index.adoc[]

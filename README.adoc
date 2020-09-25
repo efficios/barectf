@@ -1,7 +1,5 @@
 // Render with Asciidoctor
 
-:version: 3.0
-
 ifndef::env-github[]
 :toc: left
 endif::env-github[]
@@ -13,7 +11,7 @@ Philippe Proulx
 image::https://barectf.org/barectf-logo.svg[{nbsp}]
 
 https://pypi.python.org/pypi/barectf[image:https://img.shields.io/pypi/v/barectf.svg[]]
-https://ci.lttng.org/job/barectf_stable-{version}_build[image:https://img.shields.io/jenkins/s/https/ci.lttng.org/barectf_stable-{version}_build.svg[]]
+https://ci.lttng.org/job/barectf_master_build[image:https://img.shields.io/jenkins/s/https/ci.lttng.org/barectf_master_build.svg[]]
 
 [.lead]
 https://barectf.org/[**_barectf_**] (from _bare_ metal and _CTF_)
@@ -26,13 +24,13 @@ https://diamon.org/ctf/[CTF] data streams.
 This README mostly documents barectf development.
 
 To learn how to use barectf, read its
-https://barectf.org/docs/barectf/{version}/[documentation].
+https://barectf.org/docs/barectf/[documentation].
 ====
 
 == Install barectf
 
 See the barectf documentation's
-https://barectf.org/docs/barectf/{version}/install.html[Install barectf]
+https://barectf.org/docs/barectf/3.0/install.html[Install barectf]
 page.
 
 == Build barectf
@@ -58,7 +56,7 @@ https://docs.antora.org/antora/2.3/component-version/[Antora
 documentation component version] under the `docs` directory.
 
 This component version is the source of the
-https://barectf.org/docs/barectf/{version}/[barectf documentation website].
+https://barectf.org/docs/[barectf documentation website].
 
 You can refer to this component version in your
 https://docs.antora.org/antora/2.3/playbook/[Antora playbook file],
@@ -106,5 +104,5 @@ $ tox
 == Get help
 
 See the barectf documentation's
-https://barectf.org/docs/barectf/{version}/get-help.html[Get help]
+https://barectf.org/docs/barectf/3.0/get-help.html[Get help]
 page.
