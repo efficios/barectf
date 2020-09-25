@@ -28,8 +28,8 @@ import subprocess
 
 
 def test_everything(request, tmpdir):
-    yaml_path = os.path.join(os.path.dirname(request.fspath), 'configs', 'pass', 'everything',
-                             'config.yaml')
+    yaml_path = os.path.join(os.path.dirname(request.fspath), 'configs',
+                             'pass', 'everything', 'config.yaml')
     yaml_dir = os.path.dirname(yaml_path)
 
     with open(yaml_path) as f:
