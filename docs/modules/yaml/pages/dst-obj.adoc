@@ -186,7 +186,7 @@ equal to the size of the `content-size-field-type` property's field
 type.
 
 You **can't** disable this feature.
-|True
+|Use a default field type (true)
 
 |[[content-size-ft-prop]]`content-size-field-type`
 |Unsigned xref:int-ft-obj.adoc[integer field type object], string,
@@ -200,7 +200,7 @@ The size of this feature's integer field type must be less than or equal
 to the size of the `total-size-field-type` property's field type.
 
 You **can't** disable this feature.
-|True
+|Use a default field type (true)
 
 |[[beginning-ts-ft-prop]]`beginning-timestamp-field-type`
 |Unsigned xref:int-ft-obj.adoc[integer field type object], string,
@@ -209,8 +209,8 @@ or boolean
 
 If this property's value is a string, it must be the name of an existing
 xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
-|True if this data stream type has a <<def-clk-type-name-prop,default
-clock type>>, or false otherwise.
+|Use a default field type (true) if this data stream type has a
+<<def-clk-type-name-prop,default clock type>>, or false otherwise
 
 |[[end-ts-ft-prop]]`end-timestamp-field-type`
 |Unsigned xref:int-ft-obj.adoc[integer field type object], string,
@@ -219,8 +219,8 @@ or boolean
 
 If this property's value is a string, it must be the name of an existing
 xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
-|True if this data stream type has a <<def-clk-type-name-prop,default
-clock type>>, or false otherwise.
+|Use a default field type (true) if this data stream type has a
+<<def-clk-type-name-prop,default clock type>>, or false otherwise
 
 |[[disc-er-counter-snapshot-ft-prop]]`discarded-event-records-counter-snapshot-field-type`
 |Unsigned xref:int-ft-obj.adoc[integer field type object], string,
@@ -231,7 +231,7 @@ record counter] snapshot field.
 
 If this property's value is a string, it must be the name of an existing
 xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
-|True
+|Use a default field type (true)
 |===
 
 [[er-features-obj]]
@@ -274,7 +274,7 @@ xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
 
 This feature is required when this data stream type has more than one
 event record type (<<erts-prop,`event-record-types` property>>).
-|True
+|Use a default field type (true)
 
 |[[ts-prop]]`timestamp-field-type`
 |Unsigned xref:int-ft-obj.adoc[integer field type object], string,
@@ -283,8 +283,8 @@ or boolean
 
 If this property's value is a string, it must be the name of an existing
 xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
-|True if this data stream type has a <<def-clk-type-name-prop,default
-clock type>>, or false otherwise.
+|Use a default field type (true) if this data stream type has a
+<<def-clk-type-name-prop,default clock type>>, or false otherwise
 |===
 
 == Examples
