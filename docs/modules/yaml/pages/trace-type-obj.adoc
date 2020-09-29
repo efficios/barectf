@@ -136,7 +136,7 @@ string, or boolean
 
 If this property's value is a string, it must be the name of an existing
 <<ft-aliases-prop,field type alias>>.
-|True
+|Use a default field type (true)
 
 |[[uuid-ft-prop]]`uuid-field-type`
 |xref:static-array-ft-obj.adoc[Static array field type object] of
@@ -146,8 +146,8 @@ type objects] (8-bit{nbsp}alignment), string, or boolean
 
 If this property's value is a string, it must be the name of an existing
 <<ft-aliases-prop,field type alias>>.
-|True if this trace type has a <<uuid-prop,`uuid` property>>, or false
-otherwise.
+|Use a default field type (true) if this trace type has a
+<<uuid-prop,`uuid` property>>, or false otherwise
 
 |[[dst-id-ft-prop]]`data-stream-type-id-field-type`
 |Unsigned xref:int-ft-obj.adoc[integer field type object], string,
@@ -159,7 +159,7 @@ If this property's value is a string, it must be the name of an existing
 
 This feature is required when this trace type has more than one
 data stream type (<<dsts-prop,`data-stream-types` property>>).
-|True
+|Use a default field type (true)
 |===
 
 == Examples
