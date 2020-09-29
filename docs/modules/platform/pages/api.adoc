@@ -275,7 +275,7 @@ A packet opening function:
 +
 The source of some of those fields can be <<open-params,parameters>>.
 
-. Saves the offsets of some packet context field to write them at
+. Saves the offsets of some packet context fields to write them at
   <<close,packet closing>> time.
 
 . Marks the current packet as being open.
