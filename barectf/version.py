@@ -24,5 +24,5 @@
 __major_version__ = 3
 __minor_version__ = 0
 __patch_version__ = 1
-__pre_version__ = '-dev'
+__pre_version__ = ''
 __version__ = f'{__major_version__}.{__minor_version__}.{__patch_version__}{__pre_version__}'
