@@ -118,6 +118,12 @@ void {{ prefix }}packet_set_buf(void * const vctx, uint8_t * const buf,
 	struct {{ ctx_struct_name }} * const ctx = _FROM_VOID_PTR(struct {{ ctx_struct_name }}, vctx);
 
 	ctx->buf = buf;
+
+	if (ctx->at == ctx->packet_size) {
+		/* Keep full packet state */
+		ctx->at = _BYTES_TO_BITS(buf_size);
+	}
+
 	ctx->packet_size = _BYTES_TO_BITS(buf_size);
 }
 
