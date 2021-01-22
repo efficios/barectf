@@ -53,33 +53,30 @@ include::partial$array-ft-obj-gen-c-types-example.adoc[]
 
 == Examples
 
-.Dynamic array field type object: <<length-prop,four>> 8-bit unsigned xref:int-ft-obj.adoc[integers].
+.Dynamic array field type object: 8-bit unsigned xref:int-ft-obj.adoc[integers].
 ====
 [source,yaml]
 ----
 class: dynamic-array
-length: 4
 element-field-type: uint8
 ----
 ====
 
-.Dynamic array field type object: <<length-prop,22>>{nbsp}xref:str-ft-obj.adoc[strings].
+.Dynamic array field type object: xref:str-ft-obj.adoc[strings].
 ====
 [source,yaml]
 ----
 class: dynamic-array
-length: 22
 element-field-type:
   class: string
 ----
 ====
 
-.Dynamic array field type object: <<length-prop,five>> xref:static-array-ft-obj.adoc[static arrays] of 32{nbsp}double-precision xref:real-ft-obj.adoc[reals].
+.Dynamic array field type object: xref:static-array-ft-obj.adoc[static arrays] of 32{nbsp}double-precision xref:real-ft-obj.adoc[reals].
 ====
 [source,yaml]
 ----
 class: dynamic-array
-length: 5
 element-field-type:
   class: static-array
   length: 32
