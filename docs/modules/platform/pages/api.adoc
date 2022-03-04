@@ -191,6 +191,15 @@ Returns the number of
 xref:how-barectf-works:ctf-primer.adoc#disc-er-counter[discarded event
 records] in the barectf context `vctx`.
 
+* [[barectf-pkt-seq-num-func]]{empty}
++
+[source,c]
+----
+uint32_t barectf_packet_sequence_number(const void *vctx);
+----
++
+Returns the packet sequence number in the barectf context `vctx`.
+
 * {empty}
 +
 [source,c]
@@ -301,11 +310,15 @@ void barectf_NAME_close_packet(struct barectf_NAME_ctx *sctx);
 
 A packet closing function:
 
-. Writes some
-  xref:how-barectf-works:ctf-primer.adoc#pkt[packet context]
+. Marks the current packet as being closed.
+
+. Writes some xref:how-barectf-works:ctf-primer.adoc#pkt[packet context]
   fields.
 
-. Marks the current packet as being closed.
+. If the
+  xref:yaml:dst-obj.adoc#seq-num-ft-prop[`sequence-number-field-type`
+  packet feature] of the corresponding data stream type is enabled:
+  increments the packet sequence number of `sctx`.
 
 In general, a <<cb-close,packet closing platform callback function>> and
 a platform finalization function (for the last packet) call this

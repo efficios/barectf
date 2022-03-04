@@ -69,6 +69,7 @@ int {{ prefix }}packet_is_full(const void *vctx);
 int {{ prefix }}packet_is_empty(const void *vctx);
 uint32_t {{ prefix }}packet_events_discarded(const void *vctx);
 uint32_t {{ prefix }}discarded_event_records_count(const void * const vctx);
+uint32_t {{ prefix }}packet_sequence_number(const void * const vctx);
 uint8_t *{{ prefix }}packet_buf(const void *vctx);
 uint8_t *{{ prefix }}packet_buf_addr(const void * const vctx);
 void {{ prefix }}packet_set_buf(void *vctx, uint8_t *buf, uint32_t buf_size);
@@ -124,6 +125,9 @@ struct {{ prefix }}ctx {
 
 	/* Discarded event records counter snapshot */
 	uint32_t events_discarded;
+
+	/* Packet's sequence number */
+	uint32_t sequence_number;
 
 	/* Current packet is open? */
 	int packet_is_open;

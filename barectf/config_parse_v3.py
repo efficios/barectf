@@ -438,6 +438,7 @@ class _Parser(barectf_config_parse_common._Parser):
             pkt_disc_er_counter_snap_ft = barectf_config.DEFAULT_FIELD_TYPE
             ert_id_ft = barectf_config.DEFAULT_FIELD_TYPE
             ert_ts_ft = None
+            pkt_seq_num_ft = None
 
             if def_clk_type is not None:
                 # The data stream type has a default clock type.
@@ -472,6 +473,8 @@ class _Parser(barectf_config_parse_common._Parser):
                     pkt_disc_er_counter_snap_ft = self._feature_ft(pkt_node,
                                                                    'discarded-event-records-counter-snapshot-field-type',
                                                                    pkt_disc_er_counter_snap_ft)
+                    pkt_seq_num_ft = self._feature_ft(pkt_node, 'sequence-number-field-type',
+                                                      pkt_seq_num_ft)
 
                 # create event record feature field types
                 er_node = features_node.get('event-record')
@@ -503,7 +506,8 @@ class _Parser(barectf_config_parse_common._Parser):
                                                                        pkt_content_size_ft,
                                                                        pkt_beginning_ts_ft,
                                                                        pkt_end_ts_ft,
-                                                                       pkt_disc_er_counter_snap_ft)
+                                                                       pkt_disc_er_counter_snap_ft,
+                                                                       pkt_seq_num_ft)
             er_features = barectf_config.DataStreamTypeEventRecordFeatures(ert_id_ft, ert_ts_ft)
             features = barectf_config.DataStreamTypeFeatures(pkt_features, er_features)
 
@@ -811,6 +815,7 @@ class _Parser(barectf_config_parse_common._Parser):
                                 resolve_ft_alias_from(pkt_node, 'end-timestamp-field-type')
                                 resolve_ft_alias_from(pkt_node,
                                                       'discarded-event-records-counter-snapshot-field-type')
+                                resolve_ft_alias_from(pkt_node, 'sequence-number-field-type')
                             except _ConfigurationParseError as exc:
                                 _append_error_ctx(exc, f'`{pkt_prop_name}` property')
 
@@ -889,6 +894,7 @@ class _Parser(barectf_config_parse_common._Parser):
                     apply_ft_inheritance(pkt_node, 'end-timestamp-field-type')
                     apply_ft_inheritance(pkt_node,
                                          'discarded-event-records-counter-snapshot-field-type')
+                    apply_ft_inheritance(pkt_node, 'sequence-number-field-type')
 
                 er_node = features_node.get('event-record')
 
@@ -978,6 +984,7 @@ class _Parser(barectf_config_parse_common._Parser):
                     normalize_struct_ft_member_nodes(pkt_node, 'end-timestamp-field-type')
                     normalize_struct_ft_member_nodes(pkt_node,
                                                      'discarded-event-records-counter-snapshot-field-type')
+                    normalize_struct_ft_member_nodes(pkt_node, 'sequence-number-field-type')
 
                 er_node = features_node.get('event-record')
 

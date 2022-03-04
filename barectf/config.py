@@ -442,7 +442,8 @@ class DataStreamTypePacketFeatures:
                  content_size_field_type: _DefaultableUIntFt = DEFAULT_FIELD_TYPE,
                  beginning_timestamp_field_type: _OptDefaultableUIntFt = None,
                  end_timestamp_field_type: _OptDefaultableUIntFt = None,
-                 discarded_event_records_snapshot_counter_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE):
+                 discarded_event_records_snapshot_counter_field_type: _OptDefaultableUIntFt = DEFAULT_FIELD_TYPE,
+                 sequence_number_field_type: _OptDefaultableUIntFt = None):
         def get_ft(user_ft: _OptDefaultableUIntFt) -> _OptUIntFt:
             if user_ft == DEFAULT_FIELD_TYPE:
                 return UnsignedIntegerFieldType(64)
@@ -454,6 +455,11 @@ class DataStreamTypePacketFeatures:
         self._beginning_timestamp_field_type = get_ft(beginning_timestamp_field_type)
         self._end_timestamp_field_type = get_ft(end_timestamp_field_type)
         self._discarded_event_records_snapshot_counter_field_type = get_ft(discarded_event_records_snapshot_counter_field_type)
+        self._sequence_number_field_type = get_ft(sequence_number_field_type)
+
+    @property
+    def sequence_number_field_type(self) -> _OptUIntFt:
+        return self._sequence_number_field_type
 
     @property
     def total_size_field_type(self) -> _OptUIntFt:
@@ -602,6 +608,8 @@ class DataStreamType(_UniqueByName):
                              True)
         add_member_if_exists('events_discarded',
                              self._features.packet_features.discarded_event_records_snapshot_counter_field_type)
+        add_member_if_exists('packet_seq_num',
+                             self._features.packet_features.sequence_number_field_type)
 
         if self._packet_context_field_type_extra_members is not None:
             for name, field_type in self._packet_context_field_type_extra_members.items():

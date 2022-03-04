@@ -132,6 +132,8 @@ properties:
                                 $ref: '#/definitions/partial-ft'
                               discarded-event-records-counter-snapshot-field-type:
                                 $ref: '#/definitions/partial-ft'
+                              sequence-number-field-type:
+                                $ref: '#/definitions/partial-ft'
                           else:
                             type: 'null'
                         event-record:

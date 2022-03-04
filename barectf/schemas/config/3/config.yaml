@@ -209,6 +209,8 @@ definitions:
                     $ref: '#/definitions/opt-or-def-feature-uint-ft'
                   discarded-event-records-counter-snapshot-field-type:
                     $ref: '#/definitions/opt-or-def-feature-uint-ft'
+                  sequence-number-field-type:
+                    $ref: '#/definitions/opt-or-def-feature-uint-ft'
                 additionalProperties: false
               else:
                 type: 'null'

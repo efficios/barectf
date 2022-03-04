@@ -232,6 +232,15 @@ record counter] snapshot field.
 If this property's value is a string, it must be the name of an existing
 xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
 |Use a default field type (true)
+
+|[[seq-num-ft-prop]]`sequence-number-field-type`
+|Unsigned xref:int-ft-obj.adoc[integer field type object], string,
+or boolean
+|Type of packet context's sequence number field.
+
+If this property's value is a string, it must be the name of an existing
+xref:trace-type-obj.adoc#ft-aliases-prop[field type alias].
+|Disabled (false)
 |===
 
 [[er-features-obj]]
@@ -328,6 +337,18 @@ event-record-types:
 $features:
   packet:
     discarded-event-records-counter-snapshot-field-type: false
+event-record-types:
+  # ...
+----
+====
+
+.Data stream type object with an enabled packet <<seq-num-ft-prop,sequence number field type feature>>.
+====
+[source,yaml]
+----
+$features:
+  packet:
+    sequence-number-field-type: true
 event-record-types:
   # ...
 ----

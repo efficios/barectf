@@ -95,6 +95,11 @@ uint32_t {{ prefix }}discarded_event_records_count(const void * const vctx)
 	return {{ prefix }}packet_events_discarded(vctx);
 }
 
+uint32_t {{ prefix }}packet_sequence_number(const void * const vctx)
+{
+	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->sequence_number;
+}
+
 uint8_t *{{ prefix }}packet_buf(const void * const vctx)
 {
 	return _FROM_VOID_PTR(const struct {{ ctx_struct_name }}, vctx)->buf;
@@ -239,6 +244,7 @@ void _commit_er(void * const vctx)
 	ctx->packet_size = _BYTES_TO_BITS(buf_size);
 	ctx->at = 0;
 	ctx->events_discarded = 0;
+	ctx->sequence_number = 0;
 	ctx->packet_is_open = 0;
 	ctx->in_tracing_section = 0;
 	ctx->is_tracing_enabled = 1;
@@ -386,6 +392,10 @@ end:
 
 	/* Mark packet as closed */
 	ctx->packet_is_open = 0;
+	{% if 'packet_seq_num' in dst._pkt_ctx_ft.members %}
+	/* Increment sequence number for next packet */
+	ctx->sequence_number++;
+	{% endif %}
 
 	/* Not tracing anymore */
 	ctx->in_tracing_section = saved_in_tracing_section;

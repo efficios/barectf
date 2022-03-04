@@ -150,7 +150,13 @@ See the data stream type packet features object's
 xref:yaml:dst-obj.adoc#disc-er-counter-snapshot-ft-prop[`discarded-event-records-counter-snapshot-field-type`
 property].
 
-** [.opt]##Optional##A packet sequence number.
+** [.opt]##Optional##A packet sequence number (within its <<ds,data
+   stream>>).
++
+See the data stream type packet features object's
+xref:yaml:dst-obj.adoc#seq-num-ft-prop[`sequence-number-field-type`
+property].
+
 ** [.opt]##Optional##User fields.
 +
 See the data stream type object's

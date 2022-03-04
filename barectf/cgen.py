@@ -509,6 +509,7 @@ class _CodeGen:
         self._serialize_write_dst_id_statements_templ = self._create_template('serialize-write-dst-id-statements.j2')
         self._serialize_write_timestamp_statements_templ = self._create_template('serialize-write-timestamp-statements.j2')
         self._serialize_write_packet_size_statements_templ = self._create_template('serialize-write-packet-size-statements.j2')
+        self._serialize_write_seq_num_statements_templ = self._create_template('serialize-write-seq-num-statements.j2')
         self._serialize_write_skip_save_statements_templ = self._create_template('serialize-write-skip-save-statements.j2')
         self._serialize_write_ert_id_statements_templ = self._create_template('serialize-write-ert-id-statements.j2')
         self._size_align_statements_templ = self._create_template('size-align-statements.j2')
@@ -644,6 +645,7 @@ class _CodeGen:
             'packet_size',
             'content_size',
             'events_discarded',
+            'packet_seq_num',
         }
         parts.append(self._proto_params_str(dst._pkt_ctx_ft, _RootFtPrefixes.PC, const_params,
                                             exclude_set))
@@ -724,6 +726,7 @@ class _CodeGen:
                     'timestamp_end': self._serialize_write_skip_save_statements_templ,
                     'events_discarded': self._serialize_write_skip_save_statements_templ,
                     'content_size': self._serialize_write_skip_save_statements_templ,
+                    'packet_seq_num': self._serialize_write_seq_num_statements_templ,
                 }
                 pkt_ctx_op = builder.build_for_root_ft(dst._pkt_ctx_ft, _RootFtPrefixes.PC,
                                                        spec_serialize_write_templates)
