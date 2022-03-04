@@ -32,5 +32,6 @@ trace:
       default:
         $features:
           packet:
+            seq-num-field-type: uint16
             total-size-field-type: uint16
             content-size-field-type: uint16

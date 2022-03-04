@@ -199,6 +199,8 @@ definitions:
                 type: object
               then:
                 properties:
+                  seq-num-field-type:
+                    $ref: '#/definitions/opt-or-def-feature-uint-ft'
                   total-size-field-type:
                     $ref: '#/definitions/opt-feature-uint-ft'
                   content-size-field-type:

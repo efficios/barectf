@@ -239,6 +239,7 @@ void _commit_er(void * const vctx)
 	ctx->packet_size = _BYTES_TO_BITS(buf_size);
 	ctx->at = 0;
 	ctx->events_discarded = 0;
+	ctx->sequence_number = 0;
 	ctx->packet_is_open = 0;
 	ctx->in_tracing_section = 0;
 	ctx->is_tracing_enabled = 1;
@@ -386,6 +387,14 @@ end:
 
 	/* Mark packet as closed */
 	ctx->packet_is_open = 0;
+	{% set name = 'packet_seq_num' %}
+	{% if name in dst._pkt_ctx_ft.members %}
+	{% filter indent_tab(indent_first=true) %}
+
+		{% include 'c/serialize-inc-seq-num.j2' %}
+
+	{% endfilter %}
+	{% endif %}
 
 	/* Not tracing anymore */
 	ctx->in_tracing_section = saved_in_tracing_section;

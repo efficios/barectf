@@ -77,6 +77,13 @@ stream {
 			byte_order = native;
 			base = 10;
 		} content_size;
+		integer {
+			signed = false;
+			size = 16;
+			align = 16;
+			byte_order = native;
+			base = 10;
+		} packet_seq_num;
 	} align(8);
 	event.header := struct {
 		integer {

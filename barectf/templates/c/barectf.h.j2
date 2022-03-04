@@ -125,6 +125,9 @@ struct {{ prefix }}ctx {
 	/* Discarded event records counter snapshot */
 	uint32_t events_discarded;
 
+	/* Packet's sequence number */
+	uint32_t sequence_number;
+
 	/* Current packet is open? */
 	int packet_is_open;
 
