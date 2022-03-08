@@ -1,3 +1,32 @@
-= What's new in barectf{nbsp}3.1?
+= What's new in barectf{nbsp}{page-component-display-version}?
 
-TODO!
+Thanks to a https://review.lttng.org/c/barectf/+/7496[contribution from
+Jon Lamb], the xref:how-barectf-works:ctf-primer.adoc#pkt[CTF packets]
+which a barectf-generated tracer writes can contain an
+automatically-incremented **sequence number** in their context field.
+This is useful for a trace reader/analyzer to detect packets lost at
+transport time, for example. https://babeltrace.org/[Babeltrace{nbsp}2]
+supports such a packet context field out of the box.
+
+To enable this new packet feature, set the
+xref:yaml:dst-obj.adoc#seq-num-ft-prop[`sequence-number-field-type`
+property] of the packet features object, for example:
+
+.Data stream type object with an enabled packet sequence number field type feature.
+====
+[source,yaml]
+----
+$features:
+  packet:
+    sequence-number-field-type: true
+event-record-types:
+  # ...
+----
+====
+
+This feature is disabled (false) by default to avoid breaking changes.
+
+The xref:platform:api.adoc#close[packet closing function] automatically
+increments the current packet sequence number of the barectf context.
+Within platform code, you can get the current value with
+xref:platform:api.adoc#barectf-pkt-seq-num-func[`barectf_packet_sequence_number()`].
