@@ -1237,7 +1237,9 @@ class _Parser(barectf_config_parse_common._Parser):
     def _process_trace_node_include(self, trace_node: _MapNode) -> _MapNode:
         def process_children_include(trace_node: _MapNode):
             prop_name = 'type'
-            trace_node[prop_name] = self._process_trace_type_node_include(trace_node[prop_name])
+
+            if prop_name in trace_node:
+                trace_node[prop_name] = self._process_trace_type_node_include(trace_node[prop_name])
 
         # Make sure the trace node is valid for the inclusion processing
         # stage.
