@@ -592,7 +592,7 @@ class _Parser(barectf_config_parse_common._Parser):
                                         clk_type_uuid, clk_type_node.get('description'),
                                         clk_type_node.get('precision', 0),
                                         barectf_config.ClockTypeOffset(offset_seconds, offset_cycles),
-                                        clk_type_node.get('origin-is-unix-epoch', False))
+                                        clk_type_node.get('origin-is-unix-epoch', True))
 
     def _create_clk_types(self):
         self._clk_types = {}
