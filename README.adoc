@@ -24,7 +24,7 @@ https://diamon.org/ctf/[CTF] data streams.
 This README mostly documents barectf development.
 
 To learn how to use barectf, read its
-https://barectf.org/docs/barectf/[documentation].
+https://barectf.org/docs/[documentation].
 ====
 
 == Install barectf
@@ -86,7 +86,7 @@ To run the barectf tests:
 YAML configuration files of tracing tests use a little-endian
 native byte order.
 
-** https://tox.readthedocs.io/en/latest/install.html[tox]
+** https://tox.wiki/en/latest/installation.html[tox]
 ** A C{nbsp}compiler.
 +
 If your C{nbsp}compiler is not the command `cc`, then set the `CC`
