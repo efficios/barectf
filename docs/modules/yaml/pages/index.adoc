@@ -78,7 +78,7 @@ CLI command] shows the effective version of a YAML configuration file.
 == TSDL identifier
 
 Many barectf YAML objects require that a given string key or value
-be a valid TSDL identifier.
+be a valid TSDL (Trace Stream Description Language) identifier.
 
 As per https://diamon.org/ctf/v1.8.3/[CTF{nbsp}1.8.3], a valid TSDL
 identifier is any valid C{nbsp}identifier which is __not__ one of:
