@@ -8,9 +8,10 @@ type], xref:yaml:clk-type-obj.adoc[clock types],
 xref:yaml:dst-obj.adoc[data stream types], xref:yaml:ert-obj.adoc[event
 record types], and other options to generate the files.
 
-With the `barectf` Python package, you build the barectf configuration
-programatically by assembling configuration objects. This documentation
-is _not_ about the Python package.
+With the `barectf` https://pypi.org/project/barectf/[Python package],
+you build the barectf configuration programatically by assembling
+configuration objects. This documentation is _not_ about the Python
+package.
 
 The xref:cli:index.adoc[`barectf` CLI tool] can read a
 xref:yaml:index.adoc[YAML configuration file] and generate files out of
@@ -87,7 +88,8 @@ image::barectf-data-flow.svg[]
 
 . barectf also generates the tracer's C{nbsp}files.
 
-. You pass your application's C{nbsp}source file(s),
+. After adding calls to the generated tracing functions in your
+application code, you pass your application's C{nbsp}source file(s),
   xref:platform:index.adoc[platform]
   C{nbsp}source files, and the generated tracer's C{nbsp}source file to
   a xref:build:index.adoc[C{nbsp}compiler to create your final
