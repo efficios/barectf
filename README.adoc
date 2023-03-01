@@ -16,7 +16,7 @@ https://ci.lttng.org/job/barectf_master_linuxbuild[image:https://img.shields.io/
 [.lead]
 https://barectf.org/[**_barectf_**] (from _bare_ metal and _CTF_)
 is a generator of
-https://en.wikipedia.org/wiki/Tracing_(software)[tracer] which produces
+https://en.wikipedia.org/wiki/Tracing_(software)[tracers] that produce
 https://diamon.org/ctf/[CTF] data streams.
 
 [NOTE]

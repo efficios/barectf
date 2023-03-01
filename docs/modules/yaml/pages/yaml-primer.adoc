@@ -142,7 +142,7 @@ Boolean::
     `true`, `True`, `TRUE`, `false`, `False`, or `FALSE`.
 
 Integer::
-    Anything matching:
+    Anything matching these regular expressions:
 +
 ** `+[-+]?[0-9]++` (decimal)
 ** `+0o[0-7]++` (octal)
