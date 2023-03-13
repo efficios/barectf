@@ -40,6 +40,27 @@
 #include "{{ header_file_name }}"
 #include "{{ bitfield_header_file_name }}"
 
+{% set trace_type = cfg.trace.type %}
+{% if trace_type.__class__ == barectf_config.TraceType %}
+	{% if trace_type.native_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN %}
+		{% set cfg_native_bo = 'little endian' %}
+		{% set opposite_cfg_native_bo = 'big endian' %}
+		{% set target_bo_cpp_def = '__ORDER_LITTLE_ENDIAN__' %}
+	{% else %}
+		{% set cfg_native_bo = 'big endian' %}
+		{% set opposite_cfg_native_bo = 'little endian' %}
+		{% set target_bo_cpp_def = '__ORDER_BIG_ENDIAN__' %}
+	{% endif -%}
+
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ != {{ target_bo_cpp_def }}
+# error "barectf: The native byte order of the target architecture \
+({{ opposite_cfg_native_bo }}) doesn't match the configured native byte order \
+({{ cfg_native_bo }}): the generated tracer could produce invalid or corrupted \
+CTF packets. Please make sure that the native byte order in the barectf \
+configuration's trace type object is {{ opposite_cfg_native_bo }}."
+#endif
+{% endif %}
+
 #define _ALIGN(_at_var, _align)						\
 	do {								\
 		(_at_var) = ((_at_var) + ((_align) - 1)) & -(_align);	\
