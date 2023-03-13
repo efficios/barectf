@@ -45,7 +45,7 @@ metadata:
     couch: 0755
   trace:
     $include: trace.inc.yaml
-    byte-order: be
+    byte-order: le
   clocks:
     some_clock:
       $include: clock.inc.yaml
