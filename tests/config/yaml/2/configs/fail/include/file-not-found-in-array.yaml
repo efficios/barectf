@@ -24,7 +24,7 @@
 version: '2.1'
 metadata:
   $include:
-    - inc-empty.yaml
+    - empty.inc.yaml
     - yes.yaml
   type-aliases:
     uint16:
