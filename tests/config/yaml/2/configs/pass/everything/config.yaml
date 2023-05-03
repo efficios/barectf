@@ -28,7 +28,7 @@ options:
   gen-default-stream-def: true
 metadata:
   $include:
-    - inc-metadata.yaml
+    - metadata.inc.yaml
     - stdmisc.yaml
     - lttng-ust-log-levels.yaml
   type-aliases:
@@ -44,11 +44,11 @@ metadata:
   $log-levels:
     couch: 0755
   trace:
-    $include: inc-trace.yaml
+    $include: trace.inc.yaml
     byte-order: be
   clocks:
     some_clock:
-      $include: inc-clock.yaml
+      $include: clock.inc.yaml
       description: this is my favorite clock
       offset:
         cycles: 91827439187
@@ -71,7 +71,7 @@ metadata:
                 class: int
                 size: 8
     my_other_stream:
-      $include: inc-stream.yaml
+      $include: stream.inc.yaml
       packet-context-type:
         class: struct
         fields:
@@ -85,7 +85,7 @@ metadata:
           timestamp: my-clock-int
       events:
         my_event:
-          $include: inc-event.yaml
+          $include: event.inc.yaml
           context-type: null
           payload-type:
             class: struct

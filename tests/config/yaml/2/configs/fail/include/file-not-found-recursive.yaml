@@ -23,7 +23,7 @@
 
 version: '2.1'
 metadata:
-  $include: inc-inc-not-found.yaml
+  $include: include-not-found.inc.yaml
   type-aliases:
     uint16:
       class: int
