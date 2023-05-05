@@ -21,6 +21,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+# Tests that configuration parsing will fail when a file with an invalid
+# absolute path is included.
 version: '2.1'
 metadata:
   $include: /path/to/not/found
