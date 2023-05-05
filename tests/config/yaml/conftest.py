@@ -56,14 +56,45 @@ def pytest_collect_file(parent, path):
         elems.append(elem)
         path_str = os.path.dirname(path_str)
 
-    if 'fail' not in elems:
-        return
-
     # create a unique test name
     name = f'test-{"-".join(reversed(elems))}'.replace(yaml_ext, '')
 
     # create the file node
-    return _YamlFile.from_parent(parent, fspath=path, name=name)
+    if 'fail' in elems:
+        return _YamlFileFail.from_parent(parent, fspath=path, name=name)
+    elif 'pass' in elems:
+        return _YamlFilePass.from_parent(parent, fspath=path, name=name)
+    else:
+        # YAML file is not a test case
+        return
+
+
+class _YamlItem(pytest.Item):
+    def runtest(self):
+        yaml_dir = self.fspath.dirname
+
+        with open(str(self.fspath)) as f:
+            self._runtest(f, yaml_dir)
+
+    def reportinfo(self):
+        return self.fspath, None, self.name
+
+
+class _YamlItemFail(_YamlItem):
+    def _runtest(self, f, yaml_dir):
+        with pytest.raises(barectf._ConfigurationParseError):
+            barectf.configuration_from_file(f, inclusion_directories=[yaml_dir])
+
+    def repr_failure(self, excinfo, style=None):
+        return f'`{self.fspath}` did not make barectf.configuration_from_file() raise `barectf._ConfigurationParseError`: {excinfo}.'
+
+
+class _YamlItemPass(_YamlItem):
+    def _runtest(self, f, yaml_dir):
+        barectf.configuration_from_file(f, inclusion_directories=[yaml_dir])
+
+    def repr_failure(self, excinfo, style=None):
+        return f'`{self.fspath}` barectf.configuration_from_file() raised an exception.: {excinfo}.'
 
 
 class _YamlFile(pytest.File):
@@ -73,22 +104,12 @@ class _YamlFile(pytest.File):
 
     def collect(self):
         # yield a single item
-        yield _YamlItem.from_parent(self, name=self._name)
+        yield self._item_cls.from_parent(self, name=self._name)
 
 
-class _YamlItem(pytest.Item):
-    def __init__(self, parent, name):
-        super().__init__(parent=parent, name=name)
+class _YamlFileFail(_YamlFile):
+    _item_cls = _YamlItemFail
 
-    def runtest(self):
-        yaml_dir = self.fspath.dirname
 
-        with open(str(self.fspath)) as f:
-            with pytest.raises(barectf._ConfigurationParseError):
-                barectf.configuration_from_file(f, inclusion_directories=[yaml_dir])
-
-    def repr_failure(self, excinfo, style=None):
-        return f'`{self.fspath}` did not make barectf.configuration_from_file() raise `barectf._ConfigurationParseError`: {excinfo}.'
-
-    def reportinfo(self):
-        return self.fspath, None, self.name
+class _YamlFilePass(_YamlFile):
+    _item_cls = _YamlItemPass
