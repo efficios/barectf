@@ -27,6 +27,8 @@ import barectf
 import subprocess
 
 
+# Tests that a barectf 2 configuration using many features will
+# generate tracer C code that appears valid and functional.
 def test_everything(request, tmpdir):
     yaml_path = os.path.join(os.path.dirname(request.fspath), 'configs',
                              'pass', 'everything', 'config.yaml')
