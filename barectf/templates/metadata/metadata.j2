@@ -39,7 +39,7 @@
 trace {
 	major = 1;
 	minor = 8;
-	byte_order = {{ 'le' if cfg.trace.type.native_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN else 'be' }};
+	byte_order = {{ 'le' if cfg.trace.type.trace_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN else 'be' }};
 {% if cfg.trace.type.uuid %}
 	uuid = "{{ cfg.trace.type.uuid }}";
 {% endif %}

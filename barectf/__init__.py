@@ -83,6 +83,7 @@ StructureFieldTypeMembers = barectf_config.StructureFieldTypeMembers
 Trace = barectf_config.Trace
 TraceEnvironment = barectf_config.TraceEnvironment
 TraceType = barectf_config.TraceType
+TraceTypeWithUnknownNativeByteOrder = barectf_config.TraceTypeWithUnknownNativeByteOrder
 TraceTypeFeatures = barectf_config.TraceTypeFeatures
 UnsignedEnumerationFieldType = barectf_config.UnsignedEnumerationFieldType
 UnsignedIntegerFieldType = barectf_config.UnsignedIntegerFieldType

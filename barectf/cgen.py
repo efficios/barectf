@@ -546,7 +546,7 @@ class _CodeGen:
 
     # Trace type of this code generator's barectf configuration.
     @property
-    def _trace_type(self) -> barectf_config.TraceType:
+    def _trace_type(self) -> barectf_config._TraceType:
         return self._cfg.trace.type
 
     # Returns the name of a source variable for the operation `op`.

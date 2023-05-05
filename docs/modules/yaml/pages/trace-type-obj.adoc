@@ -21,7 +21,29 @@ xref:trace-obj.adoc#type-prop[`type` property] of a trace object.
 |xref:common-values.adoc#byte-order[Byte order]
 |Native byte order of the system which produces this trace type's
 instance's xref:how-barectf-works:ctf-primer.adoc#ds[data streams].
-|Yes
+
+You must not use this property and the
+<<trace-bo-prop,`trace-byte-order`>> property at the same time.
+|Yes, if the `trace-byte-order` property is missing
+|
+
+|[[trace-bo-prop]]`trace-byte-order`
+|xref:common-values.adoc#byte-order[Byte order]
+|Byte order of fields of this trace type's
+instance's xref:how-barectf-works:ctf-primer.adoc#ds[data streams].
+
+[IMPORTANT]
+====
+This property exists to support barectf{nbsp}2 configurations.
+
+Prefer the <<native-bo-prop,`native-byte-order`>> property instead, as
+enforcing the trace byte order could result in a less efficient
+generated tracer.
+====
+
+You must not use this property and the `native-byte-order` property at
+the same time.
+|Yes, if the `native-byte-order` property is missing
 |
 
 |[[uuid-prop]]`uuid`
