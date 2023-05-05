@@ -24,7 +24,9 @@
  #}
 {% import 'common.j2' as common %}
 {% set incr_at %}ctx->at += {{ op.ft.size }}{% endset %}
-{% if op.ft.alignment % 8 == 0 and op.ft.size in [8, 16, 32, 64] %}
+{% if op.ft.alignment % 8 == 0 and
+	op.ft.size in [8, 16, 32, 64] and
+	cfg.trace.type.__class__ != barectf_config.TraceTypeWithUnknownNativeByteOrder %}
 	{% set c_type %}uint{{ op.ft.size }}_t{% endset %}
 {
 	const {{ c_type }} tmp_val = ({{ c_type }}) {{ src }};
@@ -33,7 +35,7 @@
 	{{ incr_at }};
 }
 {%- else %}
-	{% set bo = 'le' if cfg.trace.type.native_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN else 'be' %}
+	{% set bo = 'le' if cfg.trace.type.trace_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN else 'be' %}
 	{% set c_type_non_const = c_type | replace('const ', '') %}
 	{% set offset_in_byte = 'ctx->at % 8' if op.offset_in_byte == none else op.offset_in_byte %}
 bt_bitfield_write_{{ bo }}(&ctx->buf[_BITS_TO_BYTES(ctx->at)], {{ offset_in_byte }}, {{ op.ft.size }},

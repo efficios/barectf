@@ -129,7 +129,8 @@ class _Parser(config_parse_common._Parser):
         # remove `encoding` property
         _del_prop_if_exists(v3_ft_node, 'encoding')
 
-        # remove `byte-order` property (always native BO in v3)
+        # remove `byte-order` property (the equivalent barectf 3
+        # configuration property is named `trace-byte-order`)
         _del_prop_if_exists(v3_ft_node, 'byte-order')
 
         # remove `property-mappings` property
@@ -489,8 +490,8 @@ class _Parser(config_parse_common._Parser):
         v3_trace_type_node: _MapNode = collections.OrderedDict()
         v2_trace_node = v2_meta_node['trace']
 
-        # copy `byte-order` property as `native-byte-order` property
-        _copy_prop_if_exists(v3_trace_type_node, v2_trace_node, 'byte-order', 'native-byte-order')
+        # copy `byte-order` property as `trace-byte-order` property
+        _copy_prop_if_exists(v3_trace_type_node, v2_trace_node, 'byte-order', 'trace-byte-order')
 
         # copy `uuid` property
         _copy_prop_if_exists(v3_trace_type_node, v2_trace_node, 'uuid')

@@ -98,8 +98,8 @@ do {									\
  * Also, consecutive bitfields are placed from higher to lower bits.
  */
 
-{% if cfg.trace.type.native_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN %}
-/* Native byte order: little-endian */
+{% if cfg.trace.type.trace_byte_order == barectf_config.ByteOrder.LITTLE_ENDIAN %}
+/* Trace byte order: little-endian */
 
 #define _bt_bitfield_write_le(_ptr, type, _start, _length, _vtype, _v)	\
 do {									\
@@ -163,7 +163,7 @@ do {									\
 #define bt_bitfield_write_le(ptr, _start, _length, _vtype, _v) \
 	_bt_bitfield_write_le(ptr, uint8_t, _start, _length, _vtype, _v)
 {% else %}
-/* Native byte order: big-endian */
+/* Trace byte order: big-endian */
 
 #define _bt_bitfield_write_be(_ptr, type, _start, _length, _vtype, _v)	\
 do {									\

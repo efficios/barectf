@@ -703,10 +703,10 @@ class TraceTypeFeatures:
         return self._data_stream_type_id_field_type
 
 
-class TraceType:
-    def __init__(self, native_byte_order: ByteOrder, data_stream_types: Set[DataStreamType],
-                 uuid: _OptUuid = None, features: Optional[TraceTypeFeatures] = None):
-        self._native_byte_order = native_byte_order
+class _TraceType:
+    def __init__(self, trace_byte_order: ByteOrder, data_stream_types: Set[DataStreamType],
+                 uuid: _OptUuid, features: Optional[TraceTypeFeatures]):
+        self._trace_byte_order = trace_byte_order
         self._data_stream_types = frozenset(data_stream_types)
 
         # assign unique IDs
@@ -742,8 +742,8 @@ class TraceType:
         self._pkt_header_ft = StructureFieldType(8, members)
 
     @property
-    def native_byte_order(self) -> ByteOrder:
-        return self._native_byte_order
+    def trace_byte_order(self) -> ByteOrder:
+        return self._trace_byte_order
 
     @property
     def uuid(self) -> _OptUuid:
@@ -775,6 +775,35 @@ class TraceType:
         return clk_types
 
 
+# Standard trace type class for a barectf 3 configuration.
+#
+# The trace byte order property of an instance is the same as the
+# expected native byte order of the target system.
+class TraceType(_TraceType):
+    def __init__(self, trace_byte_order: ByteOrder, data_stream_types: Set[DataStreamType],
+                 uuid: _OptUuid = None, features: Optional[TraceTypeFeatures] = None):
+        super().__init__(trace_byte_order, data_stream_types, uuid, features)
+
+    @property
+    def native_byte_order(self) -> ByteOrder:
+        return self._trace_byte_order
+
+
+# This trace type class specifically exists to support barectf 2
+# configurations. Such configurations define the actual trace byte order
+# instead of the expected native byte order of the target system.
+#
+# The user provides the trace byte order property of an instance.
+#
+# IMPORTANT: When possible, prefer the `TraceType` class instead, as
+# enforcing the trace byte order could result in a less efficient
+# generated tracer.
+class TraceTypeWithUnknownNativeByteOrder(_TraceType):
+    def __init__(self, trace_byte_order: ByteOrder, data_stream_types: Set[DataStreamType],
+                 uuid: _OptUuid = None, features: Optional[TraceTypeFeatures] = None):
+        super().__init__(trace_byte_order, data_stream_types, uuid, features)
+
+
 _EnvEntry = Union[str, int]
 _EnvEntries = Mapping[str, _EnvEntry]
 
@@ -794,7 +823,7 @@ class TraceEnvironment(collections.abc.Mapping):
 
 
 class Trace:
-    def __init__(self, type: TraceType, environment: Optional[_EnvEntries] = None):
+    def __init__(self, type: _TraceType, environment: Optional[_EnvEntries] = None):
         self._type = type
         self._set_env(environment)
 
@@ -816,7 +845,7 @@ class Trace:
         self._env = TraceEnvironment(typing.cast(_EnvEntries, init_env))
 
     @property
-    def type(self) -> TraceType:
+    def type(self) -> _TraceType:
         return self._type
 
     @property
