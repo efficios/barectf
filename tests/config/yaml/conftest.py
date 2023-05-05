@@ -33,6 +33,10 @@ def pytest_collect_file(parent, path):
         # not a YAML file: cancel
         return
 
+    if path.fnmatch('*.inc.yaml'):
+        # not a top-level test file (partial inclusion YAML file)
+        return
+
     # At the end of this loop, if `path` is
     # `/home/jo/barectf/tests/config/yaml/2/configs/fail/stream/pct-no.yaml`,
     # for example, then `elems` is:
