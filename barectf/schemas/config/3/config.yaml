@@ -93,6 +93,8 @@ definitions:
     properties:
       native-byte-order:
         $ref: https://barectf.org/schemas/config/common/common.json#/definitions/byte-order-prop
+      trace-byte-order:
+        $ref: https://barectf.org/schemas/config/common/common.json#/definitions/byte-order-prop
       uuid:
         $ref: https://barectf.org/schemas/config/common/common.json#/definitions/opt-trace-type-uuid-prop
       $features:
@@ -154,8 +156,12 @@ definitions:
         additionalProperties: false
         minProperties: 1
     required:
-      - native-byte-order
       - data-stream-types
+    oneOf:
+      - required:
+        - trace-byte-order
+      - required:
+        - native-byte-order
     additionalProperties: false
   clock-type:
     title: Clock type object
