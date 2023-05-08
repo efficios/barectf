@@ -3,7 +3,7 @@
 == Requirements
 
 barectf{nbsp}{page-component-version} requires
-http://python.org/[Python]{nbsp}3.6 and pip for Python{nbsp}3.
+http://python.org/[Python]{nbsp}3.8 and pip for Python{nbsp}3.
 
 You can install barectf on Linux, macOS, or Windows.
 
