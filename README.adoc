@@ -13,7 +13,7 @@ Philippe Proulx
 image::https://barectf.org/barectf-logo.svg[{nbsp}]
 
 https://pypi.python.org/pypi/barectf[image:https://img.shields.io/pypi/v/barectf.svg[]]
-https://ci.lttng.org/job/barectf_stable-{version}_build[image:https://img.shields.io/jenkins/s/https/ci.lttng.org/barectf_stable-{version}_build.svg[]]
+https://ci.lttng.org/view/barectf/job/barectf_stable-{version}_linuxbuild/[image:https://img.shields.io/jenkins/build?jobUrl=https%3A%2F%2Fci.lttng.org%2Fview%2Fbarectf%2Fjob%2Fbarectf_stable-{version}_linuxbuild%2F[]]
 
 [.lead]
 https://barectf.org/[**_barectf_**] (from _bare_ metal and _CTF_)
