@@ -94,7 +94,7 @@ class _Op:
 # The templates of a compound operation handles its suboperations.
 class _CompoundOp(_Op):
     def __init__(self, ft: barectf_config._FieldType, names: List[str], level: Count,
-                 templates: _OpTemplates, subops: List[Any] = None):
+                 templates: _OpTemplates, subops: Optional[List[Any]] = None):
         super().__init__(ft, names, level, templates)
         self._subops = subops
 
