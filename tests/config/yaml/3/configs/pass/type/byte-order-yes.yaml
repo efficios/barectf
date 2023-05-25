@@ -23,12 +23,12 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # Tests that configuration parsing succeeds if only one trace type byte
-# order property exists (`trace-byte-order` in this case).
+# order property exists (`native-byte-order` in this case).
 %YAML 1.2
 --- !<tag:barectf.org,2020/3/config>
 trace:
   type:
-    trace-byte-order: big-endian
+    native-byte-order: big-endian
     data-stream-types:
       my_stream:
         $is-default: true
