@@ -60,6 +60,7 @@ def pytest_collect_file(parent, path):
         'basic',
         'counter-clock',
         'basic-extra-pc-ft-members',
+        'packet-set-buf',
     }
 
     if cat not in valid_cats or os.path.basename(configs_dir) != 'configs':
