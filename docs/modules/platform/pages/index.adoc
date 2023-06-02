@@ -83,11 +83,11 @@ returns the requested barectf context pointer.
 
 See xref:example.adoc[] for a complete barectf platform example.
 
-== YAML configuration file recommandation
+== YAML configuration file recommendation
 
 The barectf project recommends that you create a
 partial YAML file containing a base xref:yaml:trace-type-obj.adoc[trace
-type object] as its document for your platform.
+type object] for your platform.
 
 This platform's base trace type object can be configured so that it
 matches what your platform expects, for example:
