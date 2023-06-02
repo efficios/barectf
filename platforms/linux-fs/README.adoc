@@ -38,7 +38,7 @@ trace:
   type:
     $include:
       - stdint.yaml
-    target-byte-order: le
+    native-byte-order: le
     clock-types:
       default:
         $c-type: uint64_t
@@ -166,7 +166,7 @@ trace:
   type:
     $include:
       - stdint.yaml
-    target-byte-order: le
+    native-byte-order: le
     clock-types:
       default:
         $c-type: uint64_t
