@@ -71,9 +71,9 @@ xref:ctf-primer.adoc#pkt[packets]. Those CTF data streams and the
 generated <<metadata,CTF metadata stream>> form a complete
 xref:ctf-primer.adoc#trace[CTF trace].
 
-How exactly the event timestamps are sourced and the CTF packets are
-appended to some file or memory buffer is controlled by the
-xref:platform:index.adoc[**platform**].
+The specifics of how the event timestamps are sampled and how the CTF
+packets are appended to some file (or memory buffer) is controlled by
+the xref:platform:index.adoc[**platform**].
 
 == Data flow
 
