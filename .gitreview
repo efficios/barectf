@@ -2,6 +2,6 @@
 host=review.lttng.org
 port=29418
 project=barectf.git
-defaultbranch=master
+defaultbranch=stable-3.1
 defaultremote=review
 defaultrebase=0
