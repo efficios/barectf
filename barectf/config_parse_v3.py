@@ -50,8 +50,6 @@ class _Parser(barectf_config_parse_common._Parser):
     def __init__(self, root_file: TextIO, node: barectf_config_parse_common._ConfigNodeV3,
                  with_pkg_include_dir: bool, inclusion_dirs: Optional[List[str]],
                  ignore_include_not_found: bool):
-        super().__init__(root_file, node, with_pkg_include_dir, inclusion_dirs,
-                         ignore_include_not_found, VersionNumber(3))
         self._ft_cls_name_to_create_method: Dict[str, Callable[[_MapNode],
                                                                List[barectf_config._FieldType]]] = {
             'unsigned-integer': self._create_int_ft,
@@ -64,7 +62,8 @@ class _Parser(barectf_config_parse_common._Parser):
             'dynamic-array': self._create_dynamic_array_ft,
             'structure': self._create_struct_ft,
         }
-        self._parse()
+        super().__init__(root_file, node, with_pkg_include_dir, inclusion_dirs,
+                         ignore_include_not_found, VersionNumber(3))
 
     # Validates the alignment `alignment`, raising a
     # `_ConfigurationParseError` exception using `ctx_obj_name` if it's

@@ -21,7 +21,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import pkg_resources
+import importlib.resources
 import collections
 import jsonschema  # type: ignore
 import os.path
@@ -126,18 +126,17 @@ _MapNode = MutableMapping[str, Any]
 # validate as well as a schema short ID.
 class _SchemaValidator:
     def __init__(self, subdirs: Iterable[str]):
-        schemas_dir = pkg_resources.resource_filename(__name__, 'schemas')
+        schemas_dir_ref = importlib.resources.files(__name__).joinpath('schemas')
         self._store: Dict[str, str] = {}
 
         for subdir in subdirs:
-            dir = os.path.join(schemas_dir, subdir)
+            subdir_ref = schemas_dir_ref.joinpath(subdir)
 
-            for file_name in os.listdir(dir):
-                if not file_name.endswith('.yaml'):
+            for item in subdir_ref.iterdir():
+                if not item.name.endswith('.yaml'):
                     continue
 
-                with open(os.path.join(dir, file_name)) as f:
-                    schema = yaml.load(f, Loader=yaml.SafeLoader)
+                schema = yaml.load(item.read_text(), Loader=yaml.SafeLoader)
 
                 assert '$id' in schema
                 schema_id = schema['$id']
@@ -326,6 +325,15 @@ class _Parser:
     # package inclusion directory as well as `include_dirs`, and ignores
     # nonexistent inclusion files if `ignore_include_not_found` is
     # `True`.
+    #
+    # This constructor calls self._parse() (template method pattern).
+    # When `with_pkg_include_dir` is `True`, self._parse() is called
+    # within an `importlib.resources.as_file()` context manager to
+    # ensure the package inclusion directory is available on disk.
+    #
+    # Concrete `_Parser` subclasses must set up any specific state
+    # _before_ calling this constructor and must not call self._parse()
+    # themselves.
     def __init__(self, root_file: TextIO, node: Union[_MapNode, _ConfigNodeV3],
                  with_pkg_include_dir: bool, include_dirs: Optional[List[str]],
                  ignore_include_not_found: bool, major_version: VersionNumber):
@@ -348,15 +356,20 @@ class _Parser:
             include_dirs = []
 
         self._include_dirs = copy.copy(include_dirs)
-
-        if with_pkg_include_dir:
-            self._include_dirs.append(pkg_resources.resource_filename(__name__, f'include/{major_version}'))
-
         self._ignore_include_not_found = ignore_include_not_found
         self._include_stack: List[str] = []
         self._resolved_ft_aliases: Set[str] = set()
         self._schema_validator = _SchemaValidator({'config/common', f'config/{major_version}'})
         self._major_version = major_version
+
+        if with_pkg_include_dir:
+            pkg_include_dir_ref = importlib.resources.files(__name__).joinpath(f'include/{major_version}')
+
+            with importlib.resources.as_file(pkg_include_dir_ref) as pkg_include_dir:
+                self._include_dirs.append(str(pkg_include_dir))
+                self._parse()
+        else:
+            self._parse()
 
     @property
     def root_node(self):

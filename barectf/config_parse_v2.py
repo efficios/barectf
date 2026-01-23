@@ -68,8 +68,6 @@ class _Parser(config_parse_common._Parser):
     # object `root_file`).
     def __init__(self, root_file: TextIO, node: _MapNode, with_pkg_include_dir: bool,
                  include_dirs: Optional[List[str]], ignore_include_not_found: bool):
-        super().__init__(root_file, node, with_pkg_include_dir, include_dirs,
-                         ignore_include_not_found, VersionNumber(2))
         self._ft_cls_name_to_conv_method: Dict[str, Callable[[_MapNode], _MapNode]] = {
             'int': self._conv_int_ft_node,
             'integer': self._conv_int_ft_node,
@@ -84,7 +82,8 @@ class _Parser(config_parse_common._Parser):
             'struct': self._conv_struct_ft_node,
             'structure': self._conv_struct_ft_node,
         }
-        self._parse()
+        super().__init__(root_file, node, with_pkg_include_dir, include_dirs,
+                         ignore_include_not_found, VersionNumber(2))
 
     # Converts a v2 field type node to a v3 field type node and returns
     # it.

@@ -53,11 +53,10 @@ classifiers = [
 packages = [{include = 'barectf'}]
 
 [tool.poetry.dependencies]
-python = '^3.8'
+python = '^3.9'
 termcolor = '^1.1'
 pyyaml = '^6.0'
 jsonschema = '^3.2'
-setuptools = '*'
 jinja2 = '^3.0'
 
 [tool.poetry.dev-dependencies]
