@@ -30,10 +30,10 @@ import subprocess
 import tempfile
 
 
-def pytest_collect_file(parent, path):
+def pytest_collect_file(parent, file_path):
     yaml_ext = '.yaml'
 
-    if path.ext != yaml_ext:
+    if file_path.suffix != yaml_ext:
         # not a YAML file: cancel
         return
 
@@ -49,13 +49,12 @@ def pytest_collect_file(parent, path):
     #
     # `file_name`:
     #     `of-str.yaml`
-    path_str = str(path)
-    file_name = os.path.basename(path_str)
-    subcat_dir = os.path.dirname(path_str)
-    subcat = os.path.basename(subcat_dir)
-    cat_dir = os.path.dirname(subcat_dir)
-    cat = os.path.basename(cat_dir)
-    configs_dir = os.path.dirname(cat_dir)
+    file_name = file_path.name
+    subcat_dir = file_path.parent
+    subcat = subcat_dir.name
+    cat_dir = subcat_dir.parent
+    cat = cat_dir.name
+    configs_dir = cat_dir.parent
     valid_cats = {
         'basic',
         'counter-clock',
@@ -63,22 +62,20 @@ def pytest_collect_file(parent, path):
         'packet-set-buf',
     }
 
-    if cat not in valid_cats or os.path.basename(configs_dir) != 'configs':
+    if cat not in valid_cats or configs_dir.name != 'configs':
         # not a YAML configuration test
         return
 
     # create C source, expectation file, and support directory paths
-    base_dir = os.path.dirname(configs_dir)
+    base_dir = configs_dir.parent
     base_name = file_name.replace(yaml_ext, '')
-    subcat_rel_dir = os.path.join(cat, subcat)
-    src_path = os.path.join(base_dir, 'src', subcat_rel_dir, f'{base_name}.c')
-    data_expect_path = os.path.join(base_dir, 'expect', subcat_rel_dir, f'{base_name}.data.expect')
-    metadata_expect_path = os.path.join(base_dir, 'expect', subcat_rel_dir,
-                                        f'{base_name}.metadata.expect')
-    support_dir_path = os.path.join(base_dir, 'support', cat)
+    src_path = base_dir / 'src' / cat / subcat / f'{base_name}.c'
+    data_expect_path = base_dir / 'expect' / cat / subcat / f'{base_name}.data.expect'
+    metadata_expect_path = base_dir / 'expect' / cat / subcat / f'{base_name}.metadata.expect'
+    support_dir_path = base_dir / 'support' / cat
 
     # create the file node
-    return _YamlFile.from_parent(parent, fspath=path, src_path=src_path,
+    return _YamlFile.from_parent(parent, path=file_path, src_path=src_path,
                                  data_expect_path=data_expect_path,
                                  metadata_expect_path=metadata_expect_path,
                                  support_dir_path=support_dir_path,
@@ -86,9 +83,9 @@ def pytest_collect_file(parent, path):
 
 
 class _YamlFile(pytest.File):
-    def __init__(self, parent, fspath, src_path, data_expect_path, metadata_expect_path,
-                 support_dir_path, name):
-        super().__init__(parent=parent, fspath=fspath)
+    def __init__(self, *, src_path, data_expect_path, metadata_expect_path,
+                 support_dir_path, name, **kwargs):
+        super().__init__(**kwargs)
         self._name = name
         self._src_path = src_path
         self._data_expect_path = data_expect_path
@@ -104,9 +101,9 @@ class _YamlFile(pytest.File):
 
 
 class _YamlItem(pytest.Item):
-    def __init__(self, parent, name, src_path, data_expect_path, metadata_expect_path,
-                 support_dir_path):
-        super().__init__(parent=parent, name=name)
+    def __init__(self, *, src_path, data_expect_path, metadata_expect_path,
+                 support_dir_path, **kwargs):
+        super().__init__(**kwargs)
         self._src_path = src_path
         self._data_expect_path = data_expect_path
         self._metadata_expect_path = metadata_expect_path
@@ -117,7 +114,7 @@ class _YamlItem(pytest.Item):
         tmpdir = tempfile.TemporaryDirectory(prefix='pytest-barectf')
 
         # create barectf configuration
-        with open(self.fspath) as f:
+        with open(self.path) as f:
             cfg = barectf.configuration_from_file(f, inclusion_directories=[self._support_dir_path])
 
         # generate and write C code files
@@ -194,7 +191,7 @@ class _YamlItem(pytest.Item):
         tmpdir.cleanup()
 
     def repr_failure(self, excinfo, style=None):
-        return f'`{self.fspath}` failed: {excinfo}.'
+        return f'`{self.path}` failed: {excinfo}.'
 
     def reportinfo(self):
-        return self.fspath, None, self.name
+        return self.path, None, self.name

@@ -22,18 +22,17 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import pytest
-import os.path
 import barectf
 
 
-def pytest_collect_file(parent, path):
+def pytest_collect_file(parent, file_path):
     yaml_ext = '.yaml'
 
-    if path.ext != yaml_ext:
+    if file_path.suffix != yaml_ext:
         # not a YAML file: cancel
         return
 
-    if path.fnmatch('*.inc.yaml'):
+    if file_path.match('*.inc.yaml'):
         # not a top-level test file (partial inclusion YAML file)
         return
 
@@ -44,26 +43,26 @@ def pytest_collect_file(parent, path):
     # * `pct-no.yaml`
     # * `stream`
     # * `fail`
-    path_str = str(path)
+    elem_path = file_path
     elems = []
 
     while True:
-        elem = os.path.basename(path_str)
+        elem = elem_path.name
 
         if elem == 'configs':
             break
 
         elems.append(elem)
-        path_str = os.path.dirname(path_str)
+        elem_path = elem_path.parent
 
     # create a unique test name
     name = f'test-{"-".join(reversed(elems))}'.replace(yaml_ext, '')
 
     # create the file node
     if 'fail' in elems:
-        return _YamlFileFail.from_parent(parent, fspath=path, name=name)
+        return _YamlFileFail.from_parent(parent, path=file_path, name=name)
     elif 'pass' in elems:
-        return _YamlFilePass.from_parent(parent, fspath=path, name=name)
+        return _YamlFilePass.from_parent(parent, path=file_path, name=name)
     else:
         # YAML file is not a test case
         return
@@ -98,8 +97,8 @@ class _YamlItemPass(_YamlItem):
 
 
 class _YamlFile(pytest.File):
-    def __init__(self, parent, fspath, name):
-        super().__init__(parent=parent, fspath=fspath)
+    def __init__(self, *, name, **kwargs):
+        super().__init__(**kwargs)
         self._name = name
 
     def collect(self):
